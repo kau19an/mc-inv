@@ -64,15 +64,20 @@ export const official: Source = {
       else await writeFileDeep(join(outDir, name), data);
     }
 
-    // 2. os outros idiomas não vêm no jar: estão no índice de assets (endereçados pelo sha-1)
+    // 2. o que não vem no jar fica no índice de assets (endereçado pelo sha-1): os outros idiomas,
+    // o programmer art (minecraft/resourcepacks/programmer_art.zip) e eventuais arquivos de KEEP_PREFIXES
     const index = await fetchJson<AssetIndex>(pkg.assetIndex.url, pkg.assetIndex.sha1);
-    // "minecraft/lang/pt_br.json" (atual) ou "lang/pt_BR.lang" (versões antigas)
-    const langObjects = Object.entries(index.objects).filter(
-      ([key]) => /(^|\/)lang\/[^/]+\.(json|lang)$/.test(key) && wantsLocale(locales, basename(key)),
-    );
-    for (const [key, { hash }] of langObjects) {
-      const data = await fetchBuffer(`${RESOURCES_URL}/${hash.slice(0, 2)}/${hash}`, hash);
-      await writeFileDeep(join(outDir, 'assets/minecraft/lang', basename(key)), data);
+    const download = (hash: string) => fetchBuffer(`${RESOURCES_URL}/${hash.slice(0, 2)}/${hash}`, hash);
+
+    for (const [key, { hash }] of Object.entries(index.objects)) {
+      // "minecraft/lang/pt_br.json" (atual) ou "lang/pt_BR.lang" (versões antigas)
+      if (/(^|\/)lang\/[^/]+\.(json|lang)$/.test(key)) {
+        if (wantsLocale(locales, basename(key))) await writeFileDeep(join(outDir, 'assets/minecraft/lang', basename(key)), await download(hash));
+      } else if (isProgrammerArt(key)) {
+        programmerArt ??= await download(hash);
+      } else if (isKept(`assets/${key}`)) {
+        await writeFileDeep(join(outDir, 'assets', key), await download(hash));
+      }
     }
 
     return { programmerArt };
