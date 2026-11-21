@@ -11,7 +11,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "astro": "astro"
+    "astro": "astro",
+    "data": "node scripts/data/index.ts"
   },
   "dependencies": {
     "@astrojs/preact": "^6.1.6",
@@ -22,6 +23,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@types/node": "^26.6.6",
+    "fflate": "^0.8.3",
     "typescript": "^5.9.3"
   }
 }

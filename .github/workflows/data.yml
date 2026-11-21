@@ -1,0 +1,56 @@
+# pipeline de dados do jogo: baixa o jar oficial da mojang e extrai os arquivos do inventário.
+# fase 2.1: só extrai e mostra o resumo (ainda não commita nada; isso entra quando houver dados processados)
+name: Dados do jogo
+
+on:
+  push:
+    branches: [project/mc-inv]
+    paths:
+      - 'scripts/data/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/data.yml'
+
+permissions:
+  contents: read
+
+# dois pushes seguidos: o mais novo cancela o anterior
+concurrency:
+  group: data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - run: npm ci
+
+      # o jar fica em cache entre execuções (a chave muda só se o script mudar)
+      - uses: actions/cache@v4
+        with:
+          path: .cache/jars
+          key: jars-${{ hashFiles('scripts/data/**') }}
+          restore-keys: jars-
+
+      - name: Extrair versões acompanhadas (última release + último snapshot)
+        run: npm run data -- --source=official
+
+      - name: Resumo
+        run: |
+          {
+            echo '## Versões extraídas'
+            echo
+            for meta in .cache/versions/*/meta.json; do
+              echo '```json'
+              cat "$meta"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
