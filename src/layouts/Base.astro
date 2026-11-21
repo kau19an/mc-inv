@@ -15,6 +15,7 @@ const siteName = 'Faariaz';
 // mesmo padrão do site principal: "(página) - Faariaz"
 const title = pageName ? `${pageName} - ${siteName}` : siteName;
 const origin = Astro.site?.origin ?? Astro.url.origin;
+// canonical só em página indexável (404 e páginas noindex não têm "versão oficial")
 const canonical = new URL(Astro.url.pathname, origin).href;
 ---
 
@@ -27,7 +28,7 @@ const canonical = new URL(Astro.url.pathname, origin).href;
     {description && <meta name="description" content={description} />}
     <meta name="author" content="Kauan Farias" />
     <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'} />
-    <link rel="canonical" href={canonical} />
+    {!noindex && <link rel="canonical" href={canonical} />}
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={siteName} />
