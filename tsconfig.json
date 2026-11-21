@@ -1,0 +1,12 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"],
+  "compilerOptions": {
+    // jsx do preact (o integration já cuida do resto)
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    // atalho pra importar de src sem ../../..
+    "paths": { "@/*": ["./src/*"] }
+  }
+}

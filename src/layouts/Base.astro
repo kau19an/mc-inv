@@ -1,0 +1,46 @@
+---
+// layout base do mc.faariaz.com: <head> (seo, og) e o esqueleto da página
+import '@/styles/global.css';
+
+interface Props {
+  title?: string; // nome da página (sem ele, o título é só o nome do site)
+  description?: string; // sem descrição, as metas de description simplesmente não são emitidas
+  noindex?: boolean; // em construção, 404 etc
+  ogImage?: string; // url absoluta (1200x630 ideal)
+  ogImageAlt?: string; // descrição da imagem (acessibilidade/redes sociais)
+}
+
+const { title: pageName, description, noindex = false, ogImage, ogImageAlt } = Astro.props;
+const siteName = 'Faariaz';
+// mesmo padrão do site principal: "(página) - Faariaz"
+const title = pageName ? `${pageName} - ${siteName}` : siteName;
+const origin = Astro.site?.origin ?? Astro.url.origin;
+const canonical = new URL(Astro.url.pathname, origin).href;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <meta name="author" content="Kauan Farias" />
+    <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content={title} />
+    <meta property="og:url" content={canonical} />
+    {description && <meta property="og:description" content={description} />}
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && ogImageAlt && <meta property="og:image:alt" content={ogImageAlt} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:creator" content="@kau19an" />
+  </head>
+  <body class="min-h-dvh bg-neutral-900 text-neutral-100 antialiased">
+    <slot />
+  </body>
+</html>

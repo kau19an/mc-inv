@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+
+/* o jogo é pixel art: nada de suavizar imagem ampliada */
+img,
+canvas {
+  image-rendering: pixelated;
+}
