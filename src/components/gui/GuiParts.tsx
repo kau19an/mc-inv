@@ -18,14 +18,17 @@ export const gameText: Record<string, string> = { fontFamily: "'Minecraft GUI', 
 export const FRAME_CLASS = '[border-image-source:var(--frame)] [image-rendering:pixelated]';
 export const FRAME_HOVER_CLASS = 'hover:[border-image-source:var(--frame-hover)] focus-visible:[border-image-source:var(--frame-hover)]';
 
+// imagem da moldura: embutida no gui.json (data url) ou, em versões antigas, o arquivo frames/<nome>.png
+const frameUrl = (data: VersionData, name: string) => `url("${data.gui.frames?.[name]?.src ?? `${data.baseUrl}/frames/${name}.png`}")`;
+
 export function frameStyle(data: VersionData, name: string, hover?: string): Record<string, string> {
   const frame = data.gui.frames?.[name];
   if (!frame) return {};
-  const url = (file: string) => `url("${data.baseUrl}/frames/${file}.png")`;
   return {
-    '--frame': url(name),
-    ...(hover && data.gui.frames?.[hover] ? { '--frame-hover': url(hover) } : {}),
+    '--frame': frameUrl(data, name),
+    ...(hover && data.gui.frames?.[hover] ? { '--frame-hover': frameUrl(data, hover) } : {}),
     borderStyle: 'solid',
+    borderColor: 'transparent', // se a imagem falhar, a borda some em vez de virar um contorno na cor do texto
     borderWidth: u(frame.border),
     borderImageSlice: `${frame.border} fill`,
     borderImageRepeat: 'repeat',
@@ -90,13 +93,12 @@ export function GuiButton({ data, label, width, height = 20, style, class: class
 
 // botão "x" do jogo (widget/cross_button, 14×14)
 export function CrossButton({ data, label, onClick, style }: { data: VersionData; label: string; onClick: () => void; style?: Record<string, string> }) {
-  const url = (file: string) => `url("${data.baseUrl}/frames/${file}.png")`;
   return (
     <button
       type="button"
       aria-label={label}
       class="cursor-pointer bg-size-[100%_100%] [background-image:var(--frame)] [image-rendering:pixelated] outline-none hover:[background-image:var(--frame-hover)] focus-visible:[background-image:var(--frame-hover)]"
-      style={{ '--frame': url('cross_button'), '--frame-hover': url('cross_button_highlighted'), width: u(14), height: u(14), ...style }}
+      style={{ '--frame': frameUrl(data, 'cross_button'), '--frame-hover': frameUrl(data, 'cross_button_highlighted'), width: u(14), height: u(14), ...style }}
       onClick={onClick}
     />
   );

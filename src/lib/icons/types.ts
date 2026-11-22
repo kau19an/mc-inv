@@ -41,6 +41,7 @@ export interface BlockModel {
   elements: Element[];
   gui: GuiTransform;
   light: 'side' | 'front';
+  local?: LocalTransform[]; // "transformation" da definição do item, da de fora pra de dentro (ex.: o pé da cama)
 }
 
 // vários modelos sobrepostos (ex.: modelo "composite")

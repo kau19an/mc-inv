@@ -2,7 +2,8 @@
 //   gui.webp     atlas com fundos das abas, abas, barra de rolagem e destaque do slot
 //   gui.json     posição de cada imagem no atlas + definição da fonte (provedores bitmap e espaços)
 //   font/*.png   as folhas de caracteres da fonte (bitmap) + font/minecraft.woff2 (a mesma fonte, como fonte web)
-//   frames/*.png molduras "nine slice" pro html (painel, slot, botões, tooltip), usadas com border-image
+//   molduras "nine slice" pro html (painel, slot, botões, tooltip) vão dentro do gui.json, em base64: são poucos
+//   kb, e sem arquivo separado não tem requisição que possa falhar (moldura que não carrega vira borda branca)
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
@@ -61,7 +62,7 @@ function panelFrame(background: PNG, width: number, height: number): PNG {
   return out;
 }
 
-export async function buildGuiBundle(versionDir: string, backgrounds: string[]): Promise<{ bundle: GuiBundle; atlas: Buffer; fontFiles: Record<string, Buffer>; frameFiles: Record<string, Buffer> }> {
+export async function buildGuiBundle(versionDir: string, backgrounds: string[]): Promise<{ bundle: GuiBundle; atlas: Buffer; fontFiles: Record<string, Buffer> }> {
   const assets = join(versionDir, 'assets/minecraft');
   const images = new Map<string, PNG>();
   for (const path of wantedImages(backgrounds)) {
@@ -117,7 +118,7 @@ export async function buildGuiBundle(versionDir: string, backgrounds: string[]):
 
   // molduras pro html
   const frames: Record<string, FrameInfo> = {};
-  const frameFiles: Record<string, Buffer> = {};
+  const dataUrl = (png: Buffer) => `data:image/png;base64,${png.toString('base64')}`;
   for (const [name, sprite] of Object.entries(FRAME_SPRITES)) {
     const file = join(assets, `${SPRITES}${sprite}.png`);
     if (!existsSync(file)) continue;
@@ -126,13 +127,11 @@ export async function buildGuiBundle(versionDir: string, backgrounds: string[]):
     const scaling = meta.gui?.scaling;
     // o slot não tem .mcmeta: a borda em relevo dele tem 1 px
     const border = scaling?.type === 'nine_slice' ? (typeof scaling.border === 'number' ? scaling.border : scaling.border.left) : name === 'slot' ? 1 : 0;
-    frames[name] = { width: png.width, height: png.height, border };
-    frameFiles[`${name}.png`] = readFileSync(file);
+    frames[name] = { width: png.width, height: png.height, border, src: dataUrl(readFileSync(file)) };
   }
   const panelBackground = backgrounds.map((id) => id.replace(/^minecraft:/, '').replace(/\.png$/, '')).find((path) => path.endsWith('tab_items')) ?? backgrounds[0]!.replace(/^minecraft:/, '').replace(/\.png$/, '');
   const panel = panelFrame(images.get(panelBackground.replace('textures/gui/', ''))!, 195, 136);
-  frames.panel = { width: panel.width, height: panel.height, border: PANEL_BORDER };
-  frameFiles['panel.png'] = PNG.sync.write(panel);
+  frames.panel = { width: panel.width, height: panel.height, border: PANEL_BORDER, src: dataUrl(PNG.sync.write(panel)) };
 
-  return { bundle: { images: rects, font, frames }, atlas: PNG.sync.write(atlas), fontFiles, frameFiles };
+  return { bundle: { images: rects, font, frames }, atlas: PNG.sync.write(atlas), fontFiles };
 }

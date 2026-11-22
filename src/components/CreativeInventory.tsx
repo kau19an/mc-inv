@@ -140,6 +140,8 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   }, []);
   const [focusedSlot, setFocusedSlot] = useState(0);
   const [searchFocused, setSearchFocused] = useState(false);
+  // seleção e rolagem da caixa de pesquisa de verdade (invisível), pra desenhar igual ao jogo no canvas
+  const [searchView, setSearchView] = useState({ start: 0, end: 0, backward: false, scroll: 0 });
   const [caretVisible, setCaretVisible] = useState(true);
   const [metrics, setMetrics] = useState<Metrics>({ scale: 2, dpr: 1 });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -267,11 +269,43 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     data.tabs.forEach((candidate) => candidate !== tab && tabSprite(candidate, false));
     sprite(tab.background.replace(/^minecraft:textures\/gui\//, '').replace(/\.png$/, ''), 0, TOP, CREATIVE.width, CREATIVE.height);
 
+    // caixa de pesquisa (EditBox): texto branco com sombra, rolado junto com a caixa de verdade; cursor "_" no
+    // fim ou uma barra fina no meio do texto; seleção desenhada como o jogo: azul com as cores de baixo invertidas
     if (tab.type === 'search') {
-      const caret = searchFocused && caretVisible ? '_' : '';
-      let text = query;
-      while (text && data.font.width(text + caret) > CREATIVE.searchWidth) text = text.slice(1);
-      data.font.draw(ctx, text + caret, CREATIVE.searchX, TOP + CREATIVE.searchY, { color: 0xffffff, shadow: true, scale });
+      const left = CREATIVE.searchX;
+      const right = left + CREATIVE.searchWidth;
+      const y = TOP + CREATIVE.searchY;
+      const textX = left - searchView.scroll;
+      const widthTo = (index: number) => data.font.width(query.slice(0, index));
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(left * scale, (y - 1) * scale, CREATIVE.searchWidth * scale, 11 * scale);
+      ctx.clip();
+      data.font.draw(ctx, query, textX, y, { color: 0xffffff, shadow: true, scale });
+      const { start, end } = searchView;
+      if (searchFocused && start !== end) {
+        const x1 = Math.max(left, textX + widthTo(start));
+        const x2 = Math.min(right, textX + widthTo(end));
+        if (x2 > x1) {
+          // RenderPipelines.GUI_TEXT_HIGHLIGHT: cor azul com a operação lógica "ou invertido" (azul | ~fundo)
+          const area = ctx.getImageData(x1 * scale, (y - 1) * scale, (x2 - x1) * scale, 11 * scale);
+          for (let i = 0; i < area.data.length; i += 4) {
+            area.data[i] = 255 - area.data[i]!;
+            area.data[i + 1] = 255 - area.data[i + 1]!;
+            area.data[i + 2] = 255;
+          }
+          ctx.putImageData(area, x1 * scale, (y - 1) * scale);
+        }
+      } else if (searchFocused && caretVisible) {
+        const cursorX = textX + widthTo(start);
+        if (start < query.length || query.length >= SEARCH_MAX_LENGTH) {
+          ctx.fillStyle = '#d0d0d0';
+          ctx.fillRect((cursorX - 1) * scale, (y - 1) * scale, scale, 11 * scale);
+        } else {
+          data.font.draw(ctx, '_', cursorX, y, { color: 0xffffff, shadow: true, scale });
+        }
+      }
+      ctx.restore();
     }
     if (tab.showTitle) data.font.draw(ctx, textOf(data, tab.name), CREATIVE.titleX, TOP + CREATIVE.titleY, { color: CREATIVE.titleColor, scale });
     if (tab.canScroll) sprite(`sprites/container/creative_inventory/${rows > 0 ? 'scroller' : 'scroller_disabled'}`, CREATIVE.scrollerX, scrollerY(scroll));
@@ -301,7 +335,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     }
 
     tabSprite(tab, true);
-  }, [data, tab, metrics, scroll, rows, visible.join(), hovered, hoveredInventorySlot, selectedKey, query, searchFocused, caretVisible]);
+  }, [data, tab, metrics, scroll, rows, visible.join(), hovered, hoveredInventorySlot, selectedKey, query, searchFocused, caretVisible, searchView]);
 
   // aba "Inventário": o jogador olha pro último ponteiro (mouse ou dedo) e "respira" (balanço dos braços),
   // redesenhado a cada quadro num canvas próprio, por cima do fundo
@@ -418,6 +452,21 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     const route = parseRoute(window.location.pathname, new Set(data.tabs.map((candidate) => candidate.id)), new Set(Object.keys(data.items).map(baseId)));
     document.title = titleOf(route ?? { kind: 'home' });
   }, [data?.locale]);
+
+  // lê seleção, direção e rolagem da caixa de pesquisa de verdade (rolagem convertida pra pixels da gui)
+  const syncSearchView = () => {
+    const input = searchRef.current;
+    if (!input) return;
+    const scrollGui = (input.scrollLeft * ((8 * unit) / 16)) / unit;
+    setSearchView({ start: input.selectionStart ?? 0, end: input.selectionEnd ?? 0, backward: input.selectionDirection === 'backward', scroll: Math.round(scrollGui) });
+  };
+
+  // a seleção também muda pelo teclado (shift + setas) e pelo arraste do mouse
+  useEffect(() => {
+    const onSelectionChange = () => document.activeElement === searchRef.current && syncSearchView();
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => document.removeEventListener('selectionchange', onSelectionChange);
+  });
 
   // foco pelo teclado (não pelo clique) também mostra a tooltip, ancorada no centro do elemento
   const focusTooltip = (element: HTMLElement, then?: () => void) => {
@@ -598,6 +647,22 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     return lines;
   })();
 
+  // a caixa de pesquisa de verdade usa a fonte do jogo, do mesmo tamanho do canvas: clicar no texto põe o cursor
+  // no lugar certo e a rolagem dela vale pro desenho. fonte de 16 px encolhida por escala (abaixo de 16 px, o
+  // iphone dá zoom na página ao focar a caixa)
+  const searchScale = (8 * unit) / 16;
+  const searchInputStyle: Record<string, string> = {
+    left: `${CREATIVE.searchX * unit}px`,
+    top: `${(TOP + CREATIVE.searchY - 1) * unit}px`,
+    width: `${(CREATIVE.searchWidth * unit) / searchScale}px`,
+    height: `${(11 * unit) / searchScale}px`,
+    transform: `scale(${searchScale})`,
+    fontFamily: "'Minecraft GUI', monospace",
+    fontSize: '16px',
+    lineHeight: `${(11 * unit) / searchScale}px`,
+    letterSpacing: '0',
+  };
+
   const inventoryHeight = `${CANVAS_HEIGHT * unit}px`;
 
   return (
@@ -647,14 +712,22 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
               autoComplete="off"
               spellcheck={false}
               enterKeyHint="search"
-              class="absolute appearance-none border-0 bg-transparent p-0 text-base text-transparent caret-transparent outline-none"
-              style={box(CREATIVE.searchX, TOP + CREATIVE.searchY - 1, CREATIVE.searchWidth, CREATIVE.searchHeight + 2)}
+              class="absolute origin-top-left cursor-text appearance-none border-0 bg-transparent p-0 text-transparent caret-transparent outline-none selection:bg-transparent selection:text-transparent"
+              style={searchInputStyle}
               onInput={(event) => {
                 setQuery(event.currentTarget.value.slice(0, SEARCH_MAX_LENGTH));
                 setScroll(0);
                 setFocusedSlot(0);
+                syncSearchView();
               }}
-              onFocus={() => setSearchFocused(true)}
+              onSelect={syncSearchView}
+              onScroll={syncSearchView}
+              onKeyUp={syncSearchView}
+              onPointerUp={syncSearchView}
+              onFocus={() => {
+                setSearchFocused(true);
+                syncSearchView();
+              }}
               onBlur={() => setSearchFocused(false)}
             />
           )}
@@ -755,7 +828,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
               aria-valuemax={rows}
               aria-valuenow={first}
               aria-label={strings.scroll}
-              class="absolute"
+              class={`absolute ${rows > 0 ? 'cursor-ns-resize' : 'cursor-not-allowed'}`}
               style={box(CREATIVE.scrollerX, TOP + CREATIVE.scrollerY, CREATIVE.scrollerWidth, CREATIVE.scrollerTrack)}
               onPointerDown={onScrollbarPointerDown}
               onPointerMove={onScrollbarPointerMove}

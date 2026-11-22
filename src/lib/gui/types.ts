@@ -14,11 +14,12 @@ export interface FontDefinition {
   bitmaps: BitmapProvider[]; // na ordem do jogo: o primeiro que tiver o caractere ganha
 }
 
-// moldura "nine slice" pro html (frames/<nome>.png): cantos de `border` px fixos, o resto estica
+// moldura "nine slice" pro html: cantos de `border` px fixos, o resto estica. a imagem vem embutida (data url)
 export interface FrameInfo {
   width: number;
   height: number;
   border: number;
+  src?: string; // data:image/png;base64,… (versões publicadas antes disso usam frames/<nome>.png)
 }
 
 export interface GuiBundle {

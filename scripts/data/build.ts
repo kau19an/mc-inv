@@ -189,8 +189,6 @@ async function buildVersion(id: string) {
   await writeFile(join(outDir, 'gui.webp'), await toWebp(gui.atlas));
   await mkdir(join(outDir, 'font'), { recursive: true });
   for (const [name, data] of Object.entries(gui.fontFiles)) await writeFile(join(outDir, 'font', name), data);
-  await mkdir(join(outDir, 'frames'), { recursive: true });
-  for (const [name, data] of Object.entries(gui.frameFiles)) await writeFile(join(outDir, 'frames', name), data);
 
   // modelo do jogador (aba "Inventário") + skins padrão: Steve (braços largos) e Alex (braços finos)
   const playerFile = join(versionDir, 'player.json');

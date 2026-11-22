@@ -10,6 +10,10 @@ on:
     branches: [project/mc-inv]
     paths:
       - 'scripts/data/**'
+      # arquivos do site que o build-data também usa (tipos, transformações, chaves de tradução da interface)
+      - 'src/lib/icons/**'
+      - 'src/lib/gui/types.ts'
+      - 'src/lib/gui/ui-keys.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/data.yml'

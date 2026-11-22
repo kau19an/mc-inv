@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import type { Element, Face, FaceName, GuiTransform, IconModel, LocalTransform, MeshQuad, SpecialModel, Texture, Tint, Vec3 } from '../../../src/lib/icons/types.ts';
+import { applyLocalChain } from '../../../src/lib/icons/transform.ts';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -67,7 +68,9 @@ export class IconResolver {
     switch (type) {
       case 'model': {
         tints.splice(0, tints.length, ...(node.tints ?? []).map((source: Json) => this.tint(source)));
-        return this.resolveModel(node.model);
+        const model = this.resolveModel(node.model);
+        // modelo de bloco com "transformation" no caminho (ex.: o pé da cama, 1 bloco pra trás da cabeceira)
+        return model.kind === 'block' && transforms.length ? { ...model, local: transforms } : model;
       }
       case 'condition':
         // condições (usando o item, quebrado, pescando…) são falsas num inventário parado
@@ -223,7 +226,7 @@ export class IconResolver {
     if (!mesh?.parts) return special;
     const { gui, light } = special.base ? this.guiOf(special.base) : { gui: IDENTITY_GUI, light: 'side' as const };
     // composição como no jogo (pai · filho): o ponto passa primeiro pela transformação mais de dentro
-    const transform = (point: Vec3) => special.transforms.reduceRight((current, local) => applyLocal(local, current), point);
+    const transform = (point: Vec3) => applyLocalChain(special.transforms, point);
     const quads: MeshQuad[] = [];
     mesh.parts.forEach((part, layer) => {
       const texture = part.texture ?? textureFromRenderType(part.renderType);
@@ -252,22 +255,6 @@ export class IconResolver {
 function textureFromRenderType(renderType: string): string | undefined {
   const match = /([a-z0-9_.-]+):textures\/([a-z0-9_/.-]+)\.png/.exec(renderType);
   return match ? `${match[1]}:${match[2]}` : undefined;
-}
-
-// rotação de um vetor por um quaternion [x, y, z, w]
-function rotate([qx, qy, qz, qw]: [number, number, number, number], [x, y, z]: Vec3): Vec3 {
-  const ix = qw * x + qy * z - qz * y;
-  const iy = qw * y + qz * x - qx * z;
-  const iz = qw * z + qx * y - qy * x;
-  const iw = -qx * x - qy * y - qz * z;
-  return [ix * qw + iw * -qx + iy * -qz - iz * -qy, iy * qw + iw * -qy + iz * -qx - ix * -qz, iz * qw + iw * -qz + ix * -qy - iy * -qx];
-}
-
-// transformação local do jogo (Transformation): translação · rotação esquerda · escala · rotação direita
-function applyLocal(local: LocalTransform, point: Vec3): Vec3 {
-  const [rx, ry, rz] = rotate(local.rightRotation, point);
-  const [lx, ly, lz] = rotate(local.leftRotation, [rx * local.scale[0], ry * local.scale[1], rz * local.scale[2]]);
-  return [lx + local.translation[0], ly + local.translation[1], lz + local.translation[2]];
 }
 
 // chave estável de um modelo especial: o mesmo json sempre vira a mesma chave
