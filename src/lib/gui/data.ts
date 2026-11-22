@@ -3,6 +3,7 @@ import { createTextureLookup, type AtlasPixels, type IconBundle } from '../icons
 import type { TextureLookup } from '../icons/types.ts';
 import type { TabInfo, TextComponent } from './creative.ts';
 import { loadFont, type BitmapFont } from './font.ts';
+import type { PlayerModels, Skin } from './player.ts';
 import type { GuiBundle } from './types.ts';
 
 export interface ItemInfo {
@@ -35,6 +36,12 @@ export interface VersionData {
   guiAtlas: ImageBitmap;
   font: BitmapFont;
   itemTags: Record<string, string[]>; // id do item (sem variante) → marcações
+  player: PlayerData | null; // aba "Inventário" (versões publicadas antes disso não têm)
+}
+
+export interface PlayerData {
+  models: PlayerModels;
+  defaultSkin: Skin; // Steve (braços largos): o jogo sem conta usa uma das skins padrão
 }
 
 interface VersionList {
@@ -101,7 +108,7 @@ export async function loadVersion(id: string, locale: Locale): Promise<VersionDa
   // tags.json vem como tag → itens; a pesquisa com "#" precisa do contrário
   const itemTags: Record<string, string[]> = {};
   for (const [tag, members] of Object.entries(tags)) for (const item of members) (itemTags[item] ??= []).push(tag);
-  const [font] = await Promise.all([loadFont(gui.font, base), loadFontFace(base)]);
+  const [font, , player] = await Promise.all([loadFont(gui.font, base), loadFontFace(base), loadPlayer(base)]);
   const langs = { pt_br: ptBr, en_us: enUs };
   const atlasPixels = pixelsOf(atlas);
   return {
@@ -121,7 +128,17 @@ export async function loadVersion(id: string, locale: Locale): Promise<VersionDa
     guiAtlas,
     font,
     itemTags,
+    player,
   };
+}
+
+async function loadPlayer(base: string): Promise<PlayerData | null> {
+  try {
+    const [models, skin] = await Promise.all([json<PlayerModels>(`${base}/player.json`), image(`${base}/player/steve.png`)]);
+    return { models, defaultSkin: { ...pixelsOf(skin), height: skin.height } };
+  } catch {
+    return null;
+  }
 }
 
 // as texturas antigas (textures-programmer.webp) só são baixadas quando alguém liga o Programmer Art

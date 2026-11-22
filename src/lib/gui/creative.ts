@@ -69,3 +69,30 @@ export function clamp01(value: number): number {
 export function guiScale(availableWidth: number, availableHeight: number, devicePixelRatio: number, contentHeight: number = CANVAS_HEIGHT): number {
   return Math.max(1, Math.floor(Math.min((availableWidth * devicePixelRatio) / CANVAS_WIDTH, (availableHeight * devicePixelRatio) / contentHeight)));
 }
+
+// aba "Inventário" (CreativeModeInventoryScreen.selectTab, 26.3): slots do inventário do jogador, em pixels da gui
+// relativos ao fundo. armadura em duas colunas (cabeça, peito | pernas, pés), segunda mão, 27 do inventário,
+// 9 da barra rápida e o slot de destruir
+export interface InventorySlot {
+  x: number;
+  y: number;
+  empty?: string; // ícone do slot vazio (sprites/container/slot/<nome>)
+  bin?: boolean; // slot de destruir
+}
+
+export const INVENTORY_SLOTS: InventorySlot[] = [
+  { x: 54, y: 6, empty: 'helmet' },
+  { x: 54, y: 33, empty: 'chestplate' },
+  { x: 108, y: 6, empty: 'leggings' },
+  { x: 108, y: 33, empty: 'boots' },
+  { x: 35, y: 20, empty: 'shield' },
+  ...Array.from({ length: 27 }, (_, index) => ({ x: 9 + (index % 9) * 18, y: 54 + Math.floor(index / 9) * 18 })),
+  ...Array.from({ length: 9 }, (_, index) => ({ x: 9 + index * 18, y: 112 })),
+  { x: 173, y: 112, bin: true },
+];
+
+// aba "Barras rápidas salvas" sem nada salvo: 9 barras vazias, cada uma com um papel na posição dela
+// (a diagonal) explicando como salvar — CreativeModeInventoryScreen.selectTab
+export const HOTBAR_ROWS = 9;
+export const hotbarPlaceholder = (row: number) => `hotbar:${row}`;
+export const isHotbarPlaceholder = (key: string) => key.startsWith('hotbar:');

@@ -13,4 +13,6 @@ export const UI_KEYS = {
   done: 'gui.done', // "Concluído" / "Done"
   languageName: 'language.name', // "Português" / "English"
   languageRegion: 'language.region', // "Brasil" / "United States"
+  binSlot: 'inventory.binSlot', // "Destruir item" / "Destroy Item" (slot de destruir, aba "Inventário")
+  hotbarInfo: 'inventory.hotbarInfo', // "Salve a barra rápida com %1$s + %2$s" (barras salvas vazias)
 } as const;

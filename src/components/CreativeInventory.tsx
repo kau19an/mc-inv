@@ -10,10 +10,15 @@ import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
 import { iconCanvas } from '@/lib/gui/icons.ts';
 import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
 import { wikiUrl } from '@/lib/gui/wiki.ts';
+import { PLAYER_BOX, renderPlayer } from '@/lib/gui/player.ts';
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  HOTBAR_ROWS,
+  INVENTORY_SLOTS,
   TOP,
+  hotbarPlaceholder,
+  isHotbarPlaceholder,
   clamp01,
   firstRow,
   guiScale,
@@ -78,6 +83,10 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [query, setQuery] = useState('');
   const [hovered, setHovered] = useState(-1);
   const [hoveredTab, setHoveredTab] = useState(-1);
+  const [hoveredInventorySlot, setHoveredInventorySlot] = useState(-1);
+  const playerRef = useRef<HTMLCanvasElement>(null);
+  // onde o jogador olha: o último ponteiro (mouse ou dedo), em pixels da gui relativos ao fundo do inventário
+  const lookAt = useRef<{ x: number; y: number }>({ x: (PLAYER_BOX.x0 + PLAYER_BOX.x1) / 2, y: (PLAYER_BOX.y0 + PLAYER_BOX.y1) / 2 });
   // onde a tooltip se ancora: o ponteiro do mouse, ou o centro do slot/aba focado pelo teclado
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const advancedTooltips = settings.advancedTooltips;
@@ -195,6 +204,11 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
       return terms.length ? searchIndex.filter(({ text }) => terms.every((term) => text.includes(term))).map(({ key }) => key) : tab.items;
     }
+    // barras salvas: o site não salva barras, então são sempre as 9 vazias, com o papel de dica na diagonal
+    if (tab.type === 'hotbar')
+      return Array.from({ length: HOTBAR_ROWS * CREATIVE.columns }, (_, index) =>
+        index % CREATIVE.columns === Math.floor(index / CREATIVE.columns) ? hotbarPlaceholder(Math.floor(index / CREATIVE.columns)) : '',
+      );
     return tab.type === 'category' ? tab.items : [];
   }, [tab, query, searchIndex, data]);
 
@@ -203,7 +217,10 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const visible = items.slice(first * CREATIVE.columns, first * CREATIVE.columns + PAGE);
   const unit = metrics.scale / metrics.dpr; // px de css por pixel da gui
 
+  // dica do papel das barras salvas: as teclas padrão do jogo (C + número da barra)
+  const hotbarHint = (key: string) => (data ? translate(data, UI_KEYS.hotbarInfo, 'C', String(Number(key.split(':')[1]) + 1)) : key);
   const itemName = (key: string) => {
+    if (isHotbarPlaceholder(key)) return hotbarHint(key);
     const item = data?.items[key];
     return data && item ? textOf(data, item.name) : key;
   };
@@ -262,11 +279,21 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     // o item aberto no painel fica destacado como se o mouse estivesse em cima dele
     visible.forEach((key, index) => {
       const [x, y] = slotPosition(index);
-      const lit = index === hovered || key === selectedKey;
+      const lit = index === hovered || (key !== '' && key === selectedKey);
       if (lit) sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
-      icon(key, x, y);
+      if (key) icon(isHotbarPlaceholder(key) ? 'paper' : key, x, y);
       if (lit) sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
     });
+
+    // aba "Inventário": ícones dos slots vazios (armadura e segunda mão) e o destaque do slot sob o mouse
+    if (tab.type === 'inventory') {
+      INVENTORY_SLOTS.forEach((slot, index) => {
+        const y = TOP + slot.y;
+        if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_back', slot.x - 4, y - 4);
+        if (slot.empty) sprite(`sprites/container/slot/${slot.empty}`, slot.x, y);
+        if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_front', slot.x - 4, y - 4);
+      });
+    }
     if (hovered >= visible.length && hovered < PAGE) {
       const [x, y] = slotPosition(hovered);
       sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
@@ -274,7 +301,42 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     }
 
     tabSprite(tab, true);
-  }, [data, tab, metrics, scroll, rows, visible.join(), hovered, selectedKey, query, searchFocused, caretVisible]);
+  }, [data, tab, metrics, scroll, rows, visible.join(), hovered, hoveredInventorySlot, selectedKey, query, searchFocused, caretVisible]);
+
+  // aba "Inventário": o jogador olha pro último ponteiro (mouse ou dedo) e "respira" (balanço dos braços),
+  // redesenhado a cada quadro num canvas próprio, por cima do fundo
+  useEffect(() => {
+    if (tab?.type !== 'inventory' || !data?.player) return;
+    const player = data.player;
+    const { scale } = metrics;
+    const onPointer = (event: PointerEvent) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) lookAt.current = { x: (event.clientX - rect.left) / unit, y: (event.clientY - rect.top) / unit - TOP };
+    };
+    window.addEventListener('pointermove', onPointer);
+    window.addEventListener('pointerdown', onPointer);
+    // com "reduzir movimento", o jogador continua olhando pro cursor, mas sem o balanço dos braços
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let frame = 0;
+    const draw = () => {
+      const canvas = playerRef.current;
+      if (canvas) {
+        const image = renderPlayer(player.models.wide, player.defaultSkin, { scale, mouseX: lookAt.current.x, mouseY: lookAt.current.y, ageInTicks: still ? 0 : performance.now() / 50 });
+        if (canvas.width !== image.width || canvas.height !== image.height) {
+          canvas.width = image.width;
+          canvas.height = image.height;
+        }
+        canvas.getContext('2d')!.putImageData(new ImageData(image.data as Uint8ClampedArray<ArrayBuffer>, image.width, image.height), 0, 0);
+      }
+      frame = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('pointerdown', onPointer);
+    };
+  }, [tab?.type, data, metrics, unit]);
 
   // move o foco do teclado depois que a tela redesenha
   useEffect(() => {
@@ -521,8 +583,10 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   // as linhas vêm prontas do jogo (exportadas no dump); versões publicadas antes disso mostram só o nome
   const tooltipLines: TooltipLine[] = (() => {
     if (hoveredTab >= 0) return [lineOf(textOf(data, data.tabs[hoveredTab]!.name), FORMAT_COLORS.white)];
+    if (tab.type === 'inventory') return INVENTORY_SLOTS[hoveredInventorySlot]?.bin ? [lineOf(translate(data, UI_KEYS.binSlot), FORMAT_COLORS.white)] : [];
     const key = hovered >= 0 ? visible[hovered] : undefined;
     if (!key) return [];
+    if (isHotbarPlaceholder(key)) return [lineOf(hotbarHint(key), FORMAT_COLORS.white)];
     const item = data.items[key];
     const source = item?.tooltip ? (advancedTooltips ? (item.advanced ?? [...item.tooltip, ...(item.advancedExtra ?? [])]) : item.tooltip) : null;
     const lines: TooltipLine[] = source ? source.map((line) => textRuns(line, data)) : [lineOf(itemName(key), FORMAT_COLORS.white)];
@@ -609,27 +673,78 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
             onClickCapture={onGridClickCapture}
             onPointerLeave={(event) => event.pointerType === 'mouse' && setHovered(-1)}
           >
-            {visible.map((key, index) => (
-              <a
-                key={`${first}-${index}`}
-                href={wikiUrl(itemName(key), data.locale)}
-                target="_blank"
-                rel="noopener noreferrer"
-                tabIndex={index === slotIndex ? 0 : -1}
-                aria-label={`${itemName(key)} (${strings.opensWiki})`}
-                class="absolute cursor-pointer outline-none"
-                style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
-                draggable={false}
-                onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
-                onFocus={(event) => {
-                  setFocusedSlot(index);
-                  setHovered(index);
-                  focusTooltip(event.currentTarget);
-                }}
-                onBlur={() => setHovered(-1)}
-              />
-            ))}
+            {visible.map((key, index) =>
+              !key ? null : isHotbarPlaceholder(key) ? (
+                // o papel de dica não é item de verdade: não abre a wiki, só mostra a dica
+                <div
+                  key={`${first}-${index}`}
+                  role="note"
+                  tabIndex={index === slotIndex ? 0 : -1}
+                  aria-label={itemName(key)}
+                  class="absolute outline-none"
+                  style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
+                  onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
+                  onFocus={(event) => {
+                    setFocusedSlot(index);
+                    setHovered(index);
+                    focusTooltip(event.currentTarget);
+                  }}
+                  onBlur={() => setHovered(-1)}
+                />
+              ) : (
+                <a
+                  key={`${first}-${index}`}
+                  href={wikiUrl(itemName(key), data.locale)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  tabIndex={index === slotIndex ? 0 : -1}
+                  aria-label={`${itemName(key)} (${strings.opensWiki})`}
+                  class="absolute cursor-pointer outline-none"
+                  style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
+                  draggable={false}
+                  onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
+                  onFocus={(event) => {
+                    setFocusedSlot(index);
+                    setHovered(index);
+                    focusTooltip(event.currentTarget);
+                  }}
+                  onBlur={() => setHovered(-1)}
+                />
+              ),
+            )}
           </div>
+
+          {/* aba "Inventário": o jogador seguindo o cursor e os slots (vazios — o site não tem inventário de verdade) */}
+          {tab.type === 'inventory' && (
+            <>
+              {data.player && (
+                <canvas
+                  ref={playerRef}
+                  class="pointer-events-none absolute"
+                  style={box(PLAYER_BOX.x0, TOP + PLAYER_BOX.y0, PLAYER_BOX.x1 - PLAYER_BOX.x0, PLAYER_BOX.y1 - PLAYER_BOX.y0)}
+                  aria-hidden="true"
+                />
+              )}
+              {INVENTORY_SLOTS.map((slot, index) => (
+                <div
+                  key={index}
+                  aria-hidden={!slot.bin}
+                  role={slot.bin ? 'note' : undefined}
+                  aria-label={slot.bin ? translate(data, UI_KEYS.binSlot) : undefined}
+                  tabIndex={slot.bin ? 0 : undefined}
+                  class="absolute outline-none"
+                  style={box(slot.x - 1, TOP + slot.y - 1, CREATIVE.slot, CREATIVE.slot)}
+                  onPointerEnter={(event) => event.pointerType === 'mouse' && setHoveredInventorySlot(index)}
+                  onPointerLeave={() => setHoveredInventorySlot(-1)}
+                  onFocus={(event) => {
+                    setHoveredInventorySlot(index);
+                    focusTooltip(event.currentTarget);
+                  }}
+                  onBlur={() => setHoveredInventorySlot(-1)}
+                />
+              ))}
+            </>
+          )}
 
           {tab.canScroll && (
             <div
