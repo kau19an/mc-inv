@@ -86,6 +86,8 @@ export default function VersionsScreen({ data, list, settings, current, strings,
 
   const dateFormat = useMemo(() => new Intl.DateTimeFormat(htmlLang, { dateStyle: 'medium' }), [htmlLang]);
   // tipo da versão: os de desenvolvimento com o nome da Mojang ("Snapshot", "Pre-Release", "Release Candidate")
+  // drop de uma versão: o que o pipeline calculou (snapshots semanais da 1.21.x) ou, em dados antigos, pelo número
+  const dropFor = (id: string) => list.versions.find((entry) => entry.id === id)?.drop ?? dropOf(id);
   const kindName = (entry: VersionEntry) => developmentKindName(entry.kind) ?? strings.versionKinds[entry.kind] ?? entry.kind;
 
   // filtro: os tipos que existem na lista, com quantas versões cada um tem
@@ -122,7 +124,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
     return list.versions.filter((entry) => {
       if (hidden.has(entry.kind)) return false;
       if (!terms.length) return true;
-      const haystack = normalize(`${entry.id} ${kindName(entry)} ${dropName(dropOf(entry.id))}`);
+      const haystack = normalize(`${entry.id} ${kindName(entry)} ${dropName(dropFor(entry.id))}`);
       return terms.every((term) => haystack.includes(term));
     });
   }, [query, list, strings, settings.hiddenVersionKinds]);
@@ -131,7 +133,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   const drops = useMemo(() => {
     const groups = new Map<string, VersionEntry[]>();
     for (const entry of shown) {
-      const drop = dropOf(entry.id);
+      const drop = dropFor(entry.id);
       groups.set(drop, [...(groups.get(drop) ?? []), entry]);
     }
     return [...groups].map(([drop, versions]) => ({ drop, versions }));
@@ -175,7 +177,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
     if (center) box.scrollTop = row.offsetTop + row.offsetHeight / 2 - box.clientHeight / 2;
     else row.scrollIntoView({ block: 'nearest' });
   };
-  useLayoutEffect(() => scrollToRow(isOpen(dropOf(current)) ? `version-${current}` : `drop-${dropOf(current)}`, true), []);
+  useLayoutEffect(() => scrollToRow(isOpen(dropFor(current)) ? `version-${current}` : `drop-${dropFor(current)}`, true), []);
   useLayoutEffect(() => scrollToRow(active, false), [active]);
 
   // atalhos "Mais recente" e "Desenvolvimento": escolhem, abrem o drop da versão e rolam até ela, pra mostrar o que
@@ -188,7 +190,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
     const kind = list.versions.find((entry) => entry.id === target)?.kind;
     if (kind && hidden.has(kind)) setKindShown(kind, true);
     if (!shown.some((entry) => entry.id === target) && terms.length) setQuery('');
-    const drop = dropOf(target);
+    const drop = dropFor(target);
     setExpanded((previous) => (previous.has(drop) ? previous : new Set(previous).add(drop)));
     setActive(`version-${target}`);
     pendingScroll.current = `version-${target}`;

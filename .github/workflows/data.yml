@@ -137,8 +137,10 @@ jobs:
               --cache-control 'public, max-age=31536000, immutable'
             echo "::notice title=$id::enviado (lote ${{ needs.plan.outputs.lot }})"
           done
+          # as que este grupo devia gerar e não gerou ficam registradas como falha (só tentam de novo com outro pipeline)
           jq -n --arg lot '${{ needs.plan.outputs.lot }}' --arg pipeline '${{ needs.plan.outputs.pipeline }}' \
-            --slurpfile ids .cache/built.json '{lot: $lot, pipeline: $pipeline, ids: $ids[0]}' > result.json
+            --arg wanted '${{ matrix.versions }}' --slurpfile ids .cache/built.json \
+            '{lot: $lot, pipeline: $pipeline, ids: $ids[0], failed: (($wanted | split(",")) - $ids[0])}' > result.json
 
       - uses: actions/upload-artifact@v7
         with:
@@ -214,7 +216,7 @@ jobs:
         run: |
           aws s3 cp .cache/publish/versions.json "s3://$R2_BUCKET/je/versions.json" --endpoint-url "$R2_ENDPOINT" \
             --content-type application/json --cache-control 'public, max-age=300'
-          for file in _builds.json _retired.json; do
+          for file in _builds.json _retired.json _failures.json; do
             aws s3 cp ".cache/publish/$file" "s3://$R2_BUCKET/je/$file" --endpoint-url "$R2_ENDPOINT" \
               --content-type application/json --cache-control 'no-store'
           done
@@ -271,13 +273,15 @@ jobs:
           [ -n "$version" ] || version=$(curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -r .latest.release)
           echo "PROBE_VERSION=$version" >> "$GITHUB_ENV"
           npm run data -- --source=official --versions="$version" --locales=en_us
+          # até a 1.21.11 o jar vem embaralhado: a sondagem lê o jar traduzido com os mappings da Mojang
+          echo "PROBE_JAR=$(node scripts/data/lib/remap.ts "$version" | tail -1)" >> "$GITHUB_ENV"
       - name: Descompilar classes (desenvolvimento)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           # ferramenta de investigação: um passo que falha não pode impedir a publicação do que deu certo
           set +e
-          jar=".cache/jars/$PROBE_VERSION.jar"
+          jar="$PROBE_JAR"
           ls -la "$jar" || { echo "::error::jar não encontrado: $jar"; ls -la .cache/jars; exit 1; }
           version=$(curl -s https://repo1.maven.org/maven2/org/vineflower/vineflower/maven-metadata.xml | grep -oP '(?<=<release>)[^<]+')
           curl -sfL -o /tmp/vineflower.jar "https://repo1.maven.org/maven2/org/vineflower/vineflower/$version/vineflower-$version.jar"

@@ -1,5 +1,6 @@
 // versões do jogo: tipos do manifesto da mojang e a classificação que a gente mostra no site
 import overrides from '../version-overrides.json' with { type: 'json' };
+import { DROP_NAMES, assignDrops } from '../../../src/lib/gui/drops.ts';
 
 // o manifesto só conhece esses quatro tipos (pre-release e release candidate vêm como "snapshot")
 export type ManifestType = 'release' | 'snapshot' | 'old_beta' | 'old_alpha';
@@ -53,17 +54,19 @@ export function trackedIds(list: VersionList): string[] {
   return [...new Set([list.latest.release, list.latest.snapshot])];
 }
 
-// versões do histórico publicado: as dos drops com número de ano (26.1 em diante), que vêm do jogo sem o código
-// embaralhado. as anteriores (1.21.x pra trás) precisam dos mapas da Mojang e de um dumper adaptado: etapa futura
-const HISTORY = /^(\d{2})\.\d+/;
-export const inHistory = (id: string) => Number(HISTORY.exec(id)?.[1] ?? 0) >= 26;
+// versões do histórico publicado: as dos drops com nome (1.21.2 em diante; ver DROP_NAMES). as da 1.21.x vêm com o
+// código embaralhado e passam pela tradução com os mapas da Mojang no dump (mc-inv/versoes-1-21.md)
+export function historyIds(versions: { id: string; releaseTime: string }[]): string[] {
+  const drops = assignDrops(versions);
+  return versions.filter((version) => drops.get(version.id)! in DROP_NAMES).map((version) => version.id);
+}
 
 // quais versões uma etapa processa: "tracked" (última release + último snapshot), "history" (todo o histórico
 // publicado), "none" (nenhuma: só atualiza a lista de versões) ou ids separados por vírgula
 export function selectIds(list: VersionList, spec: string): string[] {
   if (spec === 'none') return [];
   if (spec === 'tracked') return trackedIds(list);
-  if (spec === 'history') return list.versions.filter((version) => inHistory(version.id)).map((version) => version.id);
+  if (spec === 'history') return historyIds(list.versions);
   return spec.split(',').map((id) => id.trim()).filter(Boolean);
 }
 

@@ -55,6 +55,7 @@ export interface VersionEntry {
   id: string;
   kind: VersionKind;
   releaseTime: string; // iso
+  drop?: string; // drop da versão ("1.21.2", "26.4"), calculado pelo pipeline com a lista inteira da Mojang
   path?: string; // pasta da versão no domínio de dados ("je/26.3/<lote>"); sem ela, /data/je/<id> do próprio site
 }
 export interface VersionList {

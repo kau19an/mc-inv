@@ -1,7 +1,7 @@
 // node scripts/data/plan.ts — decide quais versões o CI precisa gerar (etapa "Planejar" do data.yml).
 //
-// uma versão do histórico (26.1 em diante) entra na fila se ainda não foi gerada ou se foi gerada com outro
-// pipeline. o "pipeline" é o hash dos arquivos que geram os dados: mudou o código, muda o hash, e as versões são
+// uma versão do histórico (drops com nome, 1.21.2 em diante) entra na fila se ainda não foi gerada ou se foi gerada
+// com outro pipeline — e não falhou com este mesmo pipeline. o "pipeline" é o hash dos arquivos que geram os dados: mudou o código, muda o hash, e as versões são
 // geradas de novo num lote novo (caminho novo no R2, então o cache dos navegadores nunca mistura lotes).
 //
 // lê:  .cache/versions.json (npm run data -- --versions=none) e <DATA_URL>/je/_builds.json (o que já foi publicado)
@@ -15,7 +15,7 @@ import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { CACHE_DIR } from './lib/files.ts';
-import { inHistory } from './lib/versions.ts';
+import { historyIds } from './lib/versions.ts';
 
 const ROOT = join(import.meta.dirname, '../..');
 
@@ -46,26 +46,33 @@ export async function pipelineHash(): Promise<string> {
   return hash.digest('hex');
 }
 
-export async function publishedBuilds(dataUrl: string | undefined): Promise<Builds> {
-  if (!dataUrl) return {};
-  const response = await fetch(`${dataUrl}/je/_builds.json`, { cache: 'no-store' });
-  if (response.status === 404 || response.status === 403) return {}; // primeira publicação
-  if (!response.ok) throw new Error(`falha ao ler _builds.json (${response.status})`);
-  return (await response.json()) as Builds;
+// arquivo de controle publicado no bucket (je/<name>); ausente (primeira publicação) = vazio
+export async function publishedControl<T>(dataUrl: string | undefined, name: string, empty: T): Promise<T> {
+  if (!dataUrl) return empty;
+  const response = await fetch(`${dataUrl}/je/${name}`, { cache: 'no-store' });
+  if (response.status === 404 || response.status === 403) return empty;
+  if (!response.ok) throw new Error(`falha ao ler ${name} (${response.status})`);
+  return (await response.json()) as T;
 }
+export const publishedBuilds = (dataUrl: string | undefined) => publishedControl<Builds>(dataUrl, '_builds.json', {});
+// versões que falharam e com qual pipeline: só voltam pra fila quando o pipeline muda (ou pedidas à mão)
+export type Failures = Record<string, string>;
+export const publishedFailures = (dataUrl: string | undefined) => publishedControl<Failures>(dataUrl, '_failures.json', {});
 
 if (import.meta.main) {
   const { values: args } = parseArgs({ options: { versions: { type: 'string', default: '' }, shards: { type: 'string', default: '10' } } });
-  const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf8')) as { versions: { id: string }[] };
+  const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf8')) as { versions: { id: string; releaseTime: string }[] };
   const pipeline = await pipelineHash();
   const builds = await publishedBuilds(process.env.DATA_URL);
+  const failures = await publishedFailures(process.env.DATA_URL);
+  const history = new Set(historyIds(catalog.versions));
   // "tracked" (padrão do botão "rodar agora" da main) não força nada: a fila já pega o que é novo
   const forced = new Set(args.versions.split(',').map((id) => id.trim()).filter((id) => id && id !== 'tracked'));
 
   // mais antigas primeiro: se o tempo acabar, as que faltarem são as mais novas, que o próximo agendamento pega
   const queue = catalog.versions
     .map((version) => version.id)
-    .filter((id) => inHistory(id) && (forced.has(id) || builds[id]?.pipeline !== pipeline))
+    .filter((id) => history.has(id) && (forced.has(id) || (builds[id]?.pipeline !== pipeline && failures[id] !== pipeline)))
     .reverse();
 
   // grupos do mesmo tamanho (no máximo --shards), alternando pra cada grupo ter versões de épocas variadas

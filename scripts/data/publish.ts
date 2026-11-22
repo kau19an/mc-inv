@@ -2,6 +2,7 @@
 // publicado e escreve:
 //   .cache/publish/versions.json   lista de versões do site (vai pra <bucket>/je/versions.json)
 //   .cache/publish/_builds.json    controle do CI: lote e pipeline de cada versão (vai pra <bucket>/je/_builds.json)
+//   .cache/publish/_failures.json  versões que falharam e com qual pipeline (vai pra <bucket>/je/_failures.json)
 //   .cache/publish/_retired.json   lotes substituídos, com a data (vai pra <bucket>/je/_retired.json)
 //   .cache/publish/delete.txt      lotes substituídos há mais de um dia, a apagar do bucket (um prefixo por linha)
 //   src/data/mc-inv-index.json     índice do site pras páginas estáticas (vai pro repositório)
@@ -13,8 +14,8 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CACHE_DIR } from './lib/files.ts';
 import type { VersionKind } from './lib/versions.ts';
-import { dropOf } from '../../src/lib/gui/drops.ts';
-import { publishedBuilds, type Builds } from './plan.ts';
+import { assignDrops } from '../../src/lib/gui/drops.ts';
+import { publishedBuilds, publishedFailures, type Builds } from './plan.ts';
 
 const ROOT = join(import.meta.dirname, '../..');
 const OUT = join(CACHE_DIR, 'publish');
@@ -36,6 +37,7 @@ const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf
 };
 const previous = await publishedBuilds(dataUrl);
 const builds: Builds = { ...previous };
+const failures = await publishedFailures(dataUrl);
 const replaced: string[] = [];
 // lote antigo só é apagado um dia depois de substituído: quem abriu o site antes ainda tem a lista velha em
 // cache (5 minutos) ou a página aberta, e continua carregando dele sem erro
@@ -45,8 +47,10 @@ const RETIRE_AFTER_MS = 24 * 60 * 60 * 1000;
 const resultsDir = join(CACHE_DIR, 'results');
 for (const file of existsSync(resultsDir) ? await readdir(resultsDir) : []) {
   if (!file.endsWith('.json')) continue;
-  const result = JSON.parse(await readFile(join(resultsDir, file), 'utf8')) as { lot: string; pipeline: string; ids: string[] };
+  const result = JSON.parse(await readFile(join(resultsDir, file), 'utf8')) as { lot: string; pipeline: string; ids: string[]; failed?: string[] };
+  for (const id of result.failed ?? []) failures[id] = result.pipeline;
   for (const id of result.ids) {
+    delete failures[id];
     const path = `je/${id}/${result.lot}`;
     const old = previous[id];
     if (old && old.path !== path) replaced.push(`${old.path}/`);
@@ -55,9 +59,11 @@ for (const file of existsSync(resultsDir) ? await readdir(resultsDir) : []) {
 }
 
 // lista de versões do site: só as publicadas, na ordem da Mojang (mais nova primeiro)
-const versions = catalog.versions.filter((version) => builds[version.id]).map(({ id, kind, releaseTime }) => ({ id, kind, releaseTime, path: builds[id]!.path }));
+// drop de cada versão pela lista inteira (snapshots semanais da 1.21.x vão pro drop da versão numerada seguinte)
+const drops = assignDrops(catalog.versions);
+const versions = catalog.versions.filter((version) => builds[version.id]).map(({ id, kind, releaseTime }) => ({ id, kind, releaseTime, drop: drops.get(id)!, path: builds[id]!.path }));
 const pick = (id: string) => (builds[id] ? id : null);
-const releasedDrops = [...new Set(catalog.versions.filter((version) => version.kind === 'release').map((version) => dropOf(version.id)))];
+const releasedDrops = [...new Set(catalog.versions.filter((version) => version.kind === 'release').map((version) => drops.get(version.id)!))];
 const latestRelease = pick(catalog.latest.release) ?? versions.find((version) => version.kind === 'release')?.id ?? versions[0]?.id ?? null;
 const list = { latest: { release: latestRelease, snapshot: pick(catalog.latest.snapshot) }, versions, releasedDrops };
 
@@ -113,7 +119,8 @@ for (const problem of problems.slice(0, 10)) console.log(`::warning title=Ícone
 await mkdir(join(ROOT, 'src/data'), { recursive: true });
 await writeFile(join(OUT, 'versions.json'), JSON.stringify(list));
 await writeFile(join(OUT, '_builds.json'), JSON.stringify(builds));
+await writeFile(join(OUT, '_failures.json'), JSON.stringify(failures));
 await writeFile(join(OUT, '_retired.json'), JSON.stringify(keep));
 await writeFile(join(OUT, 'delete.txt'), due.map((entry) => `${entry.prefix}\n`).join(''));
 await writeFile(SITE_INDEX, `${JSON.stringify(siteIndex, null, 2)}\n`);
-console.log(`${problems.length} diferenças de ícones entre versões · ${versions.length} versões publicadas · ${Object.keys(siteIndex.items).length} itens no índice · ${due.length} lotes antigos apagados agora, ${keep.length} na espera`);
+console.log(`${Object.keys(failures).length} versões com falha registrada · ${problems.length} diferenças de ícones entre versões · ${versions.length} versões publicadas · ${Object.keys(siteIndex.items).length} itens no índice · ${due.length} lotes antigos apagados agora, ${keep.length} na espera`);

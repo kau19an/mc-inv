@@ -12,7 +12,8 @@ import { parseArgs } from 'node:util';
 import { fetchBuffer } from './lib/http.ts';
 import { CACHE_DIR, writeFileDeep } from './lib/files.ts';
 import { reportFailure, selectIds, withKind, type Version } from './lib/versions.ts';
-import { clientJar, official, versionPackage, type Library } from './sources/official.ts';
+import { official, versionPackage, type Library } from './sources/official.ts';
+import { readableJar } from './lib/remap.ts';
 import { IconResolver } from './icons/resolve.ts';
 import type { IconModel, SpecialModel } from '../../src/lib/icons/types.ts';
 
@@ -66,8 +67,9 @@ interface DumpedTab {
 
 async function dump(version: Version) {
   const pkg = await versionPackage(version);
-  await clientJar(version, pkg); // garante o jar no cache
-  const classpath = [join(CACHE_DIR, 'jars', `${version.id}.jar`), ...(await libraries(pkg.libraries))];
+  const libraryPaths = await libraries(pkg.libraries);
+  // até a 1.21.11 o jar vem embaralhado: traduz com os mappings oficiais da Mojang antes (lib/remap.ts)
+  const classpath = [await readableJar(version, pkg, libraryPaths), ...libraryPaths];
 
   // compila o dumper contra a versão (a api do jogo pode mudar de uma versão pra outra)
   const classes = join(CACHE_DIR, 'dumper', version.id);

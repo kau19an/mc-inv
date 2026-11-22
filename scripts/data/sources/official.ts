@@ -22,7 +22,8 @@ export interface Library {
 }
 
 export interface VersionPackage {
-  downloads: { client: { url: string; sha1: string } };
+  // client_mappings: o "dicionário" dos nomes embaralhados (formato do ProGuard), nas versões até a 1.21.11
+  downloads: { client: { url: string; sha1: string }; client_mappings?: { url: string; sha1: string } };
   assetIndex: { url: string; sha1: string };
   libraries: Library[];
   javaVersion?: { majorVersion: number };
