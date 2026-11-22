@@ -7,7 +7,8 @@ import GameTooltip, { lineOf, type TooltipLine } from './gui/GameTooltip.tsx';
 import { FORMAT_COLORS } from '@/lib/gui/colors.ts';
 import { textRuns, translate } from '@/lib/gui/text.ts';
 import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
-import { iconCanvas } from '@/lib/gui/icons.ts';
+import { iconCanvas, iconMask } from '@/lib/gui/icons.ts';
+import { glintOffsets, renderGlint } from '@/lib/gui/glint.ts';
 import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
 import { resolveWiki, wikiLocale, wikiUrl } from '@/lib/gui/wiki.ts';
 import { PLAYER_BOX, renderPlayer } from '@/lib/gui/player.ts';
@@ -213,6 +214,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glintRef = useRef<HTMLCanvasElement>(null); // brilho de encantamento, por cima (somando cor)
   const searchRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -467,6 +469,41 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       window.removeEventListener('pointerdown', onPointer);
     };
   }, [tab?.type, data, metrics, unit, playerSkin]);
+
+  // brilho de encantamento: camada própria por cima do canvas, redesenhada a cada quadro só enquanto há item
+  // com foil na tela. com "reduzir movimento", fica parado
+  useEffect(() => {
+    const canvas = glintRef.current;
+    if (!canvas || !data?.glint || !tab) return;
+    const glint = data.glint;
+    const { scale } = metrics;
+    const size = 16 * scale;
+    canvas.width = CANVAS_WIDTH * scale;
+    canvas.height = CANVAS_HEIGHT * scale;
+    const ctx = canvas.getContext('2d')!;
+    const shiny = tab.type === 'inventory' ? [] : visible.flatMap((key, index) => (key && data.items[key]?.foil ? [{ key, index }] : []));
+    if (!shiny.length) return;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const out = new ImageData(size, size);
+    let frame = 0;
+    const draw = () => {
+      const offsets = glintOffsets(still ? 0 : performance.now());
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const { key, index } of shiny) {
+        const mask = iconMask(data, key, size);
+        if (!mask) continue;
+        renderGlint(glint, key, mask, size, offsets, out);
+        const [x, y] = slotPosition(index);
+        ctx.putImageData(out, x * scale, y * scale);
+      }
+      if (!still) frame = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => {
+      cancelAnimationFrame(frame);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  }, [data, tab, metrics, visible.join()]);
 
   // move o foco do teclado depois que a tela redesenha
   useEffect(() => {
@@ -780,6 +817,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
         onPointerLeave={(event) => event.pointerType === 'mouse' && setPointer(null)}
       >
         <canvas ref={canvasRef} class="absolute inset-0 h-full w-full" aria-hidden="true" />
+        <canvas ref={glintRef} class="pointer-events-none absolute inset-0 h-full w-full mix-blend-plus-lighter" aria-hidden="true" />
         {pointer && tooltipLines.length > 0 && <GameTooltip data={data} lines={tooltipLines} pointerX={pointer.x} pointerY={pointer.y} unit={unit} />}
 
         <div ref={tabsRef} role="tablist" aria-label={strings.tabs} onKeyDown={onTabsKeyDown}>
@@ -954,7 +992,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       <GuiButton data={data} width={OPTIONS_WIDTH} height={OPTIONS_HEIGHT} label={translate(data, UI_KEYS.optionsButton)} onClick={() => setSettingsOpen(true)} />
 
       {settingsOpen && (
-        <SettingsScreen data={data} settings={settings} strings={strings} skinStatus={skinStatus} appliedName={appliedName} onChange={updateSettings} onPlayerName={applyPlayerName} onClose={() => setSettingsOpen(false)} />
+        <SettingsScreen data={data} settings={settings} strings={strings} skinStatus={skinStatus} appliedName={appliedName} unit={unit} onChange={updateSettings} onPlayerName={applyPlayerName} onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );

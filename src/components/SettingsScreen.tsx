@@ -3,6 +3,7 @@
 // é um <dialog> nativo: prende o foco do teclado lá dentro e fecha com Esc, como o jogo
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { FRAME_CLASS, GuiButton, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
+import GameTooltip, { lineOf, wrapText, type TooltipPlacement } from './gui/GameTooltip.tsx';
 import { LOCALES, type VersionData } from '@/lib/gui/data.ts';
 import type { Settings } from '@/lib/gui/settings.ts';
 import type { SkinError } from '@/lib/gui/skin.ts';
@@ -38,9 +39,49 @@ interface Props {
   strings: Strings;
   skinStatus: SkinStatus;
   appliedName: string; // nome cuja skin está aplicada agora ('' = Steve)
+  unit: number; // px de css por pixel da gui
   onChange: (change: Partial<Settings>) => void;
   onPlayerName: (name: string) => void;
   onClose: () => void;
+}
+
+// tooltips das opções (WidgetTooltipHolder, 26.3): texto branco quebrado em linhas de até 170 px (Tooltip.MAX_WIDTH),
+// sem atraso. com o mouse em cima, MenuTooltipPositioner (ao lado do ponteiro, sem cobrir o botão); só com o foco do
+// teclado, BelowOrAboveWidgetTooltipPositioner (embaixo do botão, ou em cima se não couber)
+const TOOLTIP_WIDTH = 170;
+interface WidgetRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+const lerp = (t: number, a: number, b: number) => a + t * (b - a);
+const menuOffset = (mouseY: number, widgetY: number, widgetHeight: number) =>
+  Math.round(lerp(Math.min(Math.abs(mouseY - widgetY), widgetHeight) / widgetHeight, widgetHeight - 3, 5));
+
+function besideMouse(widget: WidgetRect, mouseX: number, mouseY: number): TooltipPlacement {
+  return (screenWidth, screenHeight, width, height) => {
+    let x = mouseX + 12;
+    if (x + width > screenWidth - 5) x = Math.max(mouseX - 12 - width, 9);
+    let y = mouseY + 3;
+    const widgetHeight = widget.bottom - widget.top;
+    const paddedHeight = height + 3 + 3;
+    const lowestPossibleY = widget.bottom + 3 + menuOffset(0, 0, widgetHeight);
+    if (lowestPossibleY + paddedHeight <= screenHeight - 5) y += menuOffset(y, widget.top, widgetHeight);
+    else y -= paddedHeight + menuOffset(y, widget.bottom, widgetHeight);
+    return { x, y };
+  };
+}
+
+function belowOrAbove(widget: WidgetRect): TooltipPlacement {
+  return (screenWidth, screenHeight, width, height) => {
+    let x = widget.left + 3;
+    let y = widget.bottom + 3 + 1;
+    if (y + height + 3 > screenHeight) y = widget.top - height - 3 - 1;
+    if (x + width > screenWidth) x = Math.max(widget.right - width - 3, 4);
+    return { x, y };
+  };
 }
 
 // só duas mensagens (decisão do Kauan): deu certo (verde) ou não achou (vermelho). buscando e campo vazio: nada
@@ -93,12 +134,38 @@ function GameTextField({ data, value, label, width, onInput, onEnter }: { data: 
   );
 }
 
-export default function SettingsScreen({ data, settings, strings, skinStatus, appliedName, onChange, onPlayerName, onClose }: Props) {
+export default function SettingsScreen({ data, settings, strings, skinStatus, appliedName, unit, onChange, onPlayerName, onClose }: Props) {
   const [name, setName] = useState(settings.playerName);
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
+
+  // tooltip aberta: texto e onde (em pixels da gui)
+  // (guarda de quem é a tooltip; o texto vem do render atual, então some se o botão deixar de ter tooltip)
+  const [tip, setTip] = useState<{ owner: string; placement: TooltipPlacement } | null>(null);
+  const tooltipTexts: Record<string, string | undefined> = {};
+  const widgetRect = (element: Element): WidgetRect => {
+    const rect = element.getBoundingClientRect();
+    return { left: Math.floor(rect.left / unit), top: Math.floor(rect.top / unit), right: Math.floor(rect.right / unit), bottom: Math.floor(rect.bottom / unit) };
+  };
+  // eventos que ligam a tooltip num botão (sem texto, nada)
+  const tooltip = (owner: string, text: string | undefined) => {
+    tooltipTexts[owner] = text;
+    if (!text) return {};
+    return {
+      'aria-description': text,
+      onPointerMove: (event: PointerEvent) => {
+        if (event.pointerType !== 'mouse') return;
+        setTip({ owner, placement: besideMouse(widgetRect(event.currentTarget as Element), Math.floor(event.clientX / unit), Math.floor(event.clientY / unit)) });
+      },
+      onPointerLeave: () => setTip(null),
+      onFocus: (event: FocusEvent) => {
+        if ((event.currentTarget as Element).matches(':focus-visible')) setTip({ owner, placement: belowOrAbove(widgetRect(event.currentTarget as Element)) });
+      },
+      onBlur: () => setTip(null),
+    };
+  };
 
   const t = (key: string, ...args: string[]) => translate(data, key, ...args);
   const option = (label: string, value: string) => t(UI_KEYS.genericValue, label, value);
@@ -149,7 +216,13 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
         </h2>
 
         <div class="grid w-full justify-center" style={{ gridTemplateColumns: `repeat(auto-fit, ${u(BUTTON_WIDTH)})`, gap: u(GAP), maxWidth: u(BUTTON_WIDTH * 2 + GAP) }}>
-          <GuiButton data={data} width={BUTTON_WIDTH} label={option(t(UI_KEYS.languageTitle), languageName)} onClick={() => onChange({ locale: nextLocale })} />
+          <GuiButton
+            data={data}
+            width={BUTTON_WIDTH}
+            label={option(t(UI_KEYS.languageTitle), languageName)}
+            onClick={() => onChange({ locale: nextLocale })}
+            {...tooltip('language', strings.languageTooltip)}
+          />
           <GuiButton
             data={data}
             width={BUTTON_WIDTH}
@@ -190,7 +263,14 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
             }}
           >
             <GameTextField data={data} value={name} label={strings.playerName} width={ROW_WIDTH - GAP - CONFIRM_WIDTH} onInput={setName} onEnter={submitName} />
-            <GuiButton data={data} type="submit" width={CONFIRM_WIDTH} label={strings.confirm} disabled={confirmDisabled} />
+            <GuiButton
+              data={data}
+              type="submit"
+              width={CONFIRM_WIDTH}
+              label={strings.confirm}
+              disabled={confirmDisabled}
+              {...tooltip('confirm', confirmDisabled ? strings.confirmDisabledTooltip : undefined)}
+            />
           </form>
           {status && (
             <p role="status" class="self-start" style={{ color: hex(status.color), textShadow: textShadow(status.color) }}>
@@ -204,12 +284,13 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
           <h3 id="settings-wiki" style={{ textShadow: textShadow(0xffffff) }}>
             Minecraft Wiki
           </h3>
+          {/* largura de uma opção, na coluna da esquerda */}
           <GuiButton
             data={data}
-            width={ROW_WIDTH}
-            title={strings.wikiHint}
-            aria-description={wikiHost(resolveWiki(settings.wikiLanguage, settings.locale))}
+            width={BUTTON_WIDTH}
+            class="self-start"
             label={option(t(UI_KEYS.languageTitle), wikiValue)}
+            {...tooltip('wiki', strings.wikiTooltip)}
             onClick={(event) => cycleWiki(event.shiftKey ? -1 : 1)}
             onContextMenu={(event) => {
               event.preventDefault();
@@ -223,6 +304,9 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
 
         <GuiButton data={data} width={DONE_WIDTH} class="mt-auto shrink-0" label={t(UI_KEYS.done)} onClick={() => dialogRef.current?.close()} />
       </div>
+      {tip && tooltipTexts[tip.owner] && (
+        <GameTooltip data={data} unit={unit} lines={wrapText(data, tooltipTexts[tip.owner]!, TOOLTIP_WIDTH).map((line) => lineOf(line, 0xffffff))} placement={tip.placement} />
+      )}
     </dialog>
   );
 }

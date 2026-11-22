@@ -22,3 +22,18 @@ export function iconCanvas(data: VersionData, key: string, size: number): HTMLCa
   cache.set(cacheKey, canvas);
   return canvas;
 }
+
+// alfa do ícone (1 onde tem pixel), pro brilho de encantamento saber onde desenhar
+const masks = new WeakMap<HTMLCanvasElement, Uint8Array>();
+export function iconMask(data: VersionData, key: string, size: number): Uint8Array | null {
+  const canvas = iconCanvas(data, key, size);
+  if (!canvas) return null;
+  let mask = masks.get(canvas);
+  if (!mask) {
+    const pixels = canvas.getContext('2d')!.getImageData(0, 0, size, size).data;
+    mask = new Uint8Array(size * size);
+    for (let i = 0; i < mask.length; i++) mask[i] = pixels[i * 4 + 3]! > 0 ? 1 : 0;
+    masks.set(canvas, mask);
+  }
+  return mask;
+}

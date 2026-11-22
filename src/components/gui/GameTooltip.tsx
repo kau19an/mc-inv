@@ -40,27 +40,65 @@ function Run({ run }: { run: TextRun }) {
   );
 }
 
+// quebra um texto em linhas de até maxWidth pixels da gui, nos espaços (como o StringSplitter do jogo);
+// palavra maior que a linha é cortada onde não cabe mais
+export function wrapText(data: VersionData, text: string, maxWidth: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (data.font.width(candidate) - 1 <= maxWidth) {
+      line = candidate;
+      continue;
+    }
+    if (line) lines.push(line);
+    line = '';
+    let rest = word;
+    while (data.font.width(rest) - 1 > maxWidth) {
+      let cut = rest.length - 1;
+      while (cut > 1 && data.font.width(rest.slice(0, cut)) - 1 > maxWidth) cut--;
+      lines.push(rest.slice(0, cut));
+      rest = rest.slice(cut);
+    }
+    line = rest;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// onde a tooltip vai, em pixels da gui (canto de cima à esquerda do texto). recebe a tela e o tamanho do texto
+export type TooltipPlacement = (screenWidth: number, screenHeight: number, width: number, height: number) => { x: number; y: number };
+
+// DefaultTooltipPositioner: 12 px à direita e 12 px acima do ponteiro; se não couber à direita, vai pra esquerda
+export const followPointer =
+  (pointerX: number, pointerY: number, unit: number): TooltipPlacement =>
+  (screenWidth, screenHeight, width, height) => {
+    const mouseX = Math.floor(pointerX / unit);
+    const mouseY = Math.floor(pointerY / unit);
+    let x = mouseX + 12;
+    let y = mouseY - 12;
+    if (x + width > screenWidth) x = Math.max(mouseX - 24 - width, 4);
+    if (y + height + 3 > screenHeight) y = screenHeight - height - 3;
+    return { x, y: Math.max(y, 4) };
+  };
+
 interface Props {
   data: VersionData;
   lines: TooltipLine[];
-  pointerX: number; // posição do ponteiro na janela, em px de css
-  pointerY: number;
   unit: number; // px de css por pixel da gui
+  // posição do ponteiro na janela, em px de css (DefaultTooltipPositioner), ou outra regra de posição
+  pointerX?: number;
+  pointerY?: number;
+  placement?: TooltipPlacement;
 }
 
-export default function GameTooltip({ data, lines, pointerX, pointerY, unit }: Props) {
+export default function GameTooltip({ data, lines, pointerX = 0, pointerY = 0, unit, placement }: Props) {
   if (!lines.length) return null;
   const width = Math.max(...lines.map((line) => lineWidth(data, line))) - 1; // o último avanço inclui 1 px de espaço
   const height = lines.length === 1 ? 8 : lines.length * 10;
   const screenWidth = window.innerWidth / unit;
   const screenHeight = window.innerHeight / unit;
-  const mouseX = Math.floor(pointerX / unit);
-  const mouseY = Math.floor(pointerY / unit);
-  let x = mouseX + 12;
-  let y = mouseY - 12;
-  if (x + width > screenWidth) x = Math.max(mouseX - 24 - width, 4);
-  if (y + height + 3 > screenHeight) y = screenHeight - height - 3;
-  y = Math.max(y, 4);
+  const { x, y } = (placement ?? followPointer(pointerX, pointerY, unit))(screenWidth, screenHeight, width, height);
 
   const box = { position: 'fixed', left: `${(x - 12) * unit}px`, top: `${(y - 12) * unit}px`, width: `${(width + 24) * unit}px`, height: `${(height + 24) * unit}px` } as const;
 

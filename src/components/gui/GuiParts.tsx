@@ -84,13 +84,19 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style' | 'chil
 
 // botão do jogo: textura widget/button (widget/button_highlighted ao passar o mouse ou focar), texto branco com
 // sombra, 2 px de margem pro texto de cada lado (a moldura tem 3 px, então o texto avança 1 px sobre ela).
-// desativado: widget/button_disabled, texto cinza (0xA0A0A0, AbstractButton) e cursor de "não permitido"
-export function GuiButton({ data, label, width, height = 20, style, class: className = '', disabled, ...rest }: ButtonProps) {
+// desativado: widget/button_disabled, texto cinza (0xA0A0A0, AbstractButton) e cursor de "não permitido".
+// usa aria-disabled em vez de disabled: botão desativado de verdade não recebe o mouse nem o foco, e no jogo a
+// tooltip de um botão inativo ainda aparece
+export function GuiButton({ data, label, width, height = 20, style, class: className = '', disabled, onClick, ...rest }: ButtonProps) {
   const color = disabled ? 0xa0a0a0 : 0xffffff;
   return (
     <button
       type="button"
-      disabled={disabled}
+      aria-disabled={disabled || undefined}
+      onClick={(event) => {
+        if (disabled) event.preventDefault(); // também segura o envio do formulário
+        else onClick?.(event);
+      }}
       class={`${FRAME_CLASS} ${disabled ? 'cursor-not-allowed' : `${FRAME_HOVER_CLASS} cursor-pointer`} flex items-center justify-center outline-none ${className}`}
       style={{
         ...gameText,

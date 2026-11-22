@@ -20,7 +20,10 @@ const STRINGS = {
     wikiAuto: 'Automático',
     // nomes que o Intl.DisplayNames do navegador às vezes não conhece
     wikiLanguageNames: { lzh: 'Chinês clássico' } as Record<string, string>,
-    wikiHint: 'Clique pra avançar; Shift + clique (ou botão direito) pra voltar',
+    // tooltips das opções (como as de algumas opções do jogo)
+    languageTooltip: 'Define o idioma dos recursos do jogo e interface do site.',
+    confirmDisabledTooltip: 'Altere o nome de jogador para confirmar uma nova skin.',
+    wikiTooltip: 'Define o idioma da Minecraft Wiki ao redirecionar para o recurso clicado. Por padrão, "Automático" corresponde ao idioma definido na opção acima.',
   },
   en_us: {
     loading: 'Loading…',
@@ -38,7 +41,9 @@ const STRINGS = {
     skinNotFound: 'Player not found.',
     wikiAuto: 'Automatic',
     wikiLanguageNames: { lzh: 'Literary Chinese' } as Record<string, string>,
-    wikiHint: 'Click to go forward; Shift + click (or right-click) to go back',
+    languageTooltip: 'Sets the language of the game resources and the site interface.',
+    confirmDisabledTooltip: 'Change the player name to confirm a new skin.',
+    wikiTooltip: 'Sets the Minecraft Wiki language when redirecting to the clicked resource. By default, "Automatic" matches the language set in the option above.',
   },
 } satisfies Record<Locale, Record<string, unknown>>;
 

@@ -4,6 +4,7 @@ import type { TextureLookup } from '../icons/types.ts';
 import type { TabInfo, TextComponent } from './creative.ts';
 import { loadFont, type BitmapFont } from './font.ts';
 import type { PlayerModels, Skin } from './player.ts';
+import { glintOf, type Glint } from './glint.ts';
 import type { GuiBundle } from './types.ts';
 
 export interface ItemInfo {
@@ -13,6 +14,7 @@ export interface ItemInfo {
   tooltip?: unknown[]; // linhas da tooltip montadas pelo jogo (componentes de texto)
   advancedExtra?: unknown[]; // o que a tooltip avançada (F3+H) acrescenta no fim
   advanced?: unknown[]; // a avançada inteira, quando ela muda algo no meio
+  foil?: boolean; // brilho de encantamento (glint.ts)
 }
 
 // idiomas publicados (a interface troca entre eles nas opções)
@@ -36,6 +38,7 @@ export interface VersionData {
   guiAtlas: ImageBitmap;
   font: BitmapFont;
   itemTags: Record<string, string[]>; // id do item (sem variante) → marcações
+  glint: Glint | null; // textura do brilho de encantamento (versão publicada antes dela: sem brilho)
   player: PlayerData | null; // aba "Inventário" (versões publicadas antes disso não têm)
 }
 
@@ -108,7 +111,12 @@ export async function loadVersion(id: string, locale: Locale): Promise<VersionDa
   // tags.json vem como tag → itens; a pesquisa com "#" precisa do contrário
   const itemTags: Record<string, string[]> = {};
   for (const [tag, members] of Object.entries(tags)) for (const item of members) (itemTags[item] ??= []).push(tag);
-  const [font, , player] = await Promise.all([loadFont(gui.font, base), loadFontFace(base), loadPlayer(base)]);
+  const [font, , player, glint] = await Promise.all([
+    loadFont(gui.font, base),
+    loadFontFace(base),
+    loadPlayer(base),
+    image(`${base}/glint.png`).then((bitmap) => glintOf(pixelsOf(bitmap)), () => null),
+  ]);
   const langs = { pt_br: ptBr, en_us: enUs };
   const atlasPixels = pixelsOf(atlas);
   return {
@@ -129,6 +137,7 @@ export async function loadVersion(id: string, locale: Locale): Promise<VersionDa
     font,
     itemTags,
     player,
+    glint,
   };
 }
 

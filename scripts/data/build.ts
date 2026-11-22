@@ -127,6 +127,27 @@ async function readJson<T>(path: string): Promise<T> {
 
 const writeJson = (path: string, data: unknown) => writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
 
+// arquivo de idioma do jeito que o jogo carrega: aplica o lang/deprecated.json (DeprecatedTranslationsInfo).
+// "removed" some; "renamed" move o texto da chave antiga pra nova. ex.: os moldes de ferraria — o valor de
+// "item.minecraft.vex_armor_trim_smithing_template.new" ("Enfeite de Obsessor") vira o nome do item, no lugar do
+// texto velho da chave sem ".new" ("Molde de Ferraria", que no jogo é só a linha cinza embaixo)
+const deprecatedCache = new Map<string, { removed?: string[]; renamed?: Record<string, string> }>();
+async function readLang(versionDir: string, locale: string): Promise<Record<string, string>> {
+  const lang = await readJson<Record<string, string>>(join(versionDir, 'assets/minecraft/lang', `${locale}.json`));
+  if (!deprecatedCache.has(versionDir)) {
+    const file = join(versionDir, 'assets/minecraft/lang/deprecated.json');
+    deprecatedCache.set(versionDir, existsSync(file) ? await readJson(file) : {});
+  }
+  const deprecated = deprecatedCache.get(versionDir)!;
+  for (const key of deprecated.removed ?? []) delete lang[key];
+  for (const [from, to] of Object.entries(deprecated.renamed ?? {})) {
+    if (!(from in lang)) continue;
+    lang[to] = lang[from]!;
+    delete lang[from];
+  }
+  return lang;
+}
+
 async function buildVersion(id: string) {
   const versionDir = join(CACHE_DIR, 'versions', id);
   const dump = await readJson<Dump>(join(versionDir, 'creative_tabs.json'));
@@ -170,7 +191,7 @@ async function buildVersion(id: string) {
   // traduções: só as chaves usadas. se faltar alguma no idioma, o site cai no en_us
   const lang: Record<string, Record<string, string>> = {};
   for (const locale of LOCALES) {
-    const full = await readJson<Record<string, string>>(join(versionDir, 'assets/minecraft/lang', `${locale}.json`));
+    const full = await readLang(versionDir, locale);
     lang[locale] = Object.fromEntries([...usedKeys].sort().filter((key) => key in full).map((key) => [key, full[key]]));
   }
 
@@ -190,7 +211,7 @@ async function buildVersion(id: string) {
       console.log(`::warning title=Idioma da wiki ausente::${id}: ${locale}.json não veio com o jogo (a busca nessa wiki usa o nome em inglês)`);
       continue;
     }
-    const full = await readJson<Record<string, string>>(path);
+    const full = await readLang(versionDir, locale);
     await writeJson(join(outDir, 'wiki', `${locale}.json`), Object.fromEntries([...nameKeys].sort().filter((key) => key in full).map((key) => [key, full[key]])));
   }
   await writeJson(join(outDir, 'tags.json'), buildItemTags(versionDir, new Set(Object.values(items).map((item) => stripNamespace(item.id)))));
