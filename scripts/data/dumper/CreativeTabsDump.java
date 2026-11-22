@@ -20,6 +20,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
@@ -100,6 +101,9 @@ public final class CreativeTabsDump {
     if (stack.getCount() != 1) json.addProperty("count", stack.getCount());
     // brilho de encantamento (livros encantados, garrafa de experiência, estrela do nether…): a regra do jogo
     if (stack.hasFoil()) json.addProperty("foil", true);
+    // cor da poção (tint "potion" das poções e flechas): depende dos efeitos, que ficam no código do jogo
+    Integer potionColor = potionColor(stack);
+    if (potionColor != null) json.addProperty("potionColor", potionColor);
     json.add("name", ComponentSerialization.CODEC.encodeStart(ops, stack.getHoverName()).getOrThrow());
     DataComponentPatch patch = stack.getComponentsPatch();
     if (!patch.isEmpty()) json.add("components", DataComponentPatch.CODEC.encodeStart(ops, patch).getOrThrow());
@@ -109,6 +113,20 @@ public final class CreativeTabsDump {
       json.add("tooltipAdvanced", tooltip(stack, ops, tooltipContext, TooltipFlag.ADVANCED.asCreative()));
     }
     return json;
+  }
+
+  // PotionContents.getColorOr(padrão), pelo nome (com reflexão, pra não quebrar a compilação se a assinatura mudar
+  // numa versão). sem efeito nem cor própria (ex.: água), devolve null e o site usa o padrão do tint
+  private static Integer potionColor(ItemStack stack) {
+    Object contents = stack.get(DataComponents.POTION_CONTENTS);
+    if (contents == null) return null;
+    final int none = 0x01020304;
+    try {
+      int color = (int) contents.getClass().getMethod("getColorOr", int.class).invoke(contents, none);
+      return color == none ? null : color;
+    } catch (ReflectiveOperationException | RuntimeException error) {
+      return null;
+    }
   }
 
   // linhas da tooltip como componentes de texto (com chaves de tradução, cores e estilos). se algum item

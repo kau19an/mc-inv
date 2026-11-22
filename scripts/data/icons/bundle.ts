@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import type { IconModel, Texture, Tint } from '../../../src/lib/icons/types.ts';
 import type { AtlasRect, IconBundle } from '../../../src/lib/icons/bundle.ts';
-import { IconResolver, type SpecialMeshes } from './resolve.ts';
+import { IconResolver, type StackContext, type SpecialMeshes } from './resolve.ts';
 
 const ATLAS_WIDTH = 1024;
 
@@ -72,8 +72,16 @@ export async function toWebp(png: Buffer): Promise<Buffer> {
   return sharp(png).webp({ lossless: true, effort: 6, exact: true }).toBuffer();
 }
 
-// versionDir: .cache/versions/<id> (arquivos extraídos); itemIds: itens que aparecem no inventário
-export function buildIconBundle(versionDir: string, itemIds: string[], meshes: SpecialMeshes): BundleOutput {
+// uma pilha do inventário: chave ("tipped_arrow~ad4e651b" nas variantes), id do item e o que muda o ícone
+export interface IconStack extends StackContext {
+  key: string;
+  id: string;
+}
+
+// versionDir: .cache/versions/<id> (arquivos extraídos); stacks: pilhas que aparecem no inventário.
+// cada item base ganha o seu ícone; uma variante só ganha entrada própria quando o ícone dela é diferente do
+// base (luz de nível 3, flecha de veneno…), senão o site usa o do base
+export function buildIconBundle(versionDir: string, stacks: IconStack[], meshes: SpecialMeshes): BundleOutput {
   const resolver = new IconResolver(versionDir);
   resolver.meshes = meshes;
   const programmerDir = join(versionDir, 'programmer_art');
@@ -84,17 +92,23 @@ export function buildIconBundle(versionDir: string, itemIds: string[], meshes: S
   const items: IconBundle['items'] = {};
   const used = new Set<string>();
 
-  for (const id of [...new Set(itemIds)].sort()) {
-    const { model, tints } = resolver.resolve(id);
+  const entryOf = (id: string, context: StackContext): IconBundle['items'][string] => {
+    const { model, tints } = resolver.resolve(id, context);
     collectTextures(model, used);
     const compacted = compact(model, shortId);
-    const key = createHash('sha1').update(JSON.stringify(compacted)).digest('hex');
-    let index = modelIndex.get(key);
+    const hash = createHash('sha1').update(JSON.stringify(compacted)).digest('hex');
+    let index = modelIndex.get(hash);
     if (index === undefined) {
       index = models.push(compacted) - 1;
-      modelIndex.set(key, index);
+      modelIndex.set(hash, index);
     }
-    items[id] = tints.length ? [index, tints] : [index];
+    return tints.length ? [index, tints] : [index];
+  };
+  for (const id of [...new Set(stacks.map((stack) => stack.id))].sort()) items[id] = entryOf(id, {});
+  for (const stack of [...stacks].sort((a, b) => (a.key < b.key ? -1 : 1))) {
+    if (stack.key === stack.id) continue;
+    const entry = entryOf(stack.id, stack);
+    if (JSON.stringify(entry) !== JSON.stringify(items[stack.id])) items[stack.key] = entry;
   }
 
   // texturas atuais + as do programmer art que são diferentes
@@ -126,10 +140,11 @@ if (import.meta.main) {
   const version = process.argv[2] ?? '26.3';
   const root = join(import.meta.dirname, '../../..');
   const data = join(root, 'public/data/je', version);
-  const itemIds = Object.values(JSON.parse(readFileSync(join(data, 'items.json'), 'utf8')) as Record<string, { id: string }>).map((item) => item.id);
+  const published = JSON.parse(readFileSync(join(data, 'items.json'), 'utf8')) as Record<string, { id: string; components?: Record<string, unknown> }>;
+  const stacks = Object.entries(published).map(([key, item]) => ({ key, id: item.id, components: item.components }));
   const meshes = existsSync(join(data, 'specials.json')) ? (JSON.parse(readFileSync(join(data, 'specials.json'), 'utf8')) as SpecialMeshes) : {};
   const started = Date.now();
-  const { bundle, atlas, programmerAtlas } = buildIconBundle(join(root, '.cache/versions', version), itemIds, meshes);
+  const { bundle, atlas, programmerAtlas } = buildIconBundle(join(root, '.cache/versions', version), stacks, meshes);
   const json = JSON.stringify(bundle);
   const { gzipSync, brotliCompressSync } = await import('node:zlib');
   console.log(`${Object.keys(bundle.items).length} itens → ${bundle.models.length} modelos únicos em ${Date.now() - started} ms`);

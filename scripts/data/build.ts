@@ -32,6 +32,7 @@ interface DumpedStack {
   id: string;
   count?: number;
   foil?: boolean; // brilho de encantamento (ItemStack.hasFoil)
+  potionColor?: number; // cor da poção calculada pelo jogo (só pros ícones, não é publicada)
   name: TextComponent;
   components?: Record<string, unknown>;
   tooltip?: TextComponent[]; // linhas da tooltip normal, montadas pelo jogo (a primeira é o nome, já com a cor da raridade)
@@ -156,12 +157,14 @@ async function buildVersion(id: string) {
   const items: Record<string, PublishedItem> = {};
   const usedKeys = new Set<string>();
   const nameKeys = new Set<string>(); // só os nomes dos itens (busca na wiki em outros idiomas)
+  const potionColors: Record<string, number> = {}; // chave → cor da poção (ícones)
   const register = (stack: DumpedStack) => {
     const key = itemKey(stack);
     if (!items[key]) {
       items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), ...(stack.foil ? { foil: true as const } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}), ...tooltipFields(stack) };
       collectKeys(stack.name, usedKeys);
       collectKeys(stack.name, nameKeys);
+      if (stack.potionColor !== undefined) potionColors[key] = stack.potionColor;
       for (const line of [...(stack.tooltip ?? []), ...(stack.tooltipAdvanced ?? [])]) collectKeys(line, usedKeys);
       usedKeys.add('attribute.modifier.equals.0');
     }
@@ -219,7 +222,8 @@ async function buildVersion(id: string) {
   // especiais (baú, estandarte…), exportada pelo jogo no dump, entra aqui dentro
   const specialsFile = join(versionDir, 'specials.json');
   const meshes = existsSync(specialsFile) ? await readJson<SpecialMeshes>(specialsFile) : {};
-  const icons = buildIconBundle(versionDir, Object.values(items).map((item) => item.id), meshes);
+  const stacks = Object.entries(items).map(([key, item]) => ({ key, id: item.id, components: item.components, potionColor: potionColors[key] }));
+  const icons = buildIconBundle(versionDir, stacks, meshes);
   await writeFile(join(outDir, 'icons.json'), JSON.stringify(icons.bundle));
   await writeFile(join(outDir, 'textures.webp'), await toWebp(icons.atlas));
   if (icons.programmerAtlas) await writeFile(join(outDir, 'textures-programmer.webp'), await toWebp(icons.programmerAtlas));

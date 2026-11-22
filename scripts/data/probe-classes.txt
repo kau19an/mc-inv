@@ -1,0 +1,6 @@
+net.minecraft.client.renderer.CubeMap
+net.minecraft.client.renderer.PanoramaRenderer
+net.minecraft.client.gui.components.AbstractSelectionList
+net.minecraft.client.gui.screens.Screen
+assets/minecraft/post_effect/blur.json
+assets/minecraft/shaders/post/box_blur.fsh

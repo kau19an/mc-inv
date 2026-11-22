@@ -24,7 +24,15 @@ export interface ResolvedIcon {
   tints: Tint[];
 }
 
+// o que muda o ícone de uma variante: os componentes da pilha (block_state da luz…) e a cor da poção (calculada
+// pelo próprio jogo no dumper, porque depende dos efeitos)
+export interface StackContext {
+  components?: Record<string, unknown>;
+  potionColor?: number;
+}
+
 export class IconResolver {
+  private context: StackContext = {};
   private models = new Map<string, Json | null>();
   private textures = new Map<string, Texture | null>();
 
@@ -76,9 +84,17 @@ export class IconResolver {
         // condições (usando o item, quebrado, pescando…) são falsas num inventário parado
         return this.pick(node.on_false, tints, transforms);
       case 'select': {
-        if (path(node.property ?? '') === 'display_context') {
+        const property = path(node.property ?? '');
+        if (property === 'display_context') {
           const gui = (node.cases ?? []).find((entry: Json) => [entry.when].flat().includes('gui'));
           if (gui) return this.pick(gui.model, tints, transforms);
+        }
+        // estado de bloco guardado no item (ex.: o nível da luz, de 0 a 15; o modo do bloco de teste)
+        if (property === 'block_state') {
+          const state = this.context.components?.['minecraft:block_state'] as Record<string, string> | undefined;
+          const value = state?.[node.block_state_property];
+          const match = value === undefined ? undefined : (node.cases ?? []).find((entry: Json) => [entry.when].flat().map(String).includes(String(value)));
+          if (match) return this.pick(match.model, tints, transforms);
         }
         return this.pick(node.fallback ?? node.cases?.[0]?.model, tints, transforms);
       }
@@ -101,11 +117,14 @@ export class IconResolver {
     }
   }
 
-  // cor de um tint da definição do item. componentes (cor tingida, poção…) entram depois; por ora, o padrão
+  // cor de um tint da definição do item. poção: a cor que o jogo calculou pros efeitos (opaca, como o
+  // ItemTintSource "potion"); sem efeito, o padrão. outros componentes (cor tingida…) ainda usam o padrão
   private tint(source: Json): Tint {
     switch (path(source.type ?? '')) {
       case 'constant':
         return source.value;
+      case 'potion':
+        return this.context.potionColor === undefined ? (source.default ?? -1) : (0xff << 24) | (this.context.potionColor & 0xffffff);
       case 'grass':
         return this.colormap('grass', source.temperature, source.downfall);
       default:
@@ -241,7 +260,8 @@ export class IconResolver {
     return { kind: 'mesh', quads, gui, light };
   }
 
-  resolve(itemId: string): ResolvedIcon {
+  resolve(itemId: string, context: StackContext = {}): ResolvedIcon {
+    this.context = context;
     const definition = this.readJson(join(this.root, 'assets/minecraft/items', `${path(itemId)}.json`));
     const tints: Tint[] = [];
     if (!definition?.model) return { model: { kind: 'empty' }, tints };
