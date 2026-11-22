@@ -98,6 +98,8 @@ public final class CreativeTabsDump {
     JsonObject json = new JsonObject();
     json.addProperty("id", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
     if (stack.getCount() != 1) json.addProperty("count", stack.getCount());
+    // brilho de encantamento (livros encantados, garrafa de experiência, estrela do nether…): a regra do jogo
+    if (stack.hasFoil()) json.addProperty("foil", true);
     json.add("name", ComponentSerialization.CODEC.encodeStart(ops, stack.getHoverName()).getOrThrow());
     DataComponentPatch patch = stack.getComponentsPatch();
     if (!patch.isEmpty()) json.add("components", DataComponentPatch.CODEC.encodeStart(ops, patch).getOrThrow());

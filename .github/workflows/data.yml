@@ -136,6 +136,11 @@ jobs:
           } > /tmp/listing.txt
           while read -r class; do
             [ -z "$class" ] && continue
+            # arquivo de recurso do jar (shader, json…): vai como texto
+            if [[ "$class" == assets/* ]]; then
+              { echo; echo "// ===== $class"; unzip -p "$jar" "$class" || echo "não achei"; } >> /tmp/resources.txt
+              continue
+            fi
             file="${class//.//}"
             if ! unzip -l "$jar" "$file.class" > /dev/null 2>&1; then
               # pacote errado: procura a classe pelo nome simples
@@ -149,6 +154,7 @@ jobs:
           java -jar /tmp/vineflower.jar -e="$jar" /tmp/classes /tmp/source > /dev/null 2>&1 || true
           {
             cat /tmp/listing.txt
+            cat /tmp/resources.txt 2>/dev/null
             find /tmp/source -name '*.java' | sort | while read -r f; do echo; echo "// ===== ${f#/tmp/source/}"; grep -v '^import ' "$f"; done
           } > /tmp/decompiled.txt
           split -C 60000 -d /tmp/decompiled.txt /tmp/part-

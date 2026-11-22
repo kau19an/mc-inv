@@ -6,6 +6,7 @@
 //   public/data/je/<id>/lang/<locale>.json   só as traduções usadas pelo inventário
 //   public/data/je/<id>/wiki/<locale>.json   nomes dos itens nos idiomas das outras wikis (opção Minecraft Wiki)
 //   public/data/je/<id>/tags.json            marcações de item já resolvidas (tag → itens)
+//   public/data/je/<id>/glint.png            textura do brilho de encantamento (misc/enchanted_glint_item.png)
 //   public/data/je/<id>/player.json          modelo do jogador (peças separadas) + player/steve.png e player/alex.png
 //   public/data/je/versions.json             versões disponíveis no site
 import { existsSync } from 'node:fs';
@@ -30,6 +31,7 @@ type TextComponent = string | { translate?: string; with?: TextComponent[]; extr
 interface DumpedStack {
   id: string;
   count?: number;
+  foil?: boolean; // brilho de encantamento (ItemStack.hasFoil)
   name: TextComponent;
   components?: Record<string, unknown>;
   tooltip?: TextComponent[]; // linhas da tooltip normal, montadas pelo jogo (a primeira é o nome, já com a cor da raridade)
@@ -129,14 +131,14 @@ async function buildVersion(id: string) {
   const versionDir = join(CACHE_DIR, 'versions', id);
   const dump = await readJson<Dump>(join(versionDir, 'creative_tabs.json'));
 
-  type PublishedItem = { id: string; count?: number; name: TextComponent; components?: Record<string, unknown>; tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] };
+  type PublishedItem = { id: string; count?: number; foil?: true; name: TextComponent; components?: Record<string, unknown>; tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] };
   const items: Record<string, PublishedItem> = {};
   const usedKeys = new Set<string>();
   const nameKeys = new Set<string>(); // só os nomes dos itens (busca na wiki em outros idiomas)
   const register = (stack: DumpedStack) => {
     const key = itemKey(stack);
     if (!items[key]) {
-      items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}), ...tooltipFields(stack) };
+      items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), ...(stack.foil ? { foil: true as const } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}), ...tooltipFields(stack) };
       collectKeys(stack.name, usedKeys);
       collectKeys(stack.name, nameKeys);
       for (const line of [...(stack.tooltip ?? []), ...(stack.tooltipAdvanced ?? [])]) collectKeys(line, usedKeys);
@@ -216,6 +218,10 @@ async function buildVersion(id: string) {
       await writeFile(join(outDir, 'player', `${skin}.png`), await readFile(join(versionDir, 'assets/minecraft/textures/entity/player', model!, `${skin}.png`)));
     }
   }
+
+  // textura do brilho de encantamento (desenhada por cima dos itens com foil)
+  const glintFile = join(versionDir, 'assets/minecraft/textures/misc/enchanted_glint_item.png');
+  if (existsSync(glintFile)) await writeFile(join(outDir, 'glint.png'), await readFile(glintFile));
 
   const blank = Object.values(icons.bundle.items).filter(([index]) => ['empty', 'special'].includes(icons.bundle.models[index]!.kind)).length;
   if (blank) console.log(`::warning title=Ícones sem modelo::${id}: ${blank} itens sem ícone (vazio ou especial sem malha)`);

@@ -1,0 +1,9 @@
+net.minecraft.world.item.SmithingTemplateItem
+net.minecraft.client.gui.components.WidgetTooltipHolder
+net.minecraft.client.gui.components.Tooltip
+net.minecraft.client.gui.screens.inventory.tooltip.MenuTooltipPositioner
+net.minecraft.client.gui.screens.inventory.tooltip.BelowOrAboveWidgetTooltipPositioner
+TextureTransform
+ItemRenderer
+assets/minecraft/shaders/core/glint.fsh
+assets/minecraft/shaders/core/glint.vsh
