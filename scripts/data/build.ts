@@ -136,11 +136,13 @@ async function buildVersion(id: string) {
   await writeFile(join(outDir, 'textures.webp'), await toWebp(icons.atlas));
   if (icons.programmerAtlas) await writeFile(join(outDir, 'textures-programmer.webp'), await toWebp(icons.programmerAtlas));
   // interface da tela do criativo (fundos, abas, rolagem, destaque) + fonte do jogo
-  const gui = buildGuiBundle(versionDir, [...new Set(tabs.map((tab) => tab.background))]);
+  const gui = await buildGuiBundle(versionDir, [...new Set(tabs.map((tab) => tab.background))]);
   await writeFile(join(outDir, 'gui.json'), JSON.stringify(gui.bundle));
   await writeFile(join(outDir, 'gui.webp'), await toWebp(gui.atlas));
   await mkdir(join(outDir, 'font'), { recursive: true });
   for (const [name, data] of Object.entries(gui.fontFiles)) await writeFile(join(outDir, 'font', name), data);
+  await mkdir(join(outDir, 'frames'), { recursive: true });
+  for (const [name, data] of Object.entries(gui.frameFiles)) await writeFile(join(outDir, 'frames', name), data);
 
   const blank = Object.values(icons.bundle.items).filter(([index]) => ['empty', 'special'].includes(icons.bundle.models[index]!.kind)).length;
   if (blank) console.log(`::warning title=Ícones sem modelo::${id}: ${blank} itens sem ícone (vazio ou especial sem malha)`);

@@ -3,6 +3,7 @@
 // ao lado (computador) ou abaixo (celular) fica o painel do item; a url acompanha a aba ou o item escolhido
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import ItemPanel from './ItemPanel.tsx';
+import GameTooltip, { FORMAT, type TooltipLine } from './gui/GameTooltip.tsx';
 import { iconCanvas } from '@/lib/gui/icons.ts';
 import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
 import {
@@ -30,8 +31,9 @@ const SEARCH_MAX_LENGTH = 50; // o mesmo limite da caixa de pesquisa do jogo
 const CARET_BLINK_MS = 300;
 const WHEEL_STEP = 40; // quanto de rolagem (em px) vira uma linha; mouse comum manda ~100 por clique
 const WIDE_MIN_WIDTH = 1024; // a partir daqui o painel fica ao lado do inventário
-const PANEL_WIDTH = 360;
-const LAYOUT_GAP = 24;
+// medidas do painel em pixels da gui: ao lado, ele tem a altura do fundo do inventário (136) e fica alinhado a ele
+const PANEL_WIDTH = 176;
+const LAYOUT_GAP = 8;
 
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
@@ -58,6 +60,9 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [scroll, setScroll] = useState(0);
   const [query, setQuery] = useState('');
   const [hovered, setHovered] = useState(-1);
+  const [hoveredTab, setHoveredTab] = useState(-1);
+  // onde a tooltip se ancora: o ponteiro do mouse, ou o centro do slot/aba focado pelo teclado
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const [focusedSlot, setFocusedSlot] = useState(0);
   const [searchFocused, setSearchFocused] = useState(false);
   const [caretVisible, setCaretVisible] = useState(true);
@@ -86,8 +91,8 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     const update = () => {
       const dpr = window.devicePixelRatio || 1;
       const margin = 16;
-      const sidePanel = window.innerWidth >= WIDE_MIN_WIDTH ? PANEL_WIDTH + LAYOUT_GAP : 0;
-      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin - sidePanel, window.innerHeight - margin, dpr) });
+      const contentWidth = window.innerWidth >= WIDE_MIN_WIDTH ? CANVAS_WIDTH + LAYOUT_GAP + PANEL_WIDTH : CANVAS_WIDTH;
+      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin, window.innerHeight - margin, dpr, contentWidth) });
       media?.removeEventListener('change', update);
       media = window.matchMedia(`(resolution: ${dpr}dppx)`);
       media.addEventListener('change', update);
@@ -274,6 +279,14 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     return () => window.removeEventListener('popstate', onPopState);
   }, [data]);
 
+  // foco pelo teclado (não pelo clique) também mostra a tooltip, ancorada no centro do elemento
+  const focusTooltip = (element: HTMLElement, then?: () => void) => {
+    if (!element.matches(':focus-visible')) return;
+    const rect = element.getBoundingClientRect();
+    setPointer({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    then?.();
+  };
+
   const selectTab = (index: number) => {
     if (!data) return;
     setTabIndex(index);
@@ -448,12 +461,31 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const tabName = textOf(data, tab.name);
   const slotIndex = Math.min(focusedSlot, Math.max(visible.length - 1, 0));
 
+  // tooltip: nome da aba ao passar na aba; no item, o nome — e, na aba de pesquisa, as abas onde ele fica (em azul)
+  const tooltipLines: TooltipLine[] = (() => {
+    if (hoveredTab >= 0) return [{ text: textOf(data, data.tabs[hoveredTab]!.name), color: FORMAT.white }];
+    const key = hovered >= 0 ? visible[hovered] : undefined;
+    if (!key) return [];
+    const lines: TooltipLine[] = [{ text: itemName(key), color: FORMAT.white }];
+    if (tab.type === 'search') {
+      for (const candidate of data.tabs) if (candidate.type === 'category' && candidate.items.includes(key)) lines.push({ text: textOf(data, candidate.name), color: FORMAT.blue });
+    }
+    return lines;
+  })();
+
   const inventoryHeight = `${CANVAS_HEIGHT * unit}px`;
 
   return (
-    <div class="flex w-full flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center lg:gap-6">
-      <div class="relative shrink-0 touch-none select-none" style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }} onWheel={onWheel}>
+    <div class="flex w-full flex-col items-center lg:flex-row lg:items-start lg:justify-center" style={{ '--u': `${unit}px`, gap: `${LAYOUT_GAP * unit}px` }}>
+      <div
+        class="relative shrink-0 touch-none select-none"
+        style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }}
+        onWheel={onWheel}
+        onPointerMove={(event) => event.pointerType === 'mouse' && setPointer({ x: event.clientX, y: event.clientY })}
+        onPointerLeave={(event) => event.pointerType === 'mouse' && setPointer(null)}
+      >
         <canvas ref={canvasRef} class="absolute inset-0 h-full w-full" aria-hidden="true" />
+        {pointer && tooltipLines.length > 0 && <GameTooltip data={data} lines={tooltipLines} pointerX={pointer.x} pointerY={pointer.y} unit={unit} />}
 
         <div ref={tabsRef} role="tablist" aria-label="Abas do inventário" onKeyDown={onTabsKeyDown}>
           {data.tabs.map((candidate, index) => (
@@ -468,6 +500,10 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
               class="absolute cursor-pointer focus-visible:outline-2 focus-visible:outline-yellow-300"
               style={box(tabX(candidate), tabY(candidate), CREATIVE.tabWidth, CREATIVE.tabHeight)}
               onClick={() => selectTab(index)}
+              onPointerEnter={(event) => event.pointerType === 'mouse' && setHoveredTab(index)}
+              onPointerLeave={() => setHoveredTab(-1)}
+              onFocus={(event) => focusTooltip(event.currentTarget, () => setHoveredTab(index))}
+              onBlur={() => setHoveredTab(-1)}
             >
               <span class="sr-only">{textOf(data, candidate.name)}</span>
             </button>
@@ -523,9 +559,10 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
                 aria-pressed={key === selectedKey}
                 onClick={() => selectItem(key)}
                 onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
-                onFocus={() => {
+                onFocus={(event) => {
                   setFocusedSlot(index);
                   setHovered(index);
+                  focusTooltip(event.currentTarget);
                 }}
                 onBlur={() => setHovered(-1)}
               />
@@ -554,8 +591,12 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
         </div>
       </div>
 
-      <div class="w-full max-w-md lg:h-(--inventory-height) lg:w-[360px] lg:max-w-none" style={{ '--inventory-height': inventoryHeight }}>
-        <ItemPanel data={data} itemKey={selectedKey} onClose={closePanel} onShowInTab={showInTab} />
+      {/* celular: embaixo, na largura do inventário. computador: ao lado, alinhado ao fundo (sem as abas) */}
+      <div
+        class="w-(--panel-narrow) lg:mt-(--panel-top) lg:h-(--panel-height) lg:w-(--panel-wide)"
+        style={{ '--panel-narrow': `${CANVAS_WIDTH * unit}px`, '--panel-wide': `${PANEL_WIDTH * unit}px`, '--panel-top': `${TOP * unit}px`, '--panel-height': `${CREATIVE.height * unit}px` }}
+      >
+        <ItemPanel data={data} scale={metrics.scale} itemKey={selectedKey} onClose={closePanel} onShowInTab={showInTab} />
       </div>
     </div>
   );

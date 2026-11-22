@@ -14,9 +14,17 @@ export interface FontDefinition {
   bitmaps: BitmapProvider[]; // na ordem do jogo: o primeiro que tiver o caractere ganha
 }
 
+// moldura "nine slice" pro html (frames/<nome>.png): cantos de `border` px fixos, o resto estica
+export interface FrameInfo {
+  width: number;
+  height: number;
+  border: number;
+}
+
 export interface GuiBundle {
   images: Record<string, AtlasRect>; // ex.: "container/creative_inventory/tab_items", "sprites/container/creative_inventory/scroller"
   font: FontDefinition;
+  frames?: Record<string, FrameInfo>; // panel, slot, button(_highlighted/_disabled), cross_button(_highlighted), tooltip_background, tooltip_frame
 }
 
 // tela do inventário criativo (CreativeModeInventoryScreen, 26.3)

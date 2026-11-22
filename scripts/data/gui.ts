@@ -1,12 +1,14 @@
 // pacote de interface de uma versão: os sprites e fundos que a tela do inventário criativo usa + a fonte do jogo
 //   gui.webp     atlas com fundos das abas, abas, barra de rolagem e destaque do slot
 //   gui.json     posição de cada imagem no atlas + definição da fonte (provedores bitmap e espaços)
-//   font/*.png   as folhas de caracteres da fonte (bitmap)
+//   font/*.png   as folhas de caracteres da fonte (bitmap) + font/minecraft.woff2 (a mesma fonte, como fonte web)
+//   frames/*.png molduras "nine slice" pro html (painel, slot, botões, tooltip), usadas com border-image
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import type { AtlasRect } from '../../src/lib/icons/bundle.ts';
-import type { FontDefinition, GuiBundle } from '../../src/lib/gui/types.ts';
+import type { FontDefinition, FrameInfo, GuiBundle } from '../../src/lib/gui/types.ts';
+import { buildFontFace } from './fontface.ts';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -22,7 +24,42 @@ function wantedImages(backgrounds: string[]): string[] {
   return [...new Set([...backgroundPaths, ...sprites.map((sprite) => `${SPRITES}${sprite}`)])];
 }
 
-export function buildGuiBundle(versionDir: string, backgrounds: string[]): { bundle: GuiBundle; atlas: Buffer; fontFiles: Record<string, Buffer> } {
+// sprites de moldura do jogo (o "nine slice" vem do .mcmeta de cada um)
+const FRAME_SPRITES: Record<string, string> = {
+  slot: 'container/slot',
+  button: 'widget/button',
+  button_highlighted: 'widget/button_highlighted',
+  button_disabled: 'widget/button_disabled',
+  cross_button: 'widget/cross_button',
+  cross_button_highlighted: 'widget/cross_button_highlighted',
+  tooltip_background: 'tooltip/background',
+  tooltip_frame: 'tooltip/frame',
+};
+const PANEL_BORDER = 4;
+
+function crop(source: PNG, x: number, y: number, width: number, height: number, target: PNG, tx: number, ty: number) {
+  for (let row = 0; row < height; row++) source.data.copy(target.data, ((ty + row) * target.width + tx) * 4, ((y + row) * source.width + x) * 4, ((y + row) * source.width + x + width) * 4);
+}
+
+// moldura do painel recortada do próprio fundo do inventário: cantos e bordas de 4 px + o miolo cinza
+function panelFrame(background: PNG, width: number, height: number): PNG {
+  const b = PANEL_BORDER;
+  const size = b * 3;
+  const out = new PNG({ width: size, height: size });
+  const mid = 20; // trecho de borda reta, longe dos cantos e dos slots
+  crop(background, 0, 0, b, b, out, 0, 0);
+  crop(background, width - b, 0, b, b, out, 2 * b, 0);
+  crop(background, 0, height - b, b, b, out, 0, 2 * b);
+  crop(background, width - b, height - b, b, b, out, 2 * b, 2 * b);
+  crop(background, mid, 0, b, b, out, b, 0);
+  crop(background, mid, height - b, b, b, out, b, 2 * b);
+  crop(background, 0, mid, b, b, out, 0, b);
+  crop(background, width - b, mid, b, b, out, 2 * b, b);
+  crop(background, b + 1, b + 1, b, b, out, b, b);
+  return out;
+}
+
+export async function buildGuiBundle(versionDir: string, backgrounds: string[]): Promise<{ bundle: GuiBundle; atlas: Buffer; fontFiles: Record<string, Buffer>; frameFiles: Record<string, Buffer> }> {
   const assets = join(versionDir, 'assets/minecraft');
   const images = new Map<string, PNG>();
   for (const path of wantedImages(backgrounds)) {
@@ -74,5 +111,26 @@ export function buildGuiBundle(versionDir: string, backgrounds: string[]): { bun
   };
   visit('minecraft:default');
 
-  return { bundle: { images: rects, font }, atlas: PNG.sync.write(atlas), fontFiles };
+  fontFiles['minecraft.woff2'] = await buildFontFace(font, fontFiles);
+
+  // molduras pro html
+  const frames: Record<string, FrameInfo> = {};
+  const frameFiles: Record<string, Buffer> = {};
+  for (const [name, sprite] of Object.entries(FRAME_SPRITES)) {
+    const file = join(assets, `${SPRITES}${sprite}.png`);
+    if (!existsSync(file)) continue;
+    const png = PNG.sync.read(readFileSync(file));
+    const meta = existsSync(`${file}.mcmeta`) ? (JSON.parse(readFileSync(`${file}.mcmeta`, 'utf8')) as Json) : {};
+    const scaling = meta.gui?.scaling;
+    // o slot não tem .mcmeta: a borda em relevo dele tem 1 px
+    const border = scaling?.type === 'nine_slice' ? (typeof scaling.border === 'number' ? scaling.border : scaling.border.left) : name === 'slot' ? 1 : 0;
+    frames[name] = { width: png.width, height: png.height, border };
+    frameFiles[`${name}.png`] = readFileSync(file);
+  }
+  const panelBackground = backgrounds.map((id) => id.replace(/^minecraft:/, '').replace(/\.png$/, '')).find((path) => path.endsWith('tab_items')) ?? backgrounds[0]!.replace(/^minecraft:/, '').replace(/\.png$/, '');
+  const panel = panelFrame(images.get(panelBackground.replace('textures/gui/', ''))!, 195, 136);
+  frames.panel = { width: panel.width, height: panel.height, border: PANEL_BORDER };
+  frameFiles['panel.png'] = PNG.sync.write(panel);
+
+  return { bundle: { images: rects, font, frames }, atlas: PNG.sync.write(atlas), fontFiles, frameFiles };
 }

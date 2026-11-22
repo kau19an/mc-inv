@@ -1,69 +1,69 @@
-// painel de detalhes do item: render ampliada, nome e seções de informação. cada seção só aparece se houver
-// dado pra ela — as próximas fases (receitas, propriedades, quebra…) entram como novas seções nessa lista
+// painel de detalhes do item, com a cara da interface do jogo: moldura recortada do próprio fundo do inventário,
+// render ampliada dentro de um slot, texto na fonte do jogo e botões do jogo. tudo medido em pixels da gui (--u).
+// cada seção só aparece se houver dado — as próximas fases (receitas, propriedades, quebra…) entram nessa lista
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { TabInfo } from '@/lib/gui/creative.ts';
+import { CrossButton, FRAME_CLASS, GuiButton, frameStyle, gameText, hex, u } from './gui/GuiParts.tsx';
 import { textOf, type VersionData } from '@/lib/gui/data.ts';
 import { iconCanvas } from '@/lib/gui/icons.ts';
 import { baseId } from '@/lib/gui/routes.ts';
 
-const PREVIEW_CSS_SIZE = 96; // px de css da render ampliada (6× o slot)
+const PREVIEW_SCALE = 3; // render ampliada: 3× o tamanho do item no slot
+const TEXT = 0x404040; // a cor do título do inventário
+const MUTED = 0x707070;
+const TAG = 0xaa00aa; // roxo escuro (§5), a cor das marcações na tooltip do jogo
 
 interface Props {
   data: VersionData;
+  scale: number; // pixels reais por pixel da gui
   itemKey: string | null;
   onClose: () => void;
   onShowInTab: (tabIndex: number, itemKey: string) => void;
 }
 
+// título de seção com um "sulco" embaixo (linha escura + linha clara, como as divisórias do jogo)
 function Section({ title, children }: { title: string; children: ComponentChildren }) {
   return (
-    <section class="border-t border-white/10 pt-3">
-      <h3 class="mb-2 text-xs font-semibold tracking-wider text-violet-300 uppercase">{title}</h3>
+    <section style={{ marginTop: u(6) }}>
+      <h3 style={{ color: hex(TEXT), borderBottom: `${u(1)} solid #8b8b8b`, boxShadow: `0 ${u(1)} 0 #ffffff`, paddingBottom: u(1), marginBottom: u(4) }}>{title}</h3>
       {children}
     </section>
   );
 }
 
-function Preview({ data, itemKey }: { data: VersionData; itemKey: string }) {
+function Preview({ data, scale, itemKey }: { data: VersionData; scale: number; itemKey: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const size = 16 * PREVIEW_SCALE;
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    // render direto no tamanho final em pixels reais: blocos 3D ficam nítidos, itens chapados viram pixels grandes
-    const size = Math.round(PREVIEW_CSS_SIZE * (window.devicePixelRatio || 1));
-    canvas.width = canvas.height = size;
+    // render direto em pixels reais: blocos 3D nítidos, itens chapados com pixels grandes
+    canvas.width = canvas.height = size * scale;
     const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, size, size);
-    const icon = iconCanvas(data, itemKey, size);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const icon = iconCanvas(data, itemKey, size * scale);
     if (icon) ctx.drawImage(icon, 0, 0);
-  }, [data, itemKey]);
-  return <canvas ref={ref} class="mx-auto" style={{ width: `${PREVIEW_CSS_SIZE}px`, height: `${PREVIEW_CSS_SIZE}px` }} aria-hidden="true" />;
-}
-
-function CopyId({ id }: { id: string }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => setCopied(false), [id]);
+  }, [data, itemKey, scale]);
   return (
-    <button
-      type="button"
-      class="rounded px-1.5 py-0.5 text-xs text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-yellow-300"
-      onClick={() => navigator.clipboard?.writeText(id).then(() => setCopied(true))}
-    >
-      {copied ? 'Copiado!' : 'Copiar'}
-    </button>
+    <div class={`${FRAME_CLASS} mx-auto box-content`} style={{ ...frameStyle(data, 'slot'), width: u(size + 2 * PREVIEW_SCALE - 2), height: u(size + 2 * PREVIEW_SCALE - 2) }}>
+      <canvas ref={ref} aria-hidden="true" class="block" style={{ width: u(size), height: u(size), margin: u(PREVIEW_SCALE - 1) }} />
+    </div>
   );
 }
 
-export default function ItemPanel({ data, itemKey, onClose, onShowInTab }: Props) {
+export default function ItemPanel({ data, scale, itemKey, onClose, onShowInTab }: Props) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
+    setCopied(false);
     if (itemKey) headingRef.current?.focus({ preventScroll: true });
   }, [itemKey]);
 
+  const panel = { ...gameText, ...frameStyle(data, 'panel'), color: hex(TEXT) };
+
   if (!itemKey) {
     return (
-      <aside class="grid place-items-center rounded-lg lg:h-full border border-dashed border-white/15 p-6 text-center text-sm text-neutral-500" aria-label="Detalhes do item">
+      <aside class={`${FRAME_CLASS} grid h-full place-items-center text-center`} style={{ ...panel, padding: u(8) }} aria-label="Detalhes do item">
         <p>
           <span class="pointer-coarse:hidden">Clique</span>
           <span class="hidden pointer-coarse:inline">Toque</span> num item pra ver os detalhes dele.
@@ -76,51 +76,48 @@ export default function ItemPanel({ data, itemKey, onClose, onShowInTab }: Props
   const id = baseId(itemKey);
   const name = item ? textOf(data, item.name) : id;
   const englishName = item ? textOf(data, item.name, data.fallbackLang) : id;
-  const tabs = data.tabs.map((tab, index) => ({ tab, index })).filter(({ tab }: { tab: TabInfo }) => tab.type === 'category' && tab.items.some((key) => baseId(key) === id));
+  const tabs = data.tabs.map((tab, index) => ({ tab, index })).filter(({ tab }) => tab.type === 'category' && tab.items.some((key) => baseId(key) === id));
   const tags = data.itemTags[id] ?? [];
+  const fullId = `minecraft:${id}`;
 
   return (
     <aside
-      class="relative flex flex-col lg:h-full gap-3 overflow-y-auto rounded-lg border-2 border-[#5000ff]/60 bg-[#100010]/95 p-4 text-sm text-neutral-200 shadow-[inset_0_0_0_1px_#28007f]"
+      class={`${FRAME_CLASS} relative h-full overflow-y-auto [scrollbar-color:#8b8b8b_transparent] [scrollbar-width:thin]`}
+      style={{ ...panel, padding: `${u(4)} ${u(4)} ${u(6)}` }}
       aria-labelledby="item-panel-title"
     >
-      <button
-        type="button"
-        class="absolute top-2 right-2 grid size-8 place-items-center rounded text-lg text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-yellow-300"
-        aria-label="Fechar detalhes"
-        onClick={onClose}
-      >
-        ×
-      </button>
+      <CrossButton data={data} label="Fechar detalhes" onClick={onClose} style={{ position: 'absolute', top: u(3), right: u(3) }} />
 
-      <Preview data={data} itemKey={itemKey} />
-      <div class="text-center">
-        <h2 ref={headingRef} id="item-panel-title" tabIndex={-1} class="text-lg font-semibold text-white outline-none">
+      <div style={{ marginTop: u(4) }}>
+        <Preview data={data} scale={scale} itemKey={itemKey} />
+      </div>
+      <div class="text-center" style={{ marginTop: u(4) }}>
+        <h2 ref={headingRef} id="item-panel-title" tabIndex={-1} class="outline-none">
           {name}
         </h2>
         {englishName !== name && (
-          <p class="text-neutral-400" lang="en">
+          <p lang="en" style={{ color: hex(MUTED) }}>
             {englishName}
           </p>
         )}
-        <p class="mt-1 flex items-center justify-center gap-1">
-          <code class="text-xs text-neutral-300">minecraft:{id}</code>
-          <CopyId id={`minecraft:${id}`} />
+        <p class="flex flex-wrap items-center justify-center" style={{ gap: u(3), marginTop: u(2) }}>
+          <code class="select-all" style={{ fontFamily: 'inherit', color: hex(MUTED) }}>
+            {fullId}
+          </code>
+          <GuiButton data={data} onClick={() => navigator.clipboard?.writeText(fullId).then(() => setCopied(true))}>
+            {copied ? 'Copiado!' : 'Copiar'}
+          </GuiButton>
         </p>
       </div>
 
       {tabs.length > 0 && (
         <Section title="Onde fica no inventário">
-          <ul class="flex flex-wrap gap-2">
+          <ul class="flex flex-wrap" style={{ gap: u(2) }}>
             {tabs.map(({ tab, index }) => (
               <li key={tab.id}>
-                <button
-                  type="button"
-                  class="rounded border border-white/15 px-2 py-1 hover:border-violet-400 hover:text-white focus-visible:outline-2 focus-visible:outline-yellow-300"
-                  onClick={() => onShowInTab(index, itemKey)}
-                >
+                <GuiButton data={data} onClick={() => onShowInTab(index, itemKey)}>
                   {textOf(data, tab.name)}
-                </button>
+                </GuiButton>
               </li>
             ))}
           </ul>
@@ -129,17 +126,17 @@ export default function ItemPanel({ data, itemKey, onClose, onShowInTab }: Props
 
       {tags.length > 0 && (
         <Section title={`Marcações (${tags.length})`}>
-          <ul class="flex flex-wrap gap-1.5">
+          <ul style={{ color: hex(TAG) }}>
             {tags.map((tag) => (
-              <li key={tag}>
-                <code class="rounded bg-white/5 px-1.5 py-0.5 text-xs text-fuchsia-300">#{tag.includes(':') ? tag : `minecraft:${tag}`}</code>
+              <li key={tag} class="break-all">
+                #{tag.includes(':') ? tag : `minecraft:${tag}`}
               </li>
             ))}
           </ul>
         </Section>
       )}
 
-      <p class="border-t border-white/10 pt-3 text-xs text-neutral-500">Receitas, propriedades e mais detalhes chegam nas próximas etapas.</p>
+      <p style={{ color: hex(MUTED), marginTop: u(6) }}>Receitas, propriedades e mais detalhes chegam nas próximas etapas.</p>
     </aside>
   );
 }

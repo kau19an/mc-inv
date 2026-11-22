@@ -13,6 +13,7 @@ export interface ItemInfo {
 
 export interface VersionData {
   id: string;
+  baseUrl: string; // /data/je/<versão>
   tabs: TabInfo[];
   items: Record<string, ItemInfo>;
   lang: Record<string, string>; // idioma da interface
@@ -58,6 +59,17 @@ function pixelsOf(bitmap: ImageBitmap): AtlasPixels {
   return { width: bitmap.width, data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data };
 }
 
+// a fonte do jogo como fonte web, pro texto em html (painel, tooltip). sem ela, o texto cai na fonte do sistema
+export const FONT_FAMILY = 'Minecraft GUI';
+async function loadFontFace(base: string): Promise<void> {
+  try {
+    const face = new FontFace(FONT_FAMILY, `url("${base}/font/minecraft.woff2")`);
+    document.fonts.add(await face.load());
+  } catch {
+    // versão publicada antes da fonte web existir
+  }
+}
+
 export async function latestRelease(): Promise<string> {
   return (await json<VersionList>(`${BASE}/versions.json`)).latest.release;
 }
@@ -78,9 +90,10 @@ export async function loadVersion(id: string, locale: string): Promise<VersionDa
   // tags.json vem como tag → itens; o painel precisa do contrário
   const itemTags: Record<string, string[]> = {};
   for (const [tag, members] of Object.entries(tags)) for (const item of members) (itemTags[item] ??= []).push(tag);
-  const font = await loadFont(gui.font, base);
+  const [font] = await Promise.all([loadFont(gui.font, base), loadFontFace(base)]);
   return {
     id,
+    baseUrl: base,
     tabs: tabs.tabs,
     items,
     lang,
