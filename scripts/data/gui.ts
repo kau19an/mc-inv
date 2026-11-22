@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import type { AtlasRect } from '../../src/lib/icons/bundle.ts';
-import type { FontDefinition, FrameInfo, GuiBundle } from '../../src/lib/gui/types.ts';
+import type { FontDefinition, FrameInfo, GuiBundle, TileInfo } from '../../src/lib/gui/types.ts';
 import { buildFontFace } from './fontface.ts';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -39,6 +39,17 @@ const FRAME_SPRITES: Record<string, string> = {
   text_field_highlighted: 'widget/text_field_highlighted',
   tooltip_background: 'tooltip/background',
   tooltip_frame: 'tooltip/frame',
+  scroller: 'widget/scroller', // barra de rolagem das listas (AbstractScrollArea)
+  scroller_background: 'widget/scroller_background',
+};
+
+// texturas repetidas (em blocos) das telas de menu com lista: fundo da tela, fundo da lista e as linhas que
+// separam o cabeçalho e o rodapé (Screen.MENU_BACKGROUND, MENU_LIST_BACKGROUND, HEADER/FOOTER_SEPARATOR)
+const TILE_TEXTURES: Record<string, string> = {
+  menu_background: 'menu_background',
+  menu_list_background: 'menu_list_background',
+  header_separator: 'header_separator',
+  footer_separator: 'footer_separator',
 };
 const PANEL_BORDER = 4;
 
@@ -135,5 +146,13 @@ export async function buildGuiBundle(versionDir: string, backgrounds: string[]):
   const panel = panelFrame(images.get(panelBackground.replace('textures/gui/', ''))!, 195, 136);
   frames.panel = { width: panel.width, height: panel.height, border: PANEL_BORDER, src: dataUrl(PNG.sync.write(panel)) };
 
-  return { bundle: { images: rects, font, frames }, atlas: PNG.sync.write(atlas), fontFiles };
+  const tiles: Record<string, TileInfo> = {};
+  for (const [name, texture] of Object.entries(TILE_TEXTURES)) {
+    const file = join(assets, 'textures/gui', `${texture}.png`);
+    if (!existsSync(file)) continue;
+    const png = PNG.sync.read(readFileSync(file));
+    tiles[name] = { width: png.width, height: png.height, src: dataUrl(readFileSync(file)) };
+  }
+
+  return { bundle: { images: rects, font, frames, tiles }, atlas: PNG.sync.write(atlas), fontFiles };
 }

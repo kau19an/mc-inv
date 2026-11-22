@@ -22,10 +22,18 @@ export interface FrameInfo {
   src?: string; // data:image/png;base64,… (versões publicadas antes disso usam frames/<nome>.png)
 }
 
+// textura repetida em blocos (fundos de menu, separadores)
+export interface TileInfo {
+  width: number;
+  height: number;
+  src: string; // data:image/png;base64,…
+}
+
 export interface GuiBundle {
   images: Record<string, AtlasRect>; // ex.: "container/creative_inventory/tab_items", "sprites/container/creative_inventory/scroller"
   font: FontDefinition;
-  frames?: Record<string, FrameInfo>; // panel, slot, button(_highlighted/_disabled), cross_button(_highlighted), tooltip_background, tooltip_frame
+  frames?: Record<string, FrameInfo>; // panel, slot, button(_highlighted/_disabled), cross_button(_highlighted), tooltip_background, tooltip_frame, scroller(_background)…
+  tiles?: Record<string, TileInfo>; // menu_background, menu_list_background, header_separator, footer_separator
 }
 
 // tela do inventário criativo (CreativeModeInventoryScreen, 26.3)

@@ -6,6 +6,7 @@
 //   public/data/je/<id>/lang/<locale>.json   só as traduções usadas pelo inventário
 //   public/data/je/<id>/wiki/<locale>.json   nomes dos itens nos idiomas das outras wikis (opção Minecraft Wiki)
 //   public/data/je/<id>/tags.json            marcações de item já resolvidas (tag → itens)
+//   public/data/je/<id>/panorama/<0-5>.webp     faces do panorama do menu principal (fundo do site)
 //   public/data/je/<id>/glint.png            textura do brilho de encantamento (misc/enchanted_glint_item.png)
 //   public/data/je/<id>/player.json          modelo do jogador (peças separadas) + player/steve.png e player/alex.png
 //   public/data/je/versions.json             versões disponíveis no site
@@ -241,6 +242,19 @@ async function buildVersion(id: string) {
     await mkdir(join(outDir, 'player'), { recursive: true });
     for (const [model, skin] of [['wide', 'steve'], ['slim', 'alex']]) {
       await writeFile(join(outDir, 'player', `${skin}.png`), await readFile(join(versionDir, 'assets/minecraft/textures/entity/player', model!, `${skin}.png`)));
+    }
+  }
+
+  // panorama do menu principal (as 6 faces do cubo), de fundo do site. vai desfocado, então 512 px em webp com
+  // perda sobra (de ~4 MB em png pra uns 150 KB no total)
+  const panoramaDir = join(versionDir, 'assets/minecraft/textures/gui/title/background');
+  if (existsSync(join(panoramaDir, 'panorama_0.png'))) {
+    const { default: sharp } = await import('sharp');
+    await mkdir(join(outDir, 'panorama'), { recursive: true });
+    for (let face = 0; face < 6; face++) {
+      const file = join(panoramaDir, `panorama_${face}.png`);
+      if (!existsSync(file)) continue;
+      await writeFile(join(outDir, 'panorama', `${face}.webp`), await sharp(file).resize(512, 512).webp({ quality: 80 }).toBuffer());
     }
   }
 
