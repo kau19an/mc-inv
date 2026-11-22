@@ -60,7 +60,8 @@ public final class CreativeTabsDump {
         init,
         context -> new WorldLoader.DataLoadOutput<>(null, context.datapackDimensions()),
         (resources, reloadable, layers, cookie) -> {
-          reloadable.updateComponentsAndStaticRegistryTags();
+          // 26.1-pre-1 em diante: updateComponentsAndStaticRegistryTags; snapshots da 26.1: updateStaticRegistryTags
+          applyStaticTags(reloadable);
           return layers.compositeAccess();
         },
         Util.backgroundExecutor(),
@@ -158,5 +159,19 @@ public final class CreativeTabsDump {
     }
     for (Component line : components) lines.add(ComponentSerialization.CODEC.encodeStart(ops, line).getOrThrow());
     return lines;
+  }
+
+  private static void applyStaticTags(Object reloadable) {
+    for (String name : new String[] {"updateComponentsAndStaticRegistryTags", "updateStaticRegistryTags"}) {
+      try {
+        reloadable.getClass().getMethod(name).invoke(reloadable);
+        return;
+      } catch (NoSuchMethodException missing) {
+        // nome de outra época: tenta o próximo
+      } catch (ReflectiveOperationException error) {
+        throw new IllegalStateException(error);
+      }
+    }
+    throw new IllegalStateException("ReloadableServerResources sem método de aplicar as tags");
   }
 }

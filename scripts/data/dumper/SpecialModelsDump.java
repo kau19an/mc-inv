@@ -32,21 +32,20 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.PlayerSkinRenderCache;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.special.SpecialModelRenderer;
 import net.minecraft.client.renderer.special.SpecialModelRenderers;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.sprite.SpriteGetter;
-import net.minecraft.client.resources.model.sprite.SpriteId;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.server.Bootstrap;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 public final class SpecialModelsDump {
   // sprites "de mentirinha": o jogo pede um sprite pela id e depois só repassa pro coletor.
-  // como a gente não tem atlas de texturas (não há placa de vídeo), cria um objeto vazio e lembra de qual id ele é
-  private static final Map<Object, SpriteId> FAKE_SPRITES = new IdentityHashMap<>();
+  // como a gente não tem atlas de texturas (não há placa de vídeo), cria um objeto vazio e lembra de qual id ele é.
+  // a id é um SpriteId (26.1-pre-1 em diante) ou um Material (antes): os dois têm atlasLocation() e texture()
+  private static final Map<Object, Object> FAKE_SPRITES = new IdentityHashMap<>();
 
   public static void main(String[] args) throws Exception {
     Path input = Path.of(args[0]);
@@ -54,28 +53,21 @@ public final class SpecialModelsDump {
 
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
-    Codec<SpecialModelRenderer.Unbaked<?>> codec = specialModelCodec();
-
-    EntityModelSet models = EntityModelSet.vanilla();
-    SpriteGetter sprites = SpecialModelsDump::fakeSprite;
-    SpecialModelRenderer.BakingContext context = new SpecialModelRenderer.BakingContext() {
-      @Override public EntityModelSet entityModelSet() { return models; }
-      @Override public SpriteGetter sprites() { return sprites; }
-      @Override public PlayerSkinRenderCache playerSkinRenderCache() { return null; }
-    };
+    Codec<SpecialModelRenderer.Unbaked> codec = specialModelCodec();
+    SpecialModelRenderer.BakingContext context = bakingContext(EntityModelSet.vanilla());
 
     JsonObject result = new JsonObject();
     JsonObject entries = JsonParser.parseString(Files.readString(input)).getAsJsonObject();
     for (Map.Entry<String, JsonElement> entry : entries.entrySet()) {
       try {
-        SpecialModelRenderer.Unbaked<?> unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
+        SpecialModelRenderer.Unbaked unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
         @SuppressWarnings("unchecked")
         SpecialModelRenderer<Object> renderer = (SpecialModelRenderer<Object>) unbaked.bake(context);
         JsonArray parts = new JsonArray();
         if (renderer != null) {
           SubmitNodeCollector collector = recorder(parts);
           // sem dados do item (padrão): estandarte liso, vaso sem cacos, cabeça com a skin padrão…
-          renderer.submit(null, new PoseStack(), collector, 0xF000F0, 0, false, 0);
+          submit(renderer, collector);
         }
         JsonObject model = new JsonObject();
         model.add("parts", parts);
@@ -94,12 +86,12 @@ public final class SpecialModelsDump {
   // - 26.4: bootstrap(registro) preenche um registro do cliente; a gente cria um registro próprio,
   //   pede pro jogo preencher e monta o mesmo "dispatch" do CODEC em cima dele
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private static Codec<SpecialModelRenderer.Unbaked<?>> specialModelCodec() throws ReflectiveOperationException {
+  private static Codec<SpecialModelRenderer.Unbaked> specialModelCodec() throws ReflectiveOperationException {
     for (Method method : SpecialModelRenderers.class.getMethods()) {
       if (!method.getName().equals("bootstrap")) continue;
       if (method.getParameterCount() == 0) {
         method.invoke(null);
-        return (Codec<SpecialModelRenderer.Unbaked<?>>) SpecialModelRenderers.class.getField("CODEC").get(null);
+        return (Codec<SpecialModelRenderer.Unbaked>) SpecialModelRenderers.class.getField("CODEC").get(null);
       }
       if (method.getParameterCount() == 1) {
         MappedRegistry registry = new MappedRegistry(
@@ -113,7 +105,55 @@ public final class SpecialModelsDump {
     throw new IllegalStateException("SpecialModelRenderers.bootstrap não encontrado");
   }
 
-  private static TextureAtlasSprite fakeSprite(SpriteId id) {
+  // contexto de montagem pelos nomes, sem depender dos tipos de cada época:
+  // - 26.1-pre-1 em diante: sprites() devolve um SpriteGetter (sprite pela SpriteId)
+  // - snapshots da 26.1: materials() devolve um MaterialSet (sprite pelo Material)
+  // os dois são interfaces de um método só, então um proxy atende qualquer um
+  private static SpecialModelRenderer.BakingContext bakingContext(EntityModelSet models) {
+    InvocationHandler handler = (proxy, method, args) -> switch (method.getName()) {
+      case "entityModelSet" -> models;
+      case "playerSkinRenderCache" -> null;
+      case "sprites", "materials" -> spriteLookup(method.getReturnType());
+      default -> method.isDefault() ? InvocationHandler.invokeDefault(proxy, method, args) : defaultValue(method.getReturnType());
+    };
+    return (SpecialModelRenderer.BakingContext) Proxy.newProxyInstance(
+        SpecialModelRenderer.class.getClassLoader(), new Class<?>[] {SpecialModelRenderer.BakingContext.class}, handler);
+  }
+
+  private static Object spriteLookup(Class<?> type) {
+    InvocationHandler handler = (proxy, method, args) -> {
+      if (method.isDefault()) return InvocationHandler.invokeDefault(proxy, method, args);
+      if (args != null && args.length == 1 && method.getReturnType() == TextureAtlasSprite.class) return fakeSprite(args[0]);
+      return defaultValue(method.getReturnType());
+    };
+    return Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type}, handler);
+  }
+
+  // submit() ganhou/perdeu o ItemDisplayContext entre as versões: monta a chamada pelos tipos dos parâmetros
+  private static void submit(SpecialModelRenderer<?> renderer, SubmitNodeCollector collector) throws ReflectiveOperationException {
+    for (Method method : SpecialModelRenderer.class.getMethods()) {
+      if (!method.getName().equals("submit")) continue;
+      Class<?>[] types = method.getParameterTypes();
+      Object[] args = new Object[types.length];
+      int ints = 0;
+      for (int index = 0; index < types.length; index++) {
+        Class<?> type = types[index];
+        if (type == PoseStack.class) args[index] = new PoseStack();
+        else if (type == SubmitNodeCollector.class) args[index] = collector;
+        else if (type == ItemDisplayContext.class) args[index] = ItemDisplayContext.GUI;
+        else if (type == boolean.class) args[index] = false;
+        // os ints, na ordem: luz (máxima), overlay, cor do contorno
+        else if (type == int.class) args[index] = ints++ == 0 ? 0xF000F0 : 0;
+        // sem dados do item (padrão): estandarte liso, vaso sem cacos, cabeça com a skin padrão…
+        else args[index] = null;
+      }
+      method.invoke(renderer, args);
+      return;
+    }
+    throw new IllegalStateException("SpecialModelRenderer.submit não encontrado");
+  }
+
+  private static TextureAtlasSprite fakeSprite(Object id) {
     try {
       Field field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
       field.setAccessible(true);
@@ -156,10 +196,10 @@ public final class SpecialModelsDump {
     stack.last().pose().set(start);
 
     JsonObject part = new JsonObject();
-    SpriteId sprite = uvMapping == null ? null : FAKE_SPRITES.get(uvMapping);
+    Object sprite = uvMapping == null ? null : FAKE_SPRITES.get(uvMapping);
     if (sprite != null) {
-      part.addProperty("atlas", sprite.atlasLocation().toString());
-      part.addProperty("texture", sprite.texture().toString());
+      part.addProperty("atlas", String.valueOf(call(sprite, "atlasLocation")));
+      part.addProperty("texture", String.valueOf(call(sprite, "texture")));
     }
     part.addProperty("renderType", String.valueOf(renderType));
     part.addProperty("tint", tint);
@@ -184,6 +224,14 @@ public final class SpecialModelsDump {
     });
     part.add("quads", quads);
     parts.add(part);
+  }
+
+  private static Object call(Object target, String name) {
+    try {
+      return target.getClass().getMethod(name).invoke(target);
+    } catch (ReflectiveOperationException error) {
+      throw new IllegalStateException(error);
+    }
   }
 
   private static double round(float value) {

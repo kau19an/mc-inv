@@ -313,7 +313,11 @@ const catalog = await readJson<{ latest: { release: string; snapshot: string }; 
 );
 const dumped = (await readdir(join(CACHE_DIR, 'versions'))).filter((id) => existsSync(join(CACHE_DIR, 'versions', id, 'creative_tabs.json')));
 const wanted = args.versions ? args.versions.split(',').map((id) => id.trim()).filter((id) => dumped.includes(id)) : dumped;
-if (wanted.length === 0) throw new Error('nenhuma versão com dump das abas: rode npm run data e npm run dump antes');
+if (wanted.length === 0) {
+  // com --keep-going, um grupo em que todas as versões falharam antes só não tem o que gerar
+  if (!args['keep-going']) throw new Error('nenhuma versão com dump das abas: rode npm run data e npm run dump antes');
+  console.log('nenhuma versão com dump das abas: nada a gerar');
+}
 
 const built: string[] = [];
 for (const id of wanted) {
