@@ -2,14 +2,16 @@
 //
 // opções:
 //   --source=official|mirror   de onde vêm os arquivos (padrão: official; mirror é só para desenvolvimento)
-//   --versions=tracked|<ids>   "tracked" = última release + último snapshot; ou ids separados por vírgula
+//   --versions=tracked|history|none|<ids>   "tracked" = última release + último snapshot; "history" = todas desde a 26.1;
+//                              "none" = só a lista de versões; ou ids separados por vírgula
+//   --keep-going               uma versão que falha não para as outras (vira anotação de erro)
 //   --locales=all|<locales>    idiomas a baixar (padrão: all), ex.: --locales=en_us,pt_br
 import { readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { unzipSync } from 'fflate';
 import { CACHE_DIR, writeFileDeep } from './lib/files.ts';
-import { trackedIds, withKind, type Version } from './lib/versions.ts';
+import { reportFailure, selectIds, withKind, type Version } from './lib/versions.ts';
 import { official } from './sources/official.ts';
 import { mirror } from './sources/mirror.ts';
 import type { Locales, Source } from './sources/types.ts';
@@ -18,6 +20,7 @@ const { values: args } = parseArgs({
   options: {
     source: { type: 'string', default: process.env.MC_DATA_SOURCE ?? 'official' },
     versions: { type: 'string', default: 'tracked' },
+    'keep-going': { type: 'boolean', default: false },
     locales: { type: 'string', default: 'all' },
   },
 });
@@ -79,14 +82,19 @@ await writeFileDeep(
   JSON.stringify({ source: source.name, latest: list.latest, versions: all.map(({ id, kind, releaseTime }) => ({ id, kind, releaseTime })) }, null, 2),
 );
 
-const wanted = args.versions === 'tracked' ? trackedIds(list) : args.versions.split(',').map((id) => id.trim());
+const wanted = selectIds(list, args.versions);
 console.log(`fonte: ${source.name} · versões: ${wanted.join(', ')} · idiomas: ${locales === 'all' ? 'todos' : locales.join(', ')}`);
 
 for (const id of wanted) {
-  const version = all.find((v) => v.id === id);
-  if (!version) throw new Error(`versão não encontrada no manifesto: ${id}`);
-  const started = Date.now();
-  const meta = await extractVersion(version);
-  console.log(`\n✓ ${id} (${meta.kind}) em ${((Date.now() - started) / 1000).toFixed(1)}s`);
-  console.table(meta.counts);
+  try {
+    const version = all.find((v) => v.id === id);
+    if (!version) throw new Error(`versão não encontrada no manifesto: ${id}`);
+    const started = Date.now();
+    const meta = await extractVersion(version);
+    console.log(`\n✓ ${id} (${meta.kind}) em ${((Date.now() - started) / 1000).toFixed(1)}s`);
+    console.table(meta.counts);
+  } catch (error) {
+    if (!args['keep-going']) throw error;
+    reportFailure(id, error);
+  }
 }

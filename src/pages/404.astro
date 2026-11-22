@@ -46,25 +46,19 @@ import Base from '@/layouts/Base.astro';
     const wanted = normalize(slug);
     if (!wanted) return null;
 
-    const json = async <T,>(url: string) => (await fetch(url)).json() as Promise<T>;
-    const { latest } = await json<{ latest: { release: string } }>('/data/je/versions.json');
-    const base = `/data/je/${latest.release}`;
-    const [{ tabs }, items, ptBr, enUs] = await Promise.all([
-      json<{ tabs: { id: string; name: { translate?: string } }[] }>(`${base}/tabs.json`),
-      json<Record<string, { id: string; name: { translate?: string } }>>(`${base}/items.json`),
-      json<Record<string, string>>(`${base}/lang/pt_br.json`),
-      json<Record<string, string>>(`${base}/lang/en_us.json`),
-    ]);
+    const index = (await (await fetch('/data/mc-inv-index.json')).json()) as {
+      tabs: { id: string; pt: string; en: string }[];
+      items: Record<string, { pt: string; en: string }>;
+    };
 
     // id normalizado e nomes (pt-BR e inglês) normalizados → id de verdade
     const candidates = new Map<string, string>();
-    const add = (key: string | undefined, id: string) => key && !candidates.has(key) && candidates.set(key, id);
-    const entries = [...tabs.map((tab) => ({ id: tab.id, name: tab.name })), ...Object.values(items).map((item) => ({ id: item.id.replace(/^minecraft:/, ''), name: item.name }))];
+    const add = (key: string, id: string) => key && !candidates.has(key) && candidates.set(key, id);
+    const entries = [...index.tabs, ...Object.entries(index.items).map(([id, names]) => ({ id, ...names }))];
     for (const { id } of entries) add(normalize(id), id);
-    for (const { id, name } of entries) {
-      if (!name.translate) continue;
-      add(ptBr[name.translate] && normalize(ptBr[name.translate]!), id);
-      add(enUs[name.translate] && normalize(enUs[name.translate]!), id);
+    for (const { id, pt, en } of entries) {
+      add(normalize(pt), id);
+      add(normalize(en), id);
     }
     const id = candidates.get(wanted);
     return id ? `${ROOT}/${id}` : null;

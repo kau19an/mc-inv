@@ -2,7 +2,8 @@
 // e grava em .cache/versions/<id>/creative_tabs.json. só funciona com a fonte oficial (precisa do jar).
 //
 // opções:
-//   --versions=tracked|<ids>   igual ao npm run data
+//   --versions=tracked|history|none|<ids>   igual ao npm run data
+//   --keep-going               uma versão que falha não para as outras
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -10,12 +11,12 @@ import { delimiter, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fetchBuffer } from './lib/http.ts';
 import { CACHE_DIR, writeFileDeep } from './lib/files.ts';
-import { trackedIds, withKind, type Version } from './lib/versions.ts';
+import { reportFailure, selectIds, withKind, type Version } from './lib/versions.ts';
 import { clientJar, official, versionPackage, type Library } from './sources/official.ts';
 import { IconResolver } from './icons/resolve.ts';
 import type { IconModel, SpecialModel } from '../../src/lib/icons/types.ts';
 
-const { values: args } = parseArgs({ options: { versions: { type: 'string', default: 'tracked' } } });
+const { values: args } = parseArgs({ options: { versions: { type: 'string', default: 'tracked' }, 'keep-going': { type: 'boolean', default: false } } });
 
 const DUMPERS = ['CreativeTabsDump.java', 'SpecialModelsDump.java', 'PlayerModelDump.java'].map((file) => join(import.meta.dirname, 'dumper', file));
 
@@ -119,13 +120,24 @@ function describePart(name: string, part: PlayerPart): string {
 
 const list = await official.listVersions();
 const all = list.versions.map(withKind);
-const wanted = args.versions === 'tracked' ? trackedIds(list) : args.versions.split(',').map((id) => id.trim());
+const wanted = selectIds(list, args.versions);
 
 const report: string[] = [];
 for (const id of wanted) {
   const version = all.find((v) => v.id === id);
   if (!version) throw new Error(`versão não encontrada no manifesto: ${id}`);
-  const result = await dump(version);
+  // a extração dessa versão falhou antes (--keep-going): não tem o que montar
+  if (!existsSync(join(CACHE_DIR, 'versions', id, 'meta.json'))) continue;
+  let result: Awaited<ReturnType<typeof dump>>;
+  try {
+    result = await dump(version);
+  } catch (error) {
+    // sem dump completo, o build-data não pode usar essa versão
+    await rm(join(CACHE_DIR, 'versions', id, 'creative_tabs.json'), { force: true });
+    if (!args['keep-going']) throw error;
+    reportFailure(id, error);
+    continue;
+  }
   console.log(`\n✓ ${id}: ${result.tabs.length} abas`);
   console.table(Object.fromEntries(result.tabs.map((tab) => [tab.id, { tipo: tab.type, itens: tab.items.length }])));
 

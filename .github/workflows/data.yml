@@ -1,8 +1,18 @@
-# pipeline de dados do jogo: baixa o jar oficial da mojang e extrai os arquivos do inventário.
+# pipeline de dados do jogo: baixa o jar oficial da mojang de cada versão, extrai os arquivos do inventário e
+# publica no cloudflare r2 (mc-data.faariaz.com). detalhes em mc-inv/dados-no-r2.md (docs do projeto).
+#
+# três etapas:
+#   1. planejar: compara o hash do pipeline com o que já foi publicado e monta a fila de versões
+#   2. gerar: até 10 computadores em paralelo, cada um com um grupo da fila; envia cada versão pro r2 num lote novo
+#   3. publicar: escreve a lista de versões, o controle dos lotes e o índice das páginas estáticas
+#
 # roda em dois casos:
 #   - push nesta branch que mexe no pipeline
 #   - chamado pelo workflow "mc-inv-data.yml" da main (todo dia + botão "rodar agora"),
 #     porque o github só aceita agendamento e execução manual em workflows da branch padrão
+#
+# segredos (repositório): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+# variáveis (repositório): R2_BUCKET (faariaz-mc-data), DATA_URL (https://mc-data.faariaz.com)
 name: Dados do jogo
 
 on:
@@ -10,118 +20,239 @@ on:
     branches: [project/mc-inv]
     paths:
       - 'scripts/data/**'
-      # arquivos do site que o build-data também usa (tipos, transformações, chaves de tradução da interface)
+      # arquivos do site que o build-data também usa (tipos, transformações, chaves de tradução, wiki, drops)
       - 'src/lib/icons/**'
       - 'src/lib/gui/types.ts'
       - 'src/lib/gui/ui-keys.ts'
       - 'src/lib/gui/wiki.ts'
+      - 'src/lib/gui/drops.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/data.yml'
   workflow_call:
     inputs:
       versions:
-        description: 'tracked (última release + último snapshot) ou ids separados por vírgula'
+        description: 'versões a gerar de novo mesmo se já estiverem em dia (ids separados por vírgula; "tracked" = nenhuma)'
         type: string
         default: tracked
 
 permissions:
-  contents: write # commitar os dados gerados em public/data
-  checks: write # relatório como check run (o claude lê pela api)
+  contents: write # commitar o índice das páginas estáticas (src/data/mc-inv-index.json)
+  checks: write # relatórios como check runs (o claude lê pela api)
 
-# duas execuções seguidas: a mais nova cancela a anterior
+# duas execuções seguidas: a mais nova espera a anterior terminar (cancelar no meio deixaria lotes órfãos no r2)
 concurrency:
   group: mc-inv-data
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+env:
+  DATA_URL: ${{ vars.DATA_URL }}
+  R2_BUCKET: ${{ vars.R2_BUCKET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: auto
+  # o r2 não aceita as somas de verificação que o aws cli novo manda por padrão
+  AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+  AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+  R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
 
 jobs:
-  extract:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    outputs:
+      pipeline: ${{ steps.plan.outputs.pipeline }}
+      lot: ${{ steps.plan.outputs.lot }}
+      count: ${{ steps.plan.outputs.count }}
+      shards: ${{ steps.plan.outputs.shards }}
+      probe: ${{ steps.plan.outputs.probe }}
     steps:
       # quando chamado pela main, o "commit atual" é o da main: por isso o ref fixo
       - uses: actions/checkout@v7
         with:
           ref: project/mc-inv
-
       - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
-
       - run: npm ci
 
-      # o jar fica em cache entre execuções
-      - uses: actions/cache@v6
-        with:
-          path: .cache/jars
-          key: jars-${{ hashFiles('scripts/data/**') }}
-          restore-keys: jars-
-
-      - name: Extrair versões
-        run: npm run data -- --source=official --versions=${{ inputs.versions || 'tracked' }}
-
-      # resumo em dois lugares: na página da execução (pra quem abre no github) e como anotação
-      # (a parte do resultado que o claude consegue ler pela api, via check runs)
-      - name: Resumo
+      - name: Conferir a configuração do R2
         run: |
-          {
-            echo '## Versões extraídas'
-            echo
-            for meta in .cache/versions/*/meta.json; do
-              echo '```json'
-              cat "$meta"
-              echo '```'
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
-          for meta in .cache/versions/*/meta.json; do
-            echo "::notice title=$(jq -r '.id + " (" + .kind + ")"' "$meta")::$(jq -c '.counts' "$meta")"
-          done
+          missing=()
+          [ -n "$DATA_URL" ] || missing+=(DATA_URL)
+          [ -n "$R2_BUCKET" ] || missing+=(R2_BUCKET)
+          [ -n "$AWS_ACCESS_KEY_ID" ] || missing+=(R2_ACCESS_KEY_ID)
+          [ -n "$AWS_SECRET_ACCESS_KEY" ] || missing+=(R2_SECRET_ACCESS_KEY)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=R2 não configurado::faltam ${missing[*]} nos segredos/variáveis do repositório"
+            exit 1
+          fi
 
+      - name: Lista de versões da Mojang
+        run: npm run data -- --source=official --versions=none
+
+      - name: Planejar
+        id: plan
+        run: node scripts/data/plan.ts --versions='${{ inputs.versions }}'
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false # um grupo que falha não derruba os outros
+      matrix:
+        versions: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: project/mc-inv
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
       # dump das abas: precisa de java (o jar da 26.x pede java 25)
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
 
+      - name: Extrair
+        run: npm run data -- --source=official --versions=${{ matrix.versions }} --keep-going
       - name: Montar as abas do inventário criativo
-        run: npm run dump -- --versions=${{ inputs.versions || 'tracked' }}
+        run: npm run dump -- --versions=${{ matrix.versions }} --keep-going
+      - name: Gerar os dados do site
+        run: npm run build-data -- --versions=${{ matrix.versions }} --no-index --keep-going
 
-      # temporário: se o dump falhar, sonda o jar atrás das classes envolvidas
-      - name: Sondar (se falhar)
-        if: failure()
+      # cada versão vai pra je/<id>/<lote>/: caminho novo a cada mudança do pipeline, então pode ficar em cache
+      # pra sempre (immutable) sem risco de o navegador misturar arquivos de lotes diferentes
+      - name: Enviar pro R2
+        run: |
+          for id in $(jq -r '.[]' .cache/built.json); do
+            aws s3 sync "public/data/je/$id" "s3://$R2_BUCKET/je/$id/${{ needs.plan.outputs.lot }}" \
+              --endpoint-url "$R2_ENDPOINT" --only-show-errors --no-progress \
+              --cache-control 'public, max-age=31536000, immutable'
+            echo "::notice title=$id::enviado (lote ${{ needs.plan.outputs.lot }})"
+          done
+          jq -n --arg lot '${{ needs.plan.outputs.lot }}' --arg pipeline '${{ needs.plan.outputs.pipeline }}' \
+            --slurpfile ids .cache/built.json '{lot: $lot, pipeline: $pipeline, ids: $ids[0]}' > result.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: result-${{ strategy.job-index }}
+          path: result.json
+          retention-days: 1
+
+      # relatório das abas como check run (texto longo, que o claude lê pela api)
+      - name: Relatório das abas
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
-          mkdir -p /tmp/jar && unzip -q -o "$jar" 'net/*' -d /tmp/jar
-          {
-            for class in net.minecraft.server.WorldLoader 'net.minecraft.server.WorldLoader$InitConfig' 'net.minecraft.server.WorldLoader$PackConfig' \
-              'net.minecraft.server.WorldLoader$DataLoadContext' 'net.minecraft.server.WorldLoader$DataLoadOutput' \
-              'net.minecraft.server.WorldLoader$WorldDataSupplier' 'net.minecraft.server.WorldLoader$ResultFactory' \
-              net.minecraft.server.packs.repository.ServerPacksSource net.minecraft.world.level.WorldDataConfiguration \
-              net.minecraft.server.ReloadableServerResources net.minecraft.core.LayeredRegistryAccess; do
-              echo "## $class"
-              javap -cp "$jar" -public "$class" 2>&1 | head -25
-              echo
-            done
-            echo "## Main: chamadas ao WorldLoader e afins"
-            javap -cp "$jar" -c -p net.minecraft.server.Main 2>&1 | grep -E 'WorldLoader|ServerPacksSource|WorldDataConfiguration|InitConfig|PackConfig|CommandSelection|LEVEL_GAMEMASTERS|PermissionSet|Util\.backgroundExecutor|\.join' | head -30
-            echo
-            echo "## CommandSelection / permissões"
-            javap -cp "$jar" -public 'net.minecraft.commands.Commands$CommandSelection' 2>&1 | head -12
-            javap -cp "$jar" -public net.minecraft.server.permissions.LevelBasedPermissionSet 2>&1 | head -20
-          } > probe.txt
+          [ -f .cache/dump-report.md ] || exit 0
           gh api "repos/$GITHUB_REPOSITORY/check-runs" \
-            -f name='mc-inv: sondagem' -f head_sha="$GITHUB_SHA" \
+            -f name='mc-inv: abas (grupo ${{ strategy.job-index }})' -f head_sha="$GITHUB_SHA" \
             -f status=completed -f conclusion=neutral \
-            -f 'output[title]=Sondagem' -f 'output[summary]=Classes envolvidas no erro do dump.' \
-            -f "output[text]=$(head -c 65000 probe.txt)" > /dev/null
+            -f 'output[title]=Abas do inventário criativo' \
+            -f 'output[summary]=Abas montadas pelo próprio jogo (primeiros itens de cada uma).' \
+            -f "output[text]=$(head -c 65000 .cache/dump-report.md)" > /dev/null
 
-      # ferramenta de desenvolvimento (autorizada pelo Kauan): se scripts/data/probe-classes.txt existir,
-      # descompila as classes listadas com o vineflower (procura pelo nome simples se o pacote não bater) e publica o código como check runs (partes de até 60 mil caracteres)
+  publish:
+    needs: [plan, build]
+    # roda mesmo sem nada na fila (a lista da mojang pode ter mudado) e mesmo se algum grupo falhou
+    # (as versões que deram certo entram; as outras continuam no lote anterior)
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: project/mc-inv
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - name: Lista de versões da Mojang
+        run: npm run data -- --source=official --versions=none
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: result-*
+          path: .cache/results
+          merge-multiple: false
+      - name: Juntar os resultados
+        run: |
+          mkdir -p .cache/results
+          n=0
+          for file in .cache/results/*/result.json; do
+            [ -f "$file" ] || continue
+            n=$((n + 1)); mv "$file" ".cache/results/$n.json"
+          done
+
+      - name: Montar a lista e o índice
+        run: node scripts/data/publish.ts
+
+      # a lista muda a cada versão nova: cache curto (5 minutos). o controle dos lotes não fica em cache nenhum
+      - name: Enviar a lista pro R2
+        run: |
+          aws s3 cp .cache/publish/versions.json "s3://$R2_BUCKET/je/versions.json" --endpoint-url "$R2_ENDPOINT" \
+            --content-type application/json --cache-control 'public, max-age=300'
+          for file in _builds.json _retired.json; do
+            aws s3 cp ".cache/publish/$file" "s3://$R2_BUCKET/je/$file" --endpoint-url "$R2_ENDPOINT" \
+              --content-type application/json --cache-control 'no-store'
+          done
+
+      - name: Apagar lotes antigos
+        run: |
+          while read -r prefix; do
+            [ -n "$prefix" ] || continue
+            aws s3 rm "s3://$R2_BUCKET/$prefix" --recursive --endpoint-url "$R2_ENDPOINT" --only-show-errors
+            echo "::notice title=Lote apagado::$prefix"
+          done < .cache/publish/delete.txt
+
+      # o índice muda as páginas estáticas (nomes dos itens nas urls): o push dispara o deploy da vercel e não
+      # dispara este workflow de novo (src/data fica fora dos paths e pushes do token do actions não acionam workflows)
+      - name: Commitar o índice
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/data/mc-inv-index.json
+          if git diff --cached --quiet; then
+            echo "::notice title=Índice::nada mudou"
+            exit 0
+          fi
+          git commit -q -m "chore(data): índice das versões publicadas no r2"
+          git pull -q --rebase origin project/mc-inv
+          git push -q origin HEAD:project/mc-inv
+          echo "::notice title=Índice::publicado em $(git rev-parse --short HEAD)"
+
+  # ferramenta de desenvolvimento (autorizada pelo Kauan): se scripts/data/probe-classes.txt existir,
+  # descompila as classes listadas com o vineflower (procura pelo nome simples se o pacote não bater) e publica o
+  # código como check runs (partes de até 60 mil caracteres)
+  probe:
+    needs: plan
+    if: needs.plan.outputs.probe == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: project/mc-inv
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Baixar o jar da release mais recente
+        run: npm run data -- --source=official --versions="$(curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -r .latest.release)" --locales=en_us
       - name: Descompilar classes (desenvolvimento)
-        if: hashFiles('scripts/data/probe-classes.txt') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -167,38 +298,3 @@ jobs:
               -f "output[title]=Código descompilado ($n/$total)" -f 'output[summary]=Classes de scripts/data/probe-classes.txt' \
               -f "output[text]=$(cat "$part")" > /dev/null
           done
-
-      # relatório das abas como check run (texto longo, que o claude lê pela api)
-      - name: Relatório das abas
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          [ -f .cache/dump-report.md ] || exit 0
-          gh api "repos/$GITHUB_REPOSITORY/check-runs" \
-            -f name='mc-inv: abas' -f head_sha="$GITHUB_SHA" \
-            -f status=completed -f conclusion=neutral \
-            -f 'output[title]=Abas do inventário criativo' \
-            -f 'output[summary]=Abas montadas pelo próprio jogo (primeiros itens de cada uma).' \
-            -f "output[text]=$(head -c 65000 .cache/dump-report.md)" > /dev/null
-
-      # transforma o que foi extraído nos jsons do site e commita se algo mudou.
-      # o push dispara o deploy da vercel; não dispara este workflow de novo (public/ fica fora dos paths
-      # e pushes feitos com o token do actions não acionam workflows)
-      - name: Gerar os dados do site
-        run: npm run build-data
-
-      - name: Publicar os dados
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/data
-          if git diff --cached --quiet; then
-            echo "::notice title=Dados do site::nada mudou"
-            exit 0
-          fi
-          versions=$(jq -r '[.versions[].id] | join(", ")' public/data/je/versions.json)
-          git commit -q -m "chore(data): dados do jogo ($versions)"
-          git pull -q --rebase origin project/mc-inv
-          git push -q origin HEAD:project/mc-inv
-          echo "::notice title=Dados do site::publicados ($versions) em $(git rev-parse --short HEAD)"

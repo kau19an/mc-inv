@@ -1,5 +1,6 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
+import { loadEnv } from 'vite';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -31,6 +32,13 @@ function devFunctions() {
   };
 }
 
+// domínio dos dados do jogo (cloudflare r2, ex.: https://mc-data.faariaz.com). vazio = public/data/je do próprio site.
+// entra na csp abaixo: jsons, imagens e a fonte do jogo vêm de lá
+const { PUBLIC_DATA_URL = '' } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), 'PUBLIC_');
+const dataOrigin = PUBLIC_DATA_URL ? new URL(PUBLIC_DATA_URL).origin : '';
+/** @template {string} T @param {T} directive @returns {T} (só acrescenta a origem no fim: o tipo da diretiva continua o mesmo) */
+const withData = (directive) => /** @type {T} */ (dataOrigin ? `${directive} ${dataOrigin}` : directive);
+
 // https://astro.build/config
 export default defineConfig({
   // domínio oficial (canonical, og). a raiz fica reservada pro hub; o inventário mora em /inv
@@ -48,9 +56,9 @@ export default defineConfig({
     csp: {
       directives: [
         "default-src 'self'",
-        "img-src 'self' data:", // ícones e texturas são servidos pelo próprio site
-        "font-src 'self'", // a fonte do jogo também
-        "connect-src 'self'", // jsons de dados e índices de busca
+        withData("img-src 'self' data:"), // ícones, texturas e panoramas (domínio de dados)
+        withData("font-src 'self'"), // a fonte do jogo também
+        withData("connect-src 'self'"), // jsons de dados e índice das páginas
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -59,6 +67,13 @@ export default defineConfig({
       scriptDirective: { resources: ["'self'", 'https://static.cloudflareinsights.com/beacon.min.js', 'https://static.cloudflareinsights.com/beacon.min.js/'] },
       // atributos style="..." liberados (posição dos ícones na spritesheet, escala da gui); <style> e <script> seguem com hash
       styleDirective: { resources: ["'self'", { resource: "'unsafe-inline'", kind: 'attribute' }] },
+    },
+  },
+
+  // variáveis de ambiente com tipo (import de 'astro:env/client')
+  env: {
+    schema: {
+      PUBLIC_DATA_URL: envField.string({ context: 'client', access: 'public', optional: true, url: true }),
     },
   },
 

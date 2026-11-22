@@ -6,6 +6,7 @@ import { loadFont, type BitmapFont } from './font.ts';
 import type { PlayerModels, Skin } from './player.ts';
 import { glintOf, type Glint } from './glint.ts';
 import type { GuiBundle } from './types.ts';
+import { PUBLIC_DATA_URL } from 'astro:env/client';
 
 export interface ItemInfo {
   id: string;
@@ -54,6 +55,7 @@ export interface VersionEntry {
   id: string;
   kind: VersionKind;
   releaseTime: string; // iso
+  path?: string; // pasta da versão no domínio de dados ("je/26.3/<lote>"); sem ela, /data/je/<id> do próprio site
 }
 export interface VersionList {
   latest: { release: string | null; snapshot: string | null };
@@ -61,7 +63,16 @@ export interface VersionList {
   releasedDrops?: string[]; // drops ("26.3") que já têm release, pela lista completa da Mojang
 }
 
-const BASE = '/data/je';
+// de onde vêm os dados: o R2 (PUBLIC_DATA_URL, ex.: https://mc-data.faariaz.com) ou, sem a variável, a pasta
+// public/data/je do próprio site (desenvolvimento e transição)
+const DATA_URL = (PUBLIC_DATA_URL ?? '').replace(/\/+$/, '');
+const LIST_URL = DATA_URL ? `${DATA_URL}/je/versions.json` : '/data/je/versions.json';
+
+// endereço da pasta de uma versão
+export function versionBase(list: VersionList, id: string): string {
+  const path = list.versions.find((version) => version.id === id)?.path;
+  return DATA_URL && path ? `${DATA_URL}/${path}` : `/data/je/${encodeURIComponent(id)}`;
+}
 
 async function json<T>(url: string): Promise<T> {
   const response = await fetch(url);
@@ -102,7 +113,7 @@ async function loadFontFace(base: string): Promise<void> {
 }
 
 export function loadVersionList(): Promise<VersionList> {
-  return json<VersionList>(`${BASE}/versions.json`);
+  return json<VersionList>(LIST_URL);
 }
 
 // valores especiais da opção "version" (tela "Versões..."): seguir a mais recente de cada tipo
@@ -117,8 +128,8 @@ export function versionToLoad(list: VersionList, chosen: string): string {
   return latest;
 }
 
-export async function loadVersion(id: string, locale: Locale): Promise<VersionData> {
-  const base = `${BASE}/${encodeURIComponent(id)}`;
+export async function loadVersion(list: VersionList, id: string, locale: Locale): Promise<VersionData> {
+  const base = versionBase(list, id);
   const [tabs, items, ptBr, enUs, icons, gui, atlas, guiAtlas, tags] = await Promise.all([
     json<{ tabs: TabInfo[] }>(`${base}/tabs.json`),
     json<Record<string, ItemInfo>>(`${base}/items.json`),

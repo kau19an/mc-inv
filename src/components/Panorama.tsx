@@ -70,6 +70,8 @@ function perspective(fovY: number, aspect: number, near: number, far: number): M
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    // os dados ficam em outro domínio (R2): sem cors, o webgl recusa a imagem como textura
+    image.crossOrigin = 'anonymous';
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = url;

@@ -9,13 +9,20 @@
 //   public/data/je/<id>/panorama/<0-5>.webp     faces do panorama do menu principal (fundo do site)
 //   public/data/je/<id>/glint.png            textura do brilho de encantamento (misc/enchanted_glint_item.png)
 //   public/data/je/<id>/player.json          modelo do jogador (peças separadas) + player/steve.png e player/alex.png
-//   public/data/je/versions.json             versões disponíveis no site
+//   public/data/je/<id>/index.json           resumo pro índice do site: abas e itens com os nomes em pt-BR e inglês
+//   public/data/je/versions.json             versões geradas aqui (uso local; no CI quem escreve é o publish.ts)
+//
+// opções:
+//   --versions=<ids>   só essas versões (padrão: todas que tiverem dump das abas em .cache)
+//   --no-index         não escreve o versions.json local (o CI publica a lista completa no R2)
+//   --keep-going       uma versão que falha não para as outras; as que deram certo vão pra .cache/built.json
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
+import { parseArgs } from 'node:util';
 import { CACHE_DIR } from './lib/files.ts';
-import type { VersionKind } from './lib/versions.ts';
+import { reportFailure, type VersionKind } from './lib/versions.ts';
 import { buildIconBundle, toWebp } from './icons/bundle.ts';
 import { buildGuiBundle } from './gui.ts';
 import { buildItemTags } from './tags.ts';
@@ -129,7 +136,8 @@ async function readJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(path, 'utf8')) as T;
 }
 
-const writeJson = (path: string, data: unknown) => writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
+// json compacto: os dados ficam no R2 e o navegador recebe comprimido, sem espaço de indentação ocupando lugar
+const writeJson = (path: string, data: unknown) => writeFile(path, JSON.stringify(data));
 
 // arquivo de idioma do jeito que o jogo carrega: aplica o lang/deprecated.json (DeprecatedTranslationsInfo).
 // "removed" some; "renamed" move o texto da chave antiga pra nova. ex.: os moldes de ferraria — o valor de
@@ -211,6 +219,16 @@ async function buildVersion(id: string) {
   await writeJson(join(outDir, 'tabs.json'), { version: id, gameVersion: dump.version, tabs });
   await writeJson(join(outDir, 'items.json'), items);
   for (const locale of LOCALES) await writeJson(join(outDir, 'lang', `${locale}.json`), lang[locale]);
+  // resumo pro índice do site (páginas estáticas): abas e itens (um por id) com os nomes em pt-BR e inglês
+  const nameOf = (locale: string, component: TextComponent): string =>
+    typeof component === 'string' ? component : typeof component.translate === 'string' ? (lang[locale]![component.translate] ?? lang.en_us![component.translate] ?? component.translate) : String(component.text ?? '');
+  const indexItems: Record<string, { pt: string; en: string }> = {};
+  for (const item of Object.values(items)) indexItems[item.id] ??= { pt: nameOf('pt_br', item.name), en: nameOf('en_us', item.name) };
+  await writeJson(join(outDir, 'index.json'), {
+    id,
+    tabs: tabs.map((tab) => ({ id: tab.id, pt: nameOf('pt_br', tab.name), en: nameOf('en_us', tab.name) })),
+    items: indexItems,
+  });
   // nomes dos itens nos idiomas das outras wikis (opção "Minecraft Wiki" com idioma fixo). baixado só quando
   // alguém escolhe aquela wiki; os idiomas da interface já têm tudo em lang/
   await mkdir(join(outDir, 'wiki'), { recursive: true });
@@ -289,28 +307,33 @@ async function buildVersion(id: string) {
 }
 
 // versões classificadas pelo npm run data
+const { values: args } = parseArgs({ options: { versions: { type: 'string' }, 'no-index': { type: 'boolean', default: false }, 'keep-going': { type: 'boolean', default: false } } });
 const catalog = await readJson<{ latest: { release: string; snapshot: string }; versions: { id: string; kind: VersionKind; releaseTime: string }[] }>(
   join(CACHE_DIR, 'versions.json'),
 );
-const available = (await readdir(join(CACHE_DIR, 'versions'))).filter((id) => existsSync(join(CACHE_DIR, 'versions', id, 'creative_tabs.json')));
-if (available.length === 0) throw new Error('nenhuma versão com dump das abas: rode npm run data e npm run dump antes');
+const dumped = (await readdir(join(CACHE_DIR, 'versions'))).filter((id) => existsSync(join(CACHE_DIR, 'versions', id, 'creative_tabs.json')));
+const wanted = args.versions ? args.versions.split(',').map((id) => id.trim()).filter((id) => dumped.includes(id)) : dumped;
+if (wanted.length === 0) throw new Error('nenhuma versão com dump das abas: rode npm run data e npm run dump antes');
 
-for (const id of available) await buildVersion(id);
-
-// só ficam no site as versões geradas agora (quando sai uma release nova, a anterior sai junto, por enquanto)
-for (const entry of existsSync(OUT_DIR) ? await readdir(OUT_DIR, { withFileTypes: true }) : []) {
-  if (entry.isDirectory() && !available.includes(entry.name)) await rm(join(OUT_DIR, entry.name), { recursive: true, force: true });
+const built: string[] = [];
+for (const id of wanted) {
+  try {
+    await buildVersion(id);
+    built.push(id);
+  } catch (error) {
+    if (!args['keep-going']) throw error;
+    reportFailure(id, error);
+  }
 }
+await writeFile(join(CACHE_DIR, 'built.json'), JSON.stringify(built));
 
-const versions = catalog.versions
-  .filter((version) => available.includes(version.id))
-  .map(({ id, kind, releaseTime }) => ({ id, kind, releaseTime }));
-const pick = (wanted: string) => (available.includes(wanted) ? wanted : null);
-// drops que já têm uma release (pela lista completa da Mojang, não só as publicadas): os outros estão em
-// desenvolvimento e ganham "Em breve" na tela "Versões..."
-const releasedDrops = [...new Set(catalog.versions.filter((version) => version.kind === 'release').map((version) => dropOf(version.id)))];
-await writeJson(join(OUT_DIR, 'versions.json'), {
-  latest: { release: pick(catalog.latest.release), snapshot: pick(catalog.latest.snapshot) },
-  versions,
-  releasedDrops,
-});
+// versions.json local (npm run build-data no computador): as versões que existem em public/data/je
+if (!args['no-index']) {
+  const available = (await readdir(OUT_DIR, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  const versions = catalog.versions.filter((version) => available.includes(version.id)).map(({ id, kind, releaseTime }) => ({ id, kind, releaseTime }));
+  const pick = (id: string) => (available.includes(id) ? id : null);
+  // drops que já têm uma release (pela lista completa da Mojang, não só as publicadas): os outros estão em
+  // desenvolvimento e ganham "Em breve" na tela "Versões..."
+  const releasedDrops = [...new Set(catalog.versions.filter((version) => version.kind === 'release').map((version) => dropOf(version.id)))];
+  await writeJson(join(OUT_DIR, 'versions.json'), { latest: { release: pick(catalog.latest.release), snapshot: pick(catalog.latest.snapshot) }, versions, releasedDrops });
+}

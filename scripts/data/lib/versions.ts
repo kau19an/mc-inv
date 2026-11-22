@@ -52,3 +52,24 @@ export function withKind(entry: VersionEntry): Version {
 export function trackedIds(list: VersionList): string[] {
   return [...new Set([list.latest.release, list.latest.snapshot])];
 }
+
+// versões do histórico publicado: as dos drops com número de ano (26.1 em diante), que vêm do jogo sem o código
+// embaralhado. as anteriores (1.21.x pra trás) precisam dos mapas da Mojang e de um dumper adaptado: etapa futura
+const HISTORY = /^(\d{2})\.\d+/;
+export const inHistory = (id: string) => Number(HISTORY.exec(id)?.[1] ?? 0) >= 26;
+
+// quais versões uma etapa processa: "tracked" (última release + último snapshot), "history" (todo o histórico
+// publicado), "none" (nenhuma: só atualiza a lista de versões) ou ids separados por vírgula
+export function selectIds(list: VersionList, spec: string): string[] {
+  if (spec === 'none') return [];
+  if (spec === 'tracked') return trackedIds(list);
+  if (spec === 'history') return list.versions.filter((version) => inHistory(version.id)).map((version) => version.id);
+  return spec.split(',').map((id) => id.trim()).filter(Boolean);
+}
+
+// erro de uma versão sem parar as outras (--keep-going): vira anotação no github actions e a etapa segue
+export function reportFailure(id: string, error: unknown): void {
+  const message = (error instanceof Error ? error.message : String(error)).split('\n').slice(0, 20).join('%0A');
+  console.error(`✗ ${id}: ${error instanceof Error ? error.message : String(error)}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=${id} falhou::${message}`);
+}

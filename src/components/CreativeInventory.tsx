@@ -236,13 +236,13 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   }, []);
   const versionId = versionList ? versionToLoad(versionList, settings.version) : null;
   useEffect(() => {
-    if (!versionId) return;
+    if (!versionList || !versionId) return;
     let current = true;
-    loadVersion(versionId, loadSettings().locale).then((loaded) => current && setBaseData(loaded), failed);
+    loadVersion(versionList, versionId, loadSettings().locale).then((loaded) => current && setBaseData(loaded), failed);
     return () => {
       current = false;
     };
-  }, [versionId]);
+  }, [versionList, versionId]);
 
   // escala inteira que cabe na tela, recalculada ao girar o celular, redimensionar ou mudar de monitor
   useEffect(() => {
