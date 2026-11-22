@@ -28,7 +28,7 @@ interface VersionIndex {
   tabs: { id: string; pt: string; en: string }[];
   items: Record<string, { pt: string; en: string }>;
   // itens sem ícone e tamanho da malha de cada modelo especial (-1 = erro). lotes antigos não têm
-  health?: { blankIcons: string[]; specials: Record<string, number> };
+  health?: { blankIcons: string[]; specials: Record<string, number>; iconHashes?: Record<string, string> };
 }
 
 const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf8')) as {
@@ -107,6 +107,16 @@ for (const index of chronological) {
 const blankIn = new Map<string, string[]>();
 for (const index of chronological) for (const key of index.health!.blankIcons) if (rendered.get(key)) (blankIn.get(key) ?? blankIn.set(key, []).get(key)!).push(index.id);
 for (const [key, ids] of blankIn) problems.push(`- item ${key}: sem ícone em ${ids.join(', ')} (nas outras versões tem)`);
+// "piscar": o ícone muda numa versão e volta a ser igual ao da anterior na seguinte (A, B, A)
+const blinks = new Map<string, string[]>();
+for (let index = 1; index + 1 < chronological.length; index++) {
+  const [before, current, after] = [chronological[index - 1]!, chronological[index]!, chronological[index + 1]!].map((entry) => entry.health!.iconHashes);
+  if (!before || !current || !after) continue;
+  for (const [key, hash] of Object.entries(current)) {
+    if (before[key] && before[key] === after[key] && hash !== before[key]) (blinks.get(key) ?? blinks.set(key, []).get(key)!).push(chronological[index]!.id);
+  }
+}
+for (const [key, ids] of blinks) problems.push(`- item ${key}: ícone diferente só em ${ids.join(', ')} (igual antes e depois)`);
 
 await mkdir(OUT, { recursive: true });
 await writeFile(

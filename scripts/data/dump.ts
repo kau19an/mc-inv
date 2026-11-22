@@ -12,7 +12,8 @@ import { parseArgs } from 'node:util';
 import { fetchBuffer } from './lib/http.ts';
 import { CACHE_DIR, writeFileDeep } from './lib/files.ts';
 import { reportFailure, selectIds, withKind, type Version } from './lib/versions.ts';
-import { official, versionPackage, type Library } from './sources/official.ts';
+import { clientJar, official, versionPackage, type Library } from './sources/official.ts';
+import { unzipSync } from 'fflate';
 import { readableJar } from './lib/remap.ts';
 import { IconResolver } from './icons/resolve.ts';
 import type { IconModel, SpecialModel } from '../../src/lib/icons/types.ts';
@@ -66,7 +67,48 @@ interface DumpedTab {
   items: { id: string }[];
 }
 
-async function dump(version: Version) {
+// versões sem as definições de item (antes da 24w45a) desenhavam baús, camas, estandartes, shulkers, cabeças,
+// escudo… direto pelo código (BlockEntityWithoutLevelRenderer), sem a definição "special". pra esses itens, o dump
+// usa uma versão de referência: a 24w45a, a primeira com as definições, que tem a mesma geometria. dela vêm a
+// definição de cada item (legacy-items/<id>.json, lida pelo IconResolver) e a malha (rodando o SpecialModelsDump
+// compilado contra o jar dela); as texturas continuam sendo as da própria versão
+const REFERENCE_ID = '24w45a';
+let reference: Promise<{ classes: string; classpath: string[]; items: Record<string, string> }> | null = null;
+
+function referenceDumper(all: Version[]) {
+  reference ??= (async () => {
+    const version = all.find((entry) => entry.id === REFERENCE_ID);
+    if (!version) throw new Error(`versão de referência não encontrada: ${REFERENCE_ID}`);
+    const pkg = await versionPackage(version);
+    const libraryPaths = await libraries(pkg.libraries);
+    const classpath = [await readableJar(version, pkg, libraryPaths), ...libraryPaths];
+    const classes = join(CACHE_DIR, 'dumper', REFERENCE_ID);
+    await rm(classes, { recursive: true, force: true });
+    await mkdir(classes, { recursive: true });
+    run('javac', ['-nowarn', '-cp', classpath.join(delimiter), '-d', classes, ...DUMPERS]);
+    // definições de item que usam um modelo especial (o texto do json, pra copiar como está)
+    const items: Record<string, string> = {};
+    const entries = unzipSync(await clientJar(version, pkg), { filter: (file) => file.name.startsWith('assets/minecraft/items/') && file.name.endsWith('.json') });
+    for (const [name, data] of Object.entries(entries)) {
+      const text = new TextDecoder().decode(data);
+      if (text.includes('"minecraft:special"')) items[name.slice('assets/minecraft/items/'.length, -'.json'.length)] = text;
+    }
+    return { classes, classpath, items };
+  })();
+  return reference;
+}
+
+// arquivos que o dump deixa em .cache/versions/<id>/ (e que o CI guarda em je/_dumps/<hash do dump>/<id>.tar.gz)
+export const DUMP_FILES = ['creative_tabs.json', 'specials.json', 'player.json', 'legacy-items'];
+
+async function dump(version: Version, all: Version[]) {
+  // dump reaproveitado pelo CI (o código que abre o jogo não mudou desde que ele foi feito): só lê
+  const versionDir = join(CACHE_DIR, 'versions', version.id);
+  if (existsSync(join(versionDir, 'dump-cached'))) {
+    const read = async <T,>(file: string) => JSON.parse(await readFile(join(versionDir, file), 'utf8')) as T;
+    const tabs = await read<{ version: string; tabs: DumpedTab[] }>('creative_tabs.json');
+    return { ...tabs, meshes: await read<Record<string, { error?: string; parts?: { texture?: string; renderType: string; tint: number; quads: unknown[] }[] }>>('specials.json'), player: await read<Record<string, PlayerPart>>('player.json'), cached: true };
+  }
   const pkg = await versionPackage(version);
   const libraryPaths = await libraries(pkg.libraries);
   // até a 1.21.11 o jar vem embaralhado: traduz com os mappings oficiais da Mojang antes (lib/remap.ts)
@@ -84,7 +126,19 @@ async function dump(version: Version) {
   // roda dentro da pasta das classes porque o jogo pode criar arquivos onde é executado
   run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'CreativeTabsDump', out], classes);
 
-  const result = JSON.parse(await readFile(out, 'utf8')) as { version: string; tabs: DumpedTab[] };
+  const result = JSON.parse(await readFile(out, 'utf8')) as { version: string; tabs: DumpedTab[]; searchOnly?: { id: string }[] };
+
+  // versão antiga (sem assets/minecraft/items): definições e malhas dos itens especiais vêm da referência
+  let specialsClasses = classes;
+  let specialsClasspath = classpath;
+  if (!existsSync(join(versionDir, 'assets/minecraft/items'))) {
+    const ref = await referenceDumper(all);
+    await rm(join(versionDir, 'legacy-items'), { recursive: true, force: true });
+    const ids = new Set([...result.tabs.flatMap((tab) => tab.items.map((item) => item.id)), ...(result.searchOnly ?? []).map((item) => item.id)].map((id) => id.replace(/^minecraft:/, '')));
+    for (const id of ids) if (ref.items[id]) await writeFileDeep(join(versionDir, 'legacy-items', `${id}.json`), ref.items[id]!);
+    specialsClasses = ref.classes;
+    specialsClasspath = ref.classpath;
+  }
 
   // modelos especiais (baú, estandarte, cabeça…): junta as definições únicas dos itens das abas e pede
   // pro jogo a geometria de cada uma
@@ -98,7 +152,7 @@ async function dump(version: Version) {
   const specialsIn = join(CACHE_DIR, 'versions', version.id, 'specials-input.json');
   const specialsOut = join(CACHE_DIR, 'versions', version.id, 'specials.json');
   await writeFile(specialsIn, JSON.stringify(specials));
-  run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'SpecialModelsDump', specialsIn, specialsOut], classes);
+  run('java', ['-Djava.awt.headless=true', '-cp', [specialsClasses, ...specialsClasspath].join(delimiter), 'SpecialModelsDump', specialsIn, specialsOut], specialsClasses);
   const meshes = JSON.parse(await readFile(specialsOut, 'utf8')) as Record<string, { error?: string; parts?: { texture?: string; renderType: string; tint: number; quads: unknown[] }[] }>;
 
   // modelo do jogador (aba "Inventário"): peças separadas, na pose de descanso
@@ -106,7 +160,7 @@ async function dump(version: Version) {
   run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'PlayerModelDump', playerOut], classes);
   const player = JSON.parse(await readFile(playerOut, 'utf8')) as Record<string, PlayerPart>;
 
-  return { ...result, meshes, player };
+  return { ...result, meshes, player, cached: false };
 }
 
 interface PlayerPart {
@@ -133,7 +187,7 @@ for (const id of wanted) {
   if (!existsSync(join(CACHE_DIR, 'versions', id, 'meta.json'))) continue;
   let result: Awaited<ReturnType<typeof dump>>;
   try {
-    result = await dump(version);
+    result = await dump(version, all);
   } catch (error) {
     // sem dump completo, o build-data não pode usar essa versão
     await rm(join(CACHE_DIR, 'versions', id, 'creative_tabs.json'), { force: true });
@@ -145,7 +199,7 @@ for (const id of wanted) {
   console.table(Object.fromEntries(result.tabs.map((tab) => [tab.id, { tipo: tab.type, itens: tab.items.length }])));
 
   // relatório em texto (vai pra check run, que o claude consegue ler)
-  report.push(`# ${id} (jogo diz: ${result.version})`);
+  report.push(`# ${id} (jogo diz: ${result.version})${result.cached ? ' · dump reaproveitado' : ''}`);
   for (const tab of result.tabs) {
     report.push(`\n## ${tab.id} · ${tab.type} · ${tab.items.length} itens`);
     report.push(tab.items.slice(0, 12).map((item) => item.id.replace('minecraft:', '')).join(', ') + (tab.items.length > 12 ? ', …' : ''));

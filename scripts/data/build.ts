@@ -24,6 +24,9 @@ import { parseArgs } from 'node:util';
 import { CACHE_DIR } from './lib/files.ts';
 import { reportFailure, type VersionKind } from './lib/versions.ts';
 import { buildIconBundle, toWebp } from './icons/bundle.ts';
+import { PNG } from 'pngjs';
+import { createTextureLookup, iconFor } from '../../src/lib/icons/bundle.ts';
+import { renderIcon } from '../../src/lib/icons/raster.ts';
 import { buildGuiBundle } from './gui.ts';
 import { buildItemTags } from './tags.ts';
 import { UI_KEYS } from '../../src/lib/gui/ui-keys.ts';
@@ -297,7 +300,41 @@ async function buildVersion(id: string) {
   const specials = Object.fromEntries(
     Object.entries(meshes).map(([key, mesh]) => [key, mesh.error ? -1 : (mesh.parts ?? []).reduce((total, part) => total + part.quads.length, 0)]),
   );
-  await writeJson(join(outDir, 'index.json'), { ...versionIndex, health: { blankIcons, specials } });
+  // folha de contato: todos os ícones da versão, na ordem das abas, desenhados exatamente como no site (mesmo pacote,
+  // mesmo atlas, mesmo rasterizador). vai pra .cache/contact/<id>.png (o CI publica como artefato, pra conferir de
+  // olho) e o "hash" de cada ícone vai pro index.json: o publish.ts avisa quando o ícone de um item muda numa versão
+  // e volta a ser igual na seguinte (um "piscar" que quase sempre é erro do pipeline, não do jogo)
+  const atlasPng = PNG.sync.read(icons.atlas);
+  const textures = createTextureLookup(icons.bundle, { width: atlasPng.width, data: new Uint8ClampedArray(atlasPng.data) });
+  const iconHashes: Record<string, string> = {};
+  const order = [...new Set(tabs.flatMap((tab) => tab.items))];
+  for (const key of Object.keys(items)) if (!order.includes(key)) order.push(key);
+  const CELL = 34; // ícone de 32 px + 2 de folga
+  const COLUMNS = 40;
+  const sheet = new PNG({ width: COLUMNS * CELL, height: Math.ceil(order.length / COLUMNS) * CELL });
+  sheet.data.fill(0x8b); // cinza do slot
+  order.forEach((key, index) => {
+    const found = iconFor(icons.bundle, key);
+    if (!found) return;
+    const icon = renderIcon(found.model, { size: 32, tints: found.tints, textures });
+    iconHashes[key] = createHash('sha1').update(icon.data).digest('hex').slice(0, 8);
+    const x0 = (index % COLUMNS) * CELL + 1;
+    const y0 = Math.floor(index / COLUMNS) * CELL + 1;
+    for (let y = 0; y < 32; y++) {
+      for (let x = 0; x < 32; x++) {
+        const from = (y * 32 + x) * 4;
+        const alpha = icon.data[from + 3]! / 255;
+        if (!alpha) continue;
+        const to = ((y0 + y) * sheet.width + x0 + x) * 4;
+        for (let channel = 0; channel < 3; channel++) sheet.data[to + channel] = Math.round(icon.data[from + channel]! * alpha + sheet.data[to + channel]! * (1 - alpha));
+        sheet.data[to + 3] = 255;
+      }
+    }
+  });
+  await mkdir(join(CACHE_DIR, 'contact'), { recursive: true });
+  await writeFile(join(CACHE_DIR, 'contact', `${id}.png`), PNG.sync.write(sheet));
+
+  await writeJson(join(outDir, 'index.json'), { ...versionIndex, health: { blankIcons, specials, iconHashes } });
 
   // validação: um idioma sem a maior parte das traduções indica arquivo errado ou formato novo
   for (const locale of LOCALES) {

@@ -22,6 +22,9 @@ const ROOT = join(import.meta.dirname, '../..');
 // arquivos que mudam o resultado do build-data (os mesmos que disparam o workflow)
 const PIPELINE_PATHS = ['scripts/data', 'src/lib/icons', 'src/lib/gui/types.ts', 'src/lib/gui/ui-keys.ts', 'src/lib/gui/wiki.ts', 'src/lib/gui/drops.ts', 'package-lock.json'];
 const IGNORED = new Set(['scripts/data/probe-classes.txt']);
+// arquivos que mudam o resultado do dump (abrir o jogo de cada versão: a parte lenta). mexer só no build-data
+// (ícones, interface, json do site) não muda esse hash, e o CI reaproveita os dumps já feitos (je/_dumps no R2)
+const DUMP_PATHS = ['scripts/data/dumper', 'scripts/data/dump.ts', 'scripts/data/lib', 'scripts/data/sources', 'scripts/data/icons/resolve.ts', 'scripts/data/icons/legacy-tints.json', 'package-lock.json'];
 
 export interface BuildRecord {
   lot: string; // primeiros 12 caracteres do hash do pipeline
@@ -39,8 +42,8 @@ async function filesOf(path: string): Promise<string[]> {
   return entries.filter((entry) => entry.isFile()).map((entry) => relative(ROOT, join(entry.parentPath, entry.name)));
 }
 
-export async function pipelineHash(): Promise<string> {
-  const files = (await Promise.all(PIPELINE_PATHS.map(filesOf))).flat().filter((file) => !IGNORED.has(file)).sort();
+export async function pipelineHash(paths = PIPELINE_PATHS): Promise<string> {
+  const files = (await Promise.all(paths.map(filesOf))).flat().filter((file) => !IGNORED.has(file)).sort();
   const hash = createHash('sha256');
   for (const file of files) hash.update(file).update('\0').update(await readFile(join(ROOT, file))).update('\0');
   return hash.digest('hex');
@@ -60,7 +63,8 @@ export type Failures = Record<string, string>;
 export const publishedFailures = (dataUrl: string | undefined) => publishedControl<Failures>(dataUrl, '_failures.json', {});
 
 if (import.meta.main) {
-  const { values: args } = parseArgs({ options: { versions: { type: 'string', default: '' }, shards: { type: 'string', default: '10' } } });
+  // 20 grupos: o máximo de computadores ao mesmo tempo no plano grátis do GitHub (repositório público)
+  const { values: args } = parseArgs({ options: { versions: { type: 'string', default: '' }, shards: { type: 'string', default: '20' } } });
   const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf8')) as { versions: { id: string; releaseTime: string }[] };
   const pipeline = await pipelineHash();
   const builds = await publishedBuilds(process.env.DATA_URL);
@@ -69,11 +73,16 @@ if (import.meta.main) {
   // "tracked" (padrão do botão "rodar agora" da main) não força nada: a fila já pega o que é novo
   const forced = new Set(args.versions.split(',').map((id) => id.trim()).filter((id) => id && id !== 'tracked'));
 
+  // modo de teste: um commit com "[só: 1.21.2, 24w45a]" na mensagem gera só essas versões (num lote do pipeline
+  // novo); as outras continuam no lote anterior até o próximo commit sem a marca
+  const only = /\[só:\s*([^\]]+)\]/i.exec(process.env.COMMIT_MESSAGE ?? '')?.[1]?.split(',').map((id) => id.trim()).filter(Boolean);
+
   // mais antigas primeiro: se o tempo acabar, as que faltarem são as mais novas, que o próximo agendamento pega
   const queue = catalog.versions
     .map((version) => version.id)
-    .filter((id) => history.has(id) && (forced.has(id) || (builds[id]?.pipeline !== pipeline && failures[id] !== pipeline)))
+    .filter((id) => (only ? only.includes(id) : history.has(id) && (forced.has(id) || (builds[id]?.pipeline !== pipeline && failures[id] !== pipeline))))
     .reverse();
+  if (only) console.log(`modo de teste: só ${only.join(', ')}`);
 
   // grupos do mesmo tamanho (no máximo --shards), alternando pra cada grupo ter versões de épocas variadas
   const count = Math.min(Number(args.shards) || 10, queue.length);
@@ -83,6 +92,7 @@ if (import.meta.main) {
   const output = {
     pipeline,
     lot: pipeline.slice(0, 12),
+    dump: (await pipelineHash(DUMP_PATHS)).slice(0, 12),
     count: queue.length,
     shards: JSON.stringify(shards.map((ids) => ids.join(','))),
     // ferramenta de desenvolvimento: descompilar as classes listadas em probe-classes.txt

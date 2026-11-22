@@ -267,6 +267,9 @@ export class IconResolver {
   private legacyDefinition(itemId: string): Json | null {
     if (existsSync(join(this.root, 'assets/minecraft/items'))) return null;
     const id = path(itemId);
+    // itens desenhados por código naquela época: a definição da versão de referência (dump.ts, REFERENCE_ID)
+    const borrowed = this.readJson(join(this.root, 'legacy-items', `${id}.json`));
+    if (borrowed) return borrowed;
     return { model: { type: 'minecraft:model', model: `minecraft:item/${id}`, tints: (legacyTints as Record<string, Json[]>)[id] } };
   }
 

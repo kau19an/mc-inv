@@ -66,6 +66,7 @@ jobs:
       count: ${{ steps.plan.outputs.count }}
       shards: ${{ steps.plan.outputs.shards }}
       probe: ${{ steps.plan.outputs.probe }}
+      dump: ${{ steps.plan.outputs.dump }}
     steps:
       # quando chamado pela main, o "commit atual" é o da main: por isso o ref fixo
       - uses: actions/checkout@v7
@@ -92,8 +93,11 @@ jobs:
       - name: Lista de versões da Mojang
         run: npm run data -- --source=official --versions=none
 
+      # modo de teste: "[só: id, id]" na mensagem do commit gera só essas versões
       - name: Planejar
         id: plan
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: node scripts/data/plan.ts --versions='${{ inputs.versions }}'
 
   build:
@@ -122,8 +126,30 @@ jobs:
 
       - name: Extrair
         run: npm run data -- --source=official --versions=${{ matrix.versions }} --keep-going
+      # o dump (abrir o jogo de cada versão) é a parte lenta: se o código dele não mudou, reaproveita o que já foi
+      # feito (je/_dumps/<hash do dump>/<id>.tar.gz no R2) e só os ícones e o resto são refeitos
+      - name: Reaproveitar dumps
+        run: |
+          for id in $(echo '${{ matrix.versions }}' | tr ',' ' '); do
+            [ -f ".cache/versions/$id/meta.json" ] || continue
+            if curl -sfL "$DATA_URL/je/_dumps/${{ needs.plan.outputs.dump }}/$id.tar.gz" -o /tmp/dump.tgz; then
+              tar xzf /tmp/dump.tgz -C ".cache/versions/$id" && touch ".cache/versions/$id/dump-cached" && echo "♻ $id"
+            fi
+          done
+
       - name: Montar as abas do inventário criativo
         run: npm run dump -- --versions=${{ matrix.versions }} --keep-going
+
+      - name: Guardar dumps novos
+        run: |
+          for id in $(echo '${{ matrix.versions }}' | tr ',' ' '); do
+            dir=".cache/versions/$id"
+            [ -f "$dir/creative_tabs.json" ] && [ ! -f "$dir/dump-cached" ] || continue
+            files=$(cd "$dir" && ls -d creative_tabs.json specials.json player.json legacy-items 2>/dev/null)
+            tar czf /tmp/dump.tgz -C "$dir" $files
+            aws s3 cp /tmp/dump.tgz "s3://$R2_BUCKET/je/_dumps/${{ needs.plan.outputs.dump }}/$id.tar.gz" \
+              --endpoint-url "$R2_ENDPOINT" --only-show-errors --cache-control 'public, max-age=31536000, immutable'
+          done
       - name: Gerar os dados do site
         run: npm run build-data -- --versions=${{ matrix.versions }} --no-index --keep-going
 
@@ -147,6 +173,15 @@ jobs:
           name: result-${{ strategy.job-index }}
           path: result.json
           retention-days: 1
+
+      # folhas de contato (todos os ícones de cada versão numa imagem), pra conferir de olho
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: contact-${{ strategy.job-index }}
+          path: .cache/contact/*.png
+          retention-days: 7
+          if-no-files-found: ignore
 
       # erros completos das versões que falharam neste grupo (texto longo, que o claude lê pela api)
       - name: Relatório de falhas
@@ -233,6 +268,13 @@ jobs:
           for file in _builds.json _retired.json _failures.json; do
             aws s3 cp ".cache/publish/$file" "s3://$R2_BUCKET/je/$file" --endpoint-url "$R2_ENDPOINT" \
               --content-type application/json --cache-control 'no-store'
+          done
+
+      - name: Apagar dumps de códigos antigos
+        run: |
+          aws s3 ls "s3://$R2_BUCKET/je/_dumps/" --endpoint-url "$R2_ENDPOINT" | awk '/PRE/ {print $2}' | while read -r prefix; do
+            [ "$prefix" = "${{ needs.plan.outputs.dump }}/" ] && continue
+            aws s3 rm "s3://$R2_BUCKET/je/_dumps/$prefix" --recursive --endpoint-url "$R2_ENDPOINT" --only-show-errors
           done
 
       - name: Apagar lotes antigos
