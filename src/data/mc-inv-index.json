@@ -237,6 +237,10 @@
       "pt": "Flecha",
       "en": "Arrow"
     },
+    "attack_action": {
+      "pt": "Attack / Mine",
+      "en": "Attack / Mine"
+    },
     "axolotl_bucket": {
       "pt": "Balde com Axolote",
       "en": "Bucket of Axolotl"
@@ -889,6 +893,10 @@
       "pt": "Drusa de Ametista",
       "en": "Budding Amethyst"
     },
+    "build_action": {
+      "pt": "Build",
+      "en": "Build"
+    },
     "bundle": {
       "pt": "Trouxa",
       "en": "Bundle"
@@ -1469,6 +1477,10 @@
       "pt": "Tocha de Cobre",
       "en": "Copper Torch"
     },
+    "copper_trap": {
+      "pt": "Copper Trap",
+      "en": "Copper Trap"
+    },
     "copper_trapdoor": {
       "pt": "Alçapão de Cobre",
       "en": "Copper Trapdoor"
@@ -1504,6 +1516,10 @@
     "crafter": {
       "pt": "Bancada Automática",
       "en": "Crafter"
+    },
+    "crafting_action": {
+      "pt": "Craft",
+      "en": "Craft"
     },
     "crafting_table": {
       "pt": "Bancada de Trabalho",
@@ -2253,6 +2269,10 @@
       "pt": "Lampião de Cobre Exposto",
       "en": "Exposed Copper Lantern"
     },
+    "exposed_copper_trap": {
+      "pt": "Exposed Copper Trap",
+      "en": "Exposed Copper Trap"
+    },
     "exposed_copper_trapdoor": {
       "pt": "Alçapão de Cobre Exposto",
       "en": "Exposed Copper Trapdoor"
@@ -2372,6 +2392,10 @@
     "flowering_azalea_leaves": {
       "pt": "Folhas de Azaléia Florida",
       "en": "Flowering Azalea Leaves"
+    },
+    "follow_action": {
+      "pt": "Follow Me",
+      "en": "Follow Me"
     },
     "fox_spawn_egg": {
       "pt": "Ovo Gerador de Raposa",
@@ -2733,6 +2757,10 @@
       "pt": "Rebolo",
       "en": "Grindstone"
     },
+    "group_action": {
+      "pt": "Group / Ungroup",
+      "en": "Group / Ungroup"
+    },
     "guardian_spawn_egg": {
       "pt": "Ovo Gerador de Guardião",
       "en": "Guardian Spawn Egg"
@@ -2780,6 +2808,10 @@
     "heavy_weighted_pressure_plate": {
       "pt": "Placa de Pressão de Pesagem Pesada",
       "en": "Heavy Weighted Pressure Plate"
+    },
+    "highlight_action": {
+      "pt": "Highlight",
+      "en": "Highlight"
     },
     "hoglin_spawn_egg": {
       "pt": "Ovo Gerador de Hoglin",
@@ -2964,6 +2996,10 @@
     "iron_sword": {
       "pt": "Espada de Ferro",
       "en": "Iron Sword"
+    },
+    "iron_trap": {
+      "pt": "Iron Trap",
+      "en": "Iron Trap"
     },
     "iron_trapdoor": {
       "pt": "Alçapão de Ferro",
@@ -3685,6 +3721,10 @@
       "pt": "Óstraco de Lamentador",
       "en": "Mourner Pottery Sherd"
     },
+    "move_action": {
+      "pt": "Move",
+      "en": "Move"
+    },
     "mud": {
       "pt": "Barro",
       "en": "Mud"
@@ -4192,6 +4232,10 @@
     "oxidized_copper_lantern": {
       "pt": "Lampião de Cobre Oxidado",
       "en": "Oxidized Copper Lantern"
+    },
+    "oxidized_copper_trap": {
+      "pt": "Oxidized Copper Trap",
+      "en": "Oxidized Copper Trap"
     },
     "oxidized_copper_trapdoor": {
       "pt": "Alçapão de Cobre Oxidado",
@@ -4852,6 +4896,10 @@
     "pumpkin_seeds": {
       "pt": "Sementes de Abóbora",
       "en": "Pumpkin Seeds"
+    },
+    "punch_action": {
+      "pt": "Punch",
+      "en": "Punch"
     },
     "purple_banner": {
       "pt": "Estandarte Roxo",
@@ -6289,6 +6337,10 @@
       "pt": "Lampião de Cobre Encerado",
       "en": "Waxed Copper Lantern"
     },
+    "waxed_copper_trap": {
+      "pt": "Waxed Copper Trap",
+      "en": "Waxed Copper Trap"
+    },
     "waxed_copper_trapdoor": {
       "pt": "Alçapão de Cobre Encerado",
       "en": "Waxed Copper Trapdoor"
@@ -6344,6 +6396,10 @@
     "waxed_exposed_copper_lantern": {
       "pt": "Lampião de Cobre Exposto Encerado",
       "en": "Waxed Exposed Copper Lantern"
+    },
+    "waxed_exposed_copper_trap": {
+      "pt": "Waxed Exposed Copper Trap",
+      "en": "Waxed Exposed Copper Trap"
     },
     "waxed_exposed_copper_trapdoor": {
       "pt": "Alçapão de Cobre Exposto Encerado",
@@ -6409,6 +6465,10 @@
       "pt": "Lampião de Cobre Oxidado Encerado",
       "en": "Waxed Oxidized Copper Lantern"
     },
+    "waxed_oxidized_copper_trap": {
+      "pt": "Waxed Oxidized Copper Trap",
+      "en": "Waxed Oxidized Copper Trap"
+    },
     "waxed_oxidized_copper_trapdoor": {
       "pt": "Alçapão de Cobre Oxidado Encerado",
       "en": "Waxed Oxidized Copper Trapdoor"
@@ -6468,6 +6528,10 @@
     "waxed_weathered_copper_lantern": {
       "pt": "Lampião de Cobre Desgastado Encerado",
       "en": "Waxed Weathered Copper Lantern"
+    },
+    "waxed_weathered_copper_trap": {
+      "pt": "Waxed Weathered Copper Trap",
+      "en": "Waxed Weathered Copper Trap"
     },
     "waxed_weathered_copper_trapdoor": {
       "pt": "Alçapão de Cobre Desgastado Encerado",
@@ -6532,6 +6596,10 @@
     "weathered_copper_lantern": {
       "pt": "Lampião de Cobre Desgastado",
       "en": "Weathered Copper Lantern"
+    },
+    "weathered_copper_trap": {
+      "pt": "Weathered Copper Trap",
+      "en": "Weathered Copper Trap"
     },
     "weathered_copper_trapdoor": {
       "pt": "Alçapão de Cobre Desgastado",
