@@ -14,7 +14,9 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 import net.minecraft.SharedConstants;
 import net.minecraft.commands.Commands;
@@ -36,6 +38,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public final class CreativeTabsDump {
   public static void main(String[] args) throws Exception {
@@ -69,6 +72,7 @@ public final class CreativeTabsDump {
     Item.TooltipContext tooltipContext = Item.TooltipContext.of(registries);
 
     JsonArray tabs = new JsonArray();
+    Set<Item> inTabs = new HashSet<>();
     for (CreativeModeTab tab : CreativeModeTabs.allTabs()) {
       JsonObject json = new JsonObject();
       json.addProperty("id", BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab).toString());
@@ -82,14 +86,26 @@ public final class CreativeTabsDump {
       json.add("name", ComponentSerialization.CODEC.encodeStart(ops, tab.getDisplayName()).getOrThrow());
       json.add("icon", stack(tab.getIconItem(), ops, null));
       JsonArray items = new JsonArray();
-      for (ItemStack item : tab.getDisplayItems()) items.add(stack(item, ops, tooltipContext));
+      for (ItemStack item : tab.getDisplayItems()) {
+        items.add(stack(item, ops, tooltipContext));
+        inTabs.add(item.getItem());
+      }
       json.add("items", items);
       tabs.add(json);
+    }
+
+    // itens que existem no jogo (pegáveis por comando, achados no mundo) mas não estão em nenhuma aba do criativo,
+    // nem na de operador. ex.: chiseled_soulshale na 26.4-snapshot-10. só os ligados nesta versão (sem experimentos)
+    JsonArray searchOnly = new JsonArray();
+    for (Item item : BuiltInRegistries.ITEM) {
+      if (item == Items.AIR || inTabs.contains(item) || !item.isEnabled(dataConfig.enabledFeatures())) continue;
+      searchOnly.add(stack(new ItemStack(item), ops, tooltipContext));
     }
 
     JsonObject root = new JsonObject();
     root.addProperty("version", SharedConstants.getCurrentVersion().name());
     root.add("tabs", tabs);
+    root.add("searchOnly", searchOnly);
     Files.writeString(out, new GsonBuilder().disableHtmlEscaping().create().toJson(root));
   }
 

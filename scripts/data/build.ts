@@ -55,6 +55,7 @@ interface DumpedTab {
 interface Dump {
   version: string;
   tabs: DumpedTab[];
+  searchOnly?: DumpedStack[]; // itens do jogo que não estão em nenhuma aba do criativo (só aparecem na busca)
 }
 
 const stripNamespace = (id: string) => id.replace(/^minecraft:/, '');
@@ -154,7 +155,7 @@ async function buildVersion(id: string) {
   const versionDir = join(CACHE_DIR, 'versions', id);
   const dump = await readJson<Dump>(join(versionDir, 'creative_tabs.json'));
 
-  type PublishedItem = { id: string; count?: number; foil?: true; name: TextComponent; components?: Record<string, unknown>; tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] };
+  type PublishedItem = { id: string; count?: number; foil?: true; searchOnly?: true; name: TextComponent; components?: Record<string, unknown>; tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] };
   const items: Record<string, PublishedItem> = {};
   const usedKeys = new Set<string>();
   const nameKeys = new Set<string>(); // só os nomes dos itens (busca na wiki em outros idiomas)
@@ -188,6 +189,10 @@ async function buildVersion(id: string) {
       items: tab.items.map(register),
     };
   });
+
+  // itens fora das abas do criativo: entram no items.json marcados como "só na busca" (o site acha eles pesquisando,
+  // mas não mostra em aba nenhuma). se numa versão futura o item entrar numa aba, ele passa a ser um item normal
+  for (const stack of dump.searchOnly ?? []) items[register(stack)]!.searchOnly = true;
 
   // textos da interface que vêm do jogo (opções, botões)
   for (const key of Object.values(UI_KEYS)) usedKeys.add(key);
