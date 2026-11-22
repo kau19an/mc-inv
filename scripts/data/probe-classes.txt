@@ -1,0 +1,6 @@
+@version 26.1.2
+net.minecraft.client.renderer.special.DecoratedPotSpecialRenderer
+net.minecraft.client.renderer.special.ConduitSpecialRenderer
+net.minecraft.client.renderer.special.ShieldSpecialRenderer
+net.minecraft.client.renderer.blockentity.DecoratedPotRenderer
+net.minecraft.client.renderer.OrderedSubmitNodeCollector
