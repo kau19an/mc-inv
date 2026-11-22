@@ -1,4 +1,5 @@
 {
+  "attribute.modifier.equals.0": "%s %s",
   "attribute.modifier.plus.0": "+%s %s",
   "attribute.modifier.plus.2": "+%s%% %s",
   "attribute.modifier.take.0": "-%s %s",

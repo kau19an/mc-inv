@@ -36756,24 +36756,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "1.5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2.5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -36811,24 +36821,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "1",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -36866,24 +36886,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "6",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "7",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3.2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "0.8",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -36921,14 +36951,19 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -36966,24 +37001,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "2.5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "3.5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37021,24 +37066,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "3",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37076,24 +37131,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "9",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3.2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "0.8",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37131,14 +37196,19 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37176,24 +37246,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "2.5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "3.5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37231,24 +37311,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "3",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37286,24 +37376,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "9",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3.2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "0.8",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37341,14 +37441,19 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37386,24 +37491,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "3.5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "4.5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37441,24 +37556,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "4",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37496,24 +37621,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "9",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3.1",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "0.9",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37551,14 +37686,19 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "1",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "3",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37596,24 +37736,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "1.5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2.5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37651,24 +37801,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "1",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37706,24 +37866,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "6",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "7",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37761,14 +37931,19 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37806,24 +37981,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "4.5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "5.5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37861,24 +38046,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -37916,24 +38111,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "9",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -38006,24 +38211,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "5.5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "6.5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -38061,24 +38276,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "6",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.2",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -38116,24 +38341,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "9",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "10",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -41888,24 +42123,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "4",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -41943,24 +42188,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -41998,24 +42253,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42053,24 +42318,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "6",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42108,24 +42383,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "4",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42163,24 +42448,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "6",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "7",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42218,24 +42513,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "7",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "8",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42273,14 +42578,19 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.46",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.54",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42318,24 +42628,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "1",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.67",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.33",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42373,24 +42693,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "1",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "2",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.82",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.18",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42428,24 +42758,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "2",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "3",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.95",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.05",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42483,14 +42823,19 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.95",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.05",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42528,24 +42873,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "3",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "4",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3.05",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "0.95",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42583,24 +42938,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "5",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3.13",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "0.87",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42638,24 +43003,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "8",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "9",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "2.9",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "1.1",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
@@ -42693,24 +43068,34 @@
         "color": "gray"
       },
       {
-        "translate": "attribute.modifier.plus.0",
-        "with": [
-          "5",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_damage"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "6",
+              {
+                "translate": "attribute.name.attack_damage"
+              }
+            ]
           }
-        ],
-        "color": "blue"
+        ]
       },
       {
-        "translate": "attribute.modifier.take.0",
-        "with": [
-          "3.4",
+        "text": " ",
+        "color": "dark_green",
+        "extra": [
           {
-            "translate": "attribute.name.attack_speed"
+            "translate": "attribute.modifier.equals.0",
+            "with": [
+              "0.6",
+              {
+                "translate": "attribute.name.attack_speed"
+              }
+            ]
           }
-        ],
-        "color": "red"
+        ]
       }
     ],
     "advancedExtra": [
