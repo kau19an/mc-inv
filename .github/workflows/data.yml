@@ -145,7 +145,8 @@ jobs:
           for id in $(echo '${{ matrix.versions }}' | tr ',' ' '); do
             dir=".cache/versions/$id"
             [ -f "$dir/creative_tabs.json" ] && [ ! -f "$dir/dump-cached" ] || continue
-            files=$(cd "$dir" && ls -d creative_tabs.json specials.json player.json legacy-items 2>/dev/null)
+            files=""
+            for file in creative_tabs.json specials.json player.json legacy-items; do [ -e "$dir/$file" ] && files="$files $file"; done
             tar czf /tmp/dump.tgz -C "$dir" $files
             aws s3 cp /tmp/dump.tgz "s3://$R2_BUCKET/je/_dumps/${{ needs.plan.outputs.dump }}/$id.tar.gz" \
               --endpoint-url "$R2_ENDPOINT" --only-show-errors --cache-control 'public, max-age=31536000, immutable'
