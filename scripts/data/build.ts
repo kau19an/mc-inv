@@ -28,6 +28,8 @@ interface DumpedStack {
   count?: number;
   name: TextComponent;
   components?: Record<string, unknown>;
+  tooltip?: TextComponent[]; // linhas da tooltip normal, montadas pelo jogo (a primeira é o nome, já com a cor da raridade)
+  tooltipAdvanced?: TextComponent[]; // com F3+H (id, durabilidade, contagem de componentes…)
 }
 interface DumpedTab {
   id: string;
@@ -70,9 +72,21 @@ function itemKey(stack: DumpedStack): string {
 
 // todas as chaves de tradução de um componente de texto (inclusive as aninhadas em "with"/"extra")
 function collectKeys(component: TextComponent, keys: Set<string>): void {
-  if (typeof component === 'string') return;
+  if (!component || typeof component !== 'object') return; // texto puro, número ou booleano (argumentos de "with")
   if (component.translate) keys.add(component.translate);
   for (const child of [...(component.with ?? []), ...(component.extra ?? [])]) collectKeys(child, keys);
+}
+
+// tooltip publicada: a normal inteira; da avançada, normalmente só as linhas que ela acrescenta no fim
+// ("advancedExtra"). se ela mudar algo no meio, vai inteira ("advanced")
+function tooltipFields(stack: DumpedStack): { tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] } {
+  if (!stack.tooltip) return {};
+  const normal = stack.tooltip;
+  const advanced = stack.tooltipAdvanced ?? normal;
+  const same = (a: TextComponent, b: TextComponent) => stableStringify(a) === stableStringify(b);
+  const isPrefix = normal.length <= advanced.length && normal.every((line, index) => same(line, advanced[index]!));
+  if (isPrefix) return advanced.length > normal.length ? { tooltip: normal, advancedExtra: advanced.slice(normal.length) } : { tooltip: normal };
+  return { tooltip: normal, advanced };
 }
 
 async function readJson<T>(path: string): Promise<T> {
@@ -85,13 +99,15 @@ async function buildVersion(id: string) {
   const versionDir = join(CACHE_DIR, 'versions', id);
   const dump = await readJson<Dump>(join(versionDir, 'creative_tabs.json'));
 
-  const items: Record<string, { id: string; count?: number; name: TextComponent; components?: Record<string, unknown> }> = {};
+  type PublishedItem = { id: string; count?: number; name: TextComponent; components?: Record<string, unknown>; tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] };
+  const items: Record<string, PublishedItem> = {};
   const usedKeys = new Set<string>();
   const register = (stack: DumpedStack) => {
     const key = itemKey(stack);
     if (!items[key]) {
-      items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}) };
+      items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}), ...tooltipFields(stack) };
       collectKeys(stack.name, usedKeys);
+      for (const line of [...(stack.tooltip ?? []), ...(stack.tooltipAdvanced ?? [])]) collectKeys(line, usedKeys);
     }
     return key;
   };
