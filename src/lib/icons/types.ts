@@ -65,12 +65,13 @@ export interface SpecialModel {
   key: string;
   spec: unknown;
   base?: string;
-  transform?: LocalTransform;
+  transforms: LocalTransform[]; // da definição do item, do nó de fora pro de dentro (cada nó pode ter a sua)
 }
 
 // malha de quadrados em 0..16 (já com a transformação local), com transformação de gui do modelo base
 export interface MeshQuad {
   texture: string;
+  layer: number; // ordem da parte: camadas posteriores (padrões do estandarte) ficam por cima das coplanares
   tint: number; // argb, -1 = sem tint
   vertices: [Vec3, Vec3, Vec3, Vec3];
   uvs: [[number, number], [number, number], [number, number], [number, number]]; // 0..1

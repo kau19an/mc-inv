@@ -230,9 +230,13 @@ function renderMesh(model: MeshModel, options: RenderOptions, out: Uint8ClampedA
     const light = brightness(facing, true, model.light);
     const [tr, tg, tb] = quad.tint === TINT_NONE ? [1, 1, 1] : [((quad.tint >> 16) & 255) / 255, ((quad.tint >> 8) & 255) / 255, (quad.tint & 255) / 255];
     const uvs = quad.uvs.map(([u, v]) => [u * 16, v * 16] as [number, number]);
+    // camadas no mesmo plano (pano + padrões do estandarte) brigariam pela profundidade ("z-fighting"):
+    // cada camada posterior ganha uma vantagem minúscula, como o jogo empilha os padrões
+    const bias = quad.layer * 1e-3;
     for (const [i, j, k] of [[0, 1, 2], [0, 2, 3]] as const) {
-      rasterTriangle(corners[i]!, corners[j]!, corners[k]!, uvs[i]!, uvs[j]!, uvs[k]!, (x, y, z, u, v) => {
+      rasterTriangle(corners[i]!, corners[j]!, corners[k]!, uvs[i]!, uvs[j]!, uvs[k]!, (x, y, rawZ, u, v) => {
         const index = y * size + x;
+        const z = rawZ + bias;
         if (z < depth[index]!) return;
         const [r, g, bl, alpha] = sample(texture, u / 16, v / 16);
         if (alpha === 0) return;

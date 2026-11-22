@@ -18,6 +18,11 @@ const tab = tabs.find((t) => t.id === tabId);
 if (!tab) throw new Error(`aba não encontrada: ${tabId}`);
 
 const resolver = new IconResolver(root, pack === 'programmer' ? join(root, 'programmer_art') : undefined);
+try {
+  resolver.meshes = JSON.parse(readFileSync(join(dataDir, 'specials.json'), 'utf8'));
+} catch {
+  // sem specials.json: os modelos especiais ficam vazios
+}
 
 // grade 9 colunas, slot = ícone + 2px de borda (cinza do inventário)
 const columns = 9;

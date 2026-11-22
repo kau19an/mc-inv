@@ -105,6 +105,7 @@ public final class SpecialModelsDump {
         MappedRegistry registry = new MappedRegistry(
             ResourceKey.createRegistryKey(Identifier.withDefaultNamespace("special_model_renderer_type")), Lifecycle.stable());
         method.invoke(null, registry);
+        registry.freeze(); // sem congelar, as entradas ficam "não ligadas" e o codec não acha nada
         Codec<MapCodec> types = registry.byNameCodec();
         return (Codec) types.dispatch(unbaked -> ((SpecialModelRenderer.Unbaked) unbaked).type(), type -> (MapCodec) type);
       }

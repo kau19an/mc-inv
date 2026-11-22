@@ -59,8 +59,11 @@ export class IconResolver {
   };
 
   // escolhe, na definição do item, o "galho" que a gui mostra
-  private pick(node: Json, tints: Tint[]): IconModel {
+  // transforms: transformações dos nós de fora já percorridos (qualquer nó pode ter "transformation", ex.: escudo)
+  private pick(node: Json, tints: Tint[], outer: LocalTransform[] = []): IconModel {
     const type = path(node.type ?? '');
+    const own = localTransform(node.transformation);
+    const transforms = own ? [...outer, own] : outer;
     switch (type) {
       case 'model': {
         tints.splice(0, tints.length, ...(node.tints ?? []).map((source: Json) => this.tint(source)));
@@ -68,19 +71,19 @@ export class IconResolver {
       }
       case 'condition':
         // condições (usando o item, quebrado, pescando…) são falsas num inventário parado
-        return this.pick(node.on_false, tints);
+        return this.pick(node.on_false, tints, transforms);
       case 'select': {
         if (path(node.property ?? '') === 'display_context') {
           const gui = (node.cases ?? []).find((entry: Json) => [entry.when].flat().includes('gui'));
-          if (gui) return this.pick(gui.model, tints);
+          if (gui) return this.pick(gui.model, tints, transforms);
         }
-        return this.pick(node.fallback ?? node.cases?.[0]?.model, tints);
+        return this.pick(node.fallback ?? node.cases?.[0]?.model, tints, transforms);
       }
       case 'range_dispatch':
         // bússola, relógio, arco puxado…: o estado "parado"
-        return this.pick(node.fallback ?? node.entries?.[0]?.model, tints);
+        return this.pick(node.fallback ?? node.entries?.[0]?.model, tints, transforms);
       case 'composite':
-        return { kind: 'composite', parts: (node.models ?? []).map((part: Json) => this.pick(part, tints)) };
+        return { kind: 'composite', parts: (node.models ?? []).map((part: Json) => this.pick(part, tints, transforms)) };
       case 'special':
         return {
           kind: 'special',
@@ -88,7 +91,7 @@ export class IconResolver {
           key: stableKey(node.model),
           spec: node.model,
           base: node.base,
-          transform: localTransform(node.transformation),
+          transforms,
         };
       default:
         return { kind: 'empty' };
@@ -133,7 +136,7 @@ export class IconResolver {
         generated = true;
         break;
       }
-      if (key === 'builtin/entity') return { kind: 'special', type: 'builtin_entity', key: 'builtin_entity', spec: null };
+      if (key === 'builtin/entity') return { kind: 'special', type: 'builtin_entity', key: 'builtin_entity', spec: null, transforms: [] };
       const json = this.model(current);
       if (!json) break;
       // a textura pode vir como texto ou como objeto ({ "sprite": "…", "force_translucent": true }, nos vidros)
@@ -219,21 +222,19 @@ export class IconResolver {
     const mesh = this.meshes[special.key];
     if (!mesh?.parts) return special;
     const { gui, light } = special.base ? this.guiOf(special.base) : { gui: IDENTITY_GUI, light: 'side' as const };
-    const local = special.transform;
+    // composição como no jogo (pai · filho): o ponto passa primeiro pela transformação mais de dentro
+    const transform = (point: Vec3) => special.transforms.reduceRight((current, local) => applyLocal(local, current), point);
     const quads: MeshQuad[] = [];
-    for (const part of mesh.parts) {
+    mesh.parts.forEach((part, layer) => {
       const texture = part.texture ?? textureFromRenderType(part.renderType);
-      if (!texture) continue;
+      if (!texture) return;
       for (const quad of part.quads) {
         if (quad.length !== 4) continue;
-        const vertices = quad.map(([x, y, z]) => {
-          const [tx, ty, tz] = local ? applyLocal(local, [x, y, z]) : [x, y, z];
-          return [tx * 16, ty * 16, tz * 16] as Vec3;
-        }) as MeshQuad['vertices'];
+        const vertices = quad.map(([x, y, z]) => transform([x, y, z]).map((value) => value * 16) as Vec3) as MeshQuad['vertices'];
         const uvs = quad.map(([, , , u, v]) => [u, v] as [number, number]) as MeshQuad['uvs'];
-        quads.push({ texture, tint: part.tint, vertices, uvs });
+        quads.push({ texture, layer, tint: part.tint, vertices, uvs });
       }
-    }
+    });
     return { kind: 'mesh', quads, gui, light };
   }
 
