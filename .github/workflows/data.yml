@@ -91,17 +91,21 @@ jobs:
           jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
           mkdir -p /tmp/jar && unzip -q -o "$jar" 'net/*' -d /tmp/jar
           {
-            echo "## DataComponentInitializers\$PendingComponents"
-            javap -cp "$jar" -public 'net.minecraft.core.component.DataComponentInitializers$PendingComponents' 2>&1 | head -40
+            for class in net.minecraft.server.WorldLoader 'net.minecraft.server.WorldLoader$InitConfig' 'net.minecraft.server.WorldLoader$PackConfig' \
+              'net.minecraft.server.WorldLoader$DataLoadContext' 'net.minecraft.server.WorldLoader$DataLoadOutput' \
+              'net.minecraft.server.WorldLoader$WorldDataSupplier' 'net.minecraft.server.WorldLoader$ResultFactory' \
+              net.minecraft.server.packs.repository.ServerPacksSource net.minecraft.world.level.WorldDataConfiguration \
+              net.minecraft.server.ReloadableServerResources net.minecraft.core.LayeredRegistryAccess; do
+              echo "## $class"
+              javap -cp "$jar" -public "$class" 2>&1 | head -25
+              echo
+            done
+            echo "## Main: chamadas ao WorldLoader e afins"
+            javap -cp "$jar" -c -p net.minecraft.server.Main 2>&1 | grep -E 'WorldLoader|ServerPacksSource|WorldDataConfiguration|InitConfig|PackConfig|CommandSelection|LEVEL_GAMEMASTERS|PermissionSet|Util\.backgroundExecutor|\.join' | head -30
             echo
-            echo "## RegistryDataCollector: lambdas de updateComponents"
-            javap -cp "$jar" -c -p net.minecraft.client.multiplayer.RegistryDataCollector 2>&1 | grep -A14 'lambda\$updateComponents' | head -40
-            echo
-            echo "## ReloadableServerResources: o que faz com a lista"
-            javap -cp "$jar" -c -p net.minecraft.server.ReloadableServerResources 2>&1 | grep -B2 -A14 'PendingComponents' | grep -E 'invoke|Method |^  [a-z]' | head -30
-            echo
-            echo "## CreativeModeTabs: tags usadas"
-            javap -cp "$jar" -c -p net.minecraft.world.item.CreativeModeTabs 2>&1 | grep -oE 'Field net/minecraft/tags/[A-Za-z]+\.[A-Z_]+' | sort -u | head -20
+            echo "## CommandSelection / permissões"
+            javap -cp "$jar" -public 'net.minecraft.commands.Commands$CommandSelection' 2>&1 | head -12
+            javap -cp "$jar" -public net.minecraft.server.permissions.LevelBasedPermissionSet 2>&1 | head -20
           } > probe.txt
           gh api "repos/$GITHUB_REPOSITORY/check-runs" \
             -f name='mc-inv: sondagem' -f head_sha="$GITHUB_SHA" \
