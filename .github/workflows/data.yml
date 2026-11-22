@@ -114,7 +114,7 @@ jobs:
             -f "output[text]=$(head -c 65000 probe.txt)" > /dev/null
 
       # ferramenta de desenvolvimento (autorizada pelo Kauan): se scripts/data/probe-classes.txt existir,
-      # descompila as classes listadas com o vineflower e publica o código como check runs (partes de até 60 mil caracteres)
+      # descompila as classes listadas com o vineflower (procura pelo nome simples se o pacote não bater) e publica o código como check runs (partes de até 60 mil caracteres)
       - name: Descompilar classes (desenvolvimento)
         if: hashFiles('scripts/data/probe-classes.txt') != ''
         env:
@@ -132,7 +132,14 @@ jobs:
           while read -r class; do
             [ -z "$class" ] && continue
             file="${class//.//}"
-            unzip -q -o "$jar" "$file.class" "$file\$*.class" -d /tmp/classes 2>/dev/null || unzip -q -o "$jar" "$file.class" -d /tmp/classes 2>/dev/null || echo "não achei: $class" >> /tmp/listing.txt
+            if ! unzip -l "$jar" "$file.class" > /dev/null 2>&1; then
+              # pacote errado: procura a classe pelo nome simples
+              found=$(unzip -l "$jar" | grep -oE "net/minecraft/[A-Za-z0-9/]*/${class##*.}\.class" | head -1)
+              [ -z "$found" ] && { echo "não achei: $class" >> /tmp/listing.txt; continue; }
+              file="${found%.class}"
+              echo "achei em: ${file//\//.}" >> /tmp/listing.txt
+            fi
+            unzip -q -o "$jar" "$file.class" "$file\$*.class" -d /tmp/classes 2>/dev/null || unzip -q -o "$jar" "$file.class" -d /tmp/classes 2>/dev/null
           done < scripts/data/probe-classes.txt
           java -jar /tmp/vineflower.jar -e="$jar" /tmp/classes /tmp/source > /dev/null 2>&1 || true
           {
