@@ -1,5 +1,8 @@
 # pipeline de dados do jogo: baixa o jar oficial da mojang e extrai os arquivos do inventário.
-# fase 2.1: só extrai e mostra o resumo (ainda não commita nada; isso entra quando houver dados processados)
+# roda em dois casos:
+#   - push nesta branch que mexe no pipeline
+#   - chamado pelo workflow "mc-inv-data.yml" da main (todo dia + botão "rodar agora"),
+#     porque o github só aceita agendamento e execução manual em workflows da branch padrão
 name: Dados do jogo
 
 on:
@@ -10,13 +13,20 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/data.yml'
+  workflow_call:
+    inputs:
+      versions:
+        description: 'tracked (última release + último snapshot) ou ids separados por vírgula'
+        type: string
+        default: tracked
 
 permissions:
   contents: read
+  checks: write # relatório como check run (o claude lê pela api)
 
-# dois pushes seguidos: o mais novo cancela o anterior
+# duas execuções seguidas: a mais nova cancela a anterior
 concurrency:
-  group: data-${{ github.ref }}
+  group: mc-inv-data
   cancel-in-progress: true
 
 jobs:
@@ -24,7 +34,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # quando chamado pela main, o "commit atual" é o da main: por isso o ref fixo
       - uses: actions/checkout@v7
+        with:
+          ref: project/mc-inv
 
       - uses: actions/setup-node@v7
         with:
@@ -33,18 +46,18 @@ jobs:
 
       - run: npm ci
 
-      # o jar fica em cache entre execuções (a chave muda só se o script mudar)
+      # o jar fica em cache entre execuções
       - uses: actions/cache@v6
         with:
           path: .cache/jars
           key: jars-${{ hashFiles('scripts/data/**') }}
           restore-keys: jars-
 
-      - name: Extrair versões acompanhadas (última release + último snapshot)
-        run: npm run data -- --source=official
+      - name: Extrair versões
+        run: npm run data -- --source=official --versions=${{ inputs.versions || 'tracked' }}
 
       # resumo em dois lugares: na página da execução (pra quem abre no github) e como anotação
-      # (a única parte do resultado que o claude consegue ler pela api, via check runs)
+      # (a parte do resultado que o claude consegue ler pela api, via check runs)
       - name: Resumo
         run: |
           {
@@ -59,3 +72,40 @@ jobs:
           for meta in .cache/versions/*/meta.json; do
             echo "::notice title=$(jq -r '.id + " (" + .kind + ")"' "$meta")::$(jq -c '.counts' "$meta")"
           done
+
+      # temporário (fase 2.2): inspeciona as classes do jogo que o dump das abas vai usar.
+      # sai daqui assim que o dump estiver pronto
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Sondar classes do jogo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
+          {
+            echo "# jar: $jar"
+            echo "# classes com 'CreativeModeTab' no nome:"
+            unzip -l "$jar" | grep -o 'net/minecraft/[^ ]*CreativeModeTab[^ ]*\.class' | head -20
+            for class in \
+              net.minecraft.world.item.CreativeModeTabs \
+              net.minecraft.world.item.CreativeModeTab \
+              'net.minecraft.world.item.CreativeModeTab$ItemDisplayParameters' \
+              net.minecraft.server.Bootstrap \
+              net.minecraft.SharedConstants \
+              net.minecraft.data.registries.VanillaRegistries \
+              net.minecraft.world.flag.FeatureFlags \
+              net.minecraft.core.registries.BuiltInRegistries; do
+              echo
+              echo "## $class"
+              javap -cp "$jar" -public "$class" 2>&1 | head -80
+            done
+          } > probe.txt
+          gh api "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name='mc-inv: sondagem' -f head_sha="$GITHUB_SHA" \
+            -f status=completed -f conclusion=neutral \
+            -f 'output[title]=Sondagem das classes do jogo' \
+            -f 'output[summary]=Assinaturas públicas (javap) das classes usadas pelo dump das abas.' \
+            -f "output[text]=$(head -c 65000 probe.txt)" > /dev/null
