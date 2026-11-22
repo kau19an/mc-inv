@@ -49,7 +49,9 @@ export function createTextureLookup(bundle: IconBundle, atlas: AtlasPixels, prog
 }
 
 export function iconFor(bundle: IconBundle, itemId: string): { model: IconModel; tints: Tint[] } | undefined {
-  const entry = bundle.items[itemId.replace(/^minecraft:/, '')];
+  // variantes ("enchanted_book~c3344c57") sem ícone próprio usam o do item base
+  const key = itemId.replace(/^minecraft:/, '');
+  const entry = bundle.items[key] ?? bundle.items[key.split('~')[0]!];
   if (!entry) return undefined;
   return { model: bundle.models[entry[0]]!, tints: entry[1] ?? [] };
 }
