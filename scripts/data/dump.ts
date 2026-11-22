@@ -12,10 +12,12 @@ import { fetchBuffer } from './lib/http.ts';
 import { CACHE_DIR, writeFileDeep } from './lib/files.ts';
 import { trackedIds, withKind, type Version } from './lib/versions.ts';
 import { clientJar, official, versionPackage, type Library } from './sources/official.ts';
+import { IconResolver } from './icons/resolve.ts';
+import type { IconModel, SpecialModel } from '../../src/lib/icons/types.ts';
 
 const { values: args } = parseArgs({ options: { versions: { type: 'string', default: 'tracked' } } });
 
-const DUMPER = join(import.meta.dirname, 'dumper/CreativeTabsDump.java');
+const DUMPERS = ['CreativeTabsDump.java', 'SpecialModelsDump.java'].map((file) => join(import.meta.dirname, 'dumper', file));
 
 // roda um comando; se falhar, publica o fim da saída de erro como anotação do github actions
 // (é o único jeito do claude ler o erro, já que ele não acessa os logs)
@@ -70,7 +72,7 @@ async function dump(version: Version) {
   const classes = join(CACHE_DIR, 'dumper', version.id);
   await rm(classes, { recursive: true, force: true });
   await mkdir(classes, { recursive: true });
-  run('javac', ['-nowarn', '-cp', classpath.join(delimiter), '-d', classes, DUMPER]);
+  run('javac', ['-nowarn', '-cp', classpath.join(delimiter), '-d', classes, ...DUMPERS]);
 
   const out = join(CACHE_DIR, 'versions', version.id, 'creative_tabs.json');
   await mkdir(join(CACHE_DIR, 'versions', version.id), { recursive: true });
@@ -78,7 +80,24 @@ async function dump(version: Version) {
   // roda dentro da pasta das classes porque o jogo pode criar arquivos onde é executado
   run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'CreativeTabsDump', out], classes);
 
-  return JSON.parse(await readFile(out, 'utf8')) as { version: string; tabs: DumpedTab[] };
+  const result = JSON.parse(await readFile(out, 'utf8')) as { version: string; tabs: DumpedTab[] };
+
+  // modelos especiais (baú, estandarte, cabeça…): junta as definições únicas dos itens das abas e pede
+  // pro jogo a geometria de cada uma
+  const resolver = new IconResolver(join(CACHE_DIR, 'versions', version.id));
+  const specials: Record<string, unknown> = {};
+  const collect = (model: IconModel) => {
+    if (model.kind === 'special') specials[model.key] = (model as SpecialModel).spec;
+    if (model.kind === 'composite') model.parts.forEach(collect);
+  };
+  for (const id of new Set(result.tabs.flatMap((tab) => tab.items.map((item) => item.id)))) collect(resolver.resolve(id).model);
+  const specialsIn = join(CACHE_DIR, 'versions', version.id, 'specials-input.json');
+  const specialsOut = join(CACHE_DIR, 'versions', version.id, 'specials.json');
+  await writeFile(specialsIn, JSON.stringify(specials));
+  run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'SpecialModelsDump', specialsIn, specialsOut], classes);
+  const meshes = JSON.parse(await readFile(specialsOut, 'utf8')) as Record<string, { error?: string; parts?: { texture?: string; renderType: string; tint: number; quads: unknown[] }[] }>;
+
+  return { ...result, meshes };
 }
 
 const list = await official.listVersions();
@@ -98,6 +117,17 @@ for (const id of wanted) {
   for (const tab of result.tabs) {
     report.push(`\n## ${tab.id} · ${tab.type} · ${tab.items.length} itens`);
     report.push(tab.items.slice(0, 12).map((item) => item.id.replace('minecraft:', '')).join(', ') + (tab.items.length > 12 ? ', …' : ''));
+  }
+  report.push('\n## modelos especiais');
+  for (const [key, mesh] of Object.entries(result.meshes)) {
+    if (mesh.error) {
+      report.push(`- ✗ ${key}: ${mesh.error}`);
+      continue;
+    }
+    const parts = mesh.parts ?? [];
+    const quads = parts.reduce((total, part) => total + part.quads.length, 0);
+    const first = parts[0];
+    report.push(`- ✓ ${key}: ${parts.length} partes, ${quads} quadrados · ${first ? `${first.texture ?? first.renderType.slice(0, 160)} · tint ${first.tint}` : 'vazio'}`);
   }
   report.push('');
 }

@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
-import type { Element, Face, FaceName, GuiTransform, IconModel, Texture, Tint, Vec3 } from '../../../src/lib/icons/types.ts';
+import type { Element, Face, FaceName, GuiTransform, IconModel, LocalTransform, Texture, Tint, Vec3 } from '../../../src/lib/icons/types.ts';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -76,7 +76,14 @@ export class IconResolver {
       case 'composite':
         return { kind: 'composite', parts: (node.models ?? []).map((part: Json) => this.pick(part, tints)) };
       case 'special':
-        return { kind: 'special', type: path(node.model?.type ?? 'unknown'), base: node.base };
+        return {
+          kind: 'special',
+          type: path(node.model?.type ?? 'unknown'),
+          key: stableKey(node.model),
+          spec: node.model,
+          base: node.base,
+          transform: localTransform(node.transformation),
+        };
       default:
         return { kind: 'empty' };
     }
@@ -120,7 +127,7 @@ export class IconResolver {
         generated = true;
         break;
       }
-      if (key === 'builtin/entity') return { kind: 'special', type: 'builtin_entity' };
+      if (key === 'builtin/entity') return { kind: 'special', type: 'builtin_entity', key: 'builtin_entity', spec: null };
       const json = this.model(current);
       if (!json) break;
       // a textura pode vir como texto ou como objeto ({ "sprite": "…", "force_translucent": true }, nos vidros)
@@ -189,6 +196,23 @@ export class IconResolver {
     if (!definition?.model) return { model: { kind: 'empty' }, tints };
     return { model: this.pick(definition.model, tints), tints };
   }
+}
+
+// chave estável de um modelo especial: o mesmo json sempre vira a mesma chave
+export function stableKey(value: unknown): string {
+  const sort = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(sort) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, sort(x)])) : v;
+  return JSON.stringify(sort(value));
+}
+
+function localTransform(json: Json | undefined): LocalTransform | undefined {
+  if (!json) return undefined;
+  return {
+    translation: json.translation ?? [0, 0, 0],
+    leftRotation: json.left_rotation ?? [0, 0, 0, 1],
+    scale: json.scale ?? [1, 1, 1],
+    rightRotation: json.right_rotation ?? [0, 0, 0, 1],
+  };
 }
 
 // uv padrão de uma face quando o modelo não diz (depende do tamanho do elemento)

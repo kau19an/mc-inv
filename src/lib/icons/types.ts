@@ -49,18 +49,45 @@ export interface CompositeModel {
   parts: IconModel[];
 }
 
-// renderizado pelo jogo com modelo de entidade (baú, cama, estandarte, cabeça…): tratado à parte
+// transformação extra que a definição do item aplica antes de desenhar (translação · rotação esq. · escala · rotação dir.)
+export interface LocalTransform {
+  translation: Vec3;
+  leftRotation: [number, number, number, number]; // quaternion x, y, z, w
+  scale: Vec3;
+  rightRotation: [number, number, number, number];
+}
+
+// desenhado pelo jogo com modelo de entidade (baú, estandarte, cabeça…). "key" identifica o modelo exportado
+// pelo dumper (specials.json); "spec" é a definição crua, usada pra gerar esse arquivo
 export interface SpecialModel {
   kind: 'special';
   type: string;
+  key: string;
+  spec: unknown;
   base?: string;
+  transform?: LocalTransform;
+}
+
+// malha de quadrados em 0..16 (já com a transformação local), com transformação de gui do modelo base
+export interface MeshQuad {
+  texture: string;
+  tint: number; // argb, -1 = sem tint
+  vertices: [Vec3, Vec3, Vec3, Vec3];
+  uvs: [[number, number], [number, number], [number, number], [number, number]]; // 0..1
+}
+
+export interface MeshModel {
+  kind: 'mesh';
+  quads: MeshQuad[];
+  gui: GuiTransform;
+  light: 'side' | 'front';
 }
 
 export interface EmptyModel {
   kind: 'empty';
 }
 
-export type IconModel = FlatModel | BlockModel | CompositeModel | SpecialModel | EmptyModel;
+export type IconModel = FlatModel | BlockModel | MeshModel | CompositeModel | SpecialModel | EmptyModel;
 
 // textura já decodificada (só o primeiro quadro, no caso das animadas)
 export interface Texture {
