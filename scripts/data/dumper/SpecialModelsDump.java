@@ -79,20 +79,16 @@ public final class SpecialModelsDump {
     for (Map.Entry<String, JsonElement> entry : entries.entrySet()) {
       try {
         Object unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
-        Object renderer;
+        JsonArray parts;
         try {
-          renderer = bake(unbaked, models);
+          parts = bakeAndDraw(unbaked, models);
         } catch (java.lang.reflect.InvocationTargetException error) {
-          // algumas versões pedem coisas do jogo aberto ao montar (25w31a–25w33a: Minecraft.getSkinManager() na
-          // cabeça de jogador): monta o Minecraft falso e tenta de novo
+          // algumas versões pedem coisas do jogo aberto ao montar ou desenhar (25w31a–25w33a:
+          // Minecraft.getSkinManager() na cabeça de jogador): monta o Minecraft falso e tenta de novo
           if (!String.valueOf(error.getCause()).contains("Minecraft.getInstance()") || fakeInstalled) throw error;
           installFakeAtlases();
-          renderer = bake(unbaked, models);
+          parts = bakeAndDraw(unbaked, models);
         }
-        JsonArray parts = new JsonArray();
-        lastSprite = null;
-        // sem dados do item (padrão): estandarte liso, vaso sem cacos, cabeça com a skin padrão…
-        if (renderer != null) draw(renderer, parts);
         JsonObject model = new JsonObject();
         model.add("parts", parts);
         result.add(entry.getKey(), model);
@@ -123,6 +119,15 @@ public final class SpecialModelsDump {
   // um sprite falso pra qualquer textura pedida — e lembra qual foi, como no caminho novo
   @SuppressWarnings({"unchecked", "rawtypes"})
   private static boolean fakeInstalled;
+
+  private static JsonArray bakeAndDraw(Object unbaked, EntityModelSet models) throws ReflectiveOperationException {
+    Object renderer = bake(unbaked, models);
+    JsonArray parts = new JsonArray();
+    lastSprite = null;
+    // sem dados do item (padrão): estandarte liso, vaso sem cacos, cabeça com a skin padrão…
+    if (renderer != null) draw(renderer, parts);
+    return parts;
+  }
 
   private static void installFakeAtlases() {
     fakeInstalled = true;
