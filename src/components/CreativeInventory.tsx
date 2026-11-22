@@ -9,13 +9,14 @@ import { textRuns, translate } from '@/lib/gui/text.ts';
 import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
 import { iconCanvas } from '@/lib/gui/icons.ts';
 import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
-import { wikiUrl } from '@/lib/gui/wiki.ts';
+import { resolveWiki, wikiLocale, wikiUrl } from '@/lib/gui/wiki.ts';
 import { PLAYER_BOX, renderPlayer } from '@/lib/gui/player.ts';
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   HOTBAR_ROWS,
   INVENTORY_SLOTS,
+  playerSlotShown,
   TOP,
   hotbarPlaceholder,
   isHotbarPlaceholder,
@@ -31,7 +32,7 @@ import {
   tabY,
   type TabInfo,
 } from '@/lib/gui/creative.ts';
-import { latestRelease, loadProgrammerAtlas, loadVersion, textOf, viewFor, withoutOperatorTab, type VersionData } from '@/lib/gui/data.ts';
+import { latestRelease, loadProgrammerAtlas, loadVersion, loadWikiNames, textOf, viewFor, withoutOperatorTab, type VersionData } from '@/lib/gui/data.ts';
 import type { AtlasPixels } from '@/lib/icons/bundle.ts';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from '@/lib/gui/settings.ts';
 import { HTML_LANG, stringsFor } from '@/lib/gui/strings.ts';
@@ -68,6 +69,9 @@ interface Props {
   initial?: Route; // vem da página estática (/inv/je, /inv/je/<aba>, /inv/je/<item>)
 }
 
+// quanto tempo "Skin aplicada com sucesso." fica na tela
+const SKIN_SUCCESS_MS = 4000;
+
 export default function CreativeInventory({ initial = { kind: 'home' } }: Props) {
   const [baseData, setBaseData] = useState<VersionData | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -76,6 +80,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   // skin do jogador escolhido nas opções (null = Steve)
   const [playerSkin, setPlayerSkin] = useState<PlayerSkin | null>(null);
   const [skinStatus, setSkinStatus] = useState<SkinStatus>({ kind: 'idle' });
+  const [appliedName, setAppliedName] = useState(''); // nome cuja skin está aplicada ('' = Steve)
   // os dados vistos no idioma escolhido e com/sem Programmer Art (ícones e nomes se ajustam sozinhos)
   const data = useMemo(() => {
     if (!baseData) return null;
@@ -106,39 +111,60 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       return next;
     });
 
-  // busca a skin do nome salvo nas opções (ao abrir o site e a cada nome confirmado)
-  const loadPlayerSkin = async (name: string) => {
-    if (!name) {
-      setPlayerSkin(null);
-      return;
-    }
-    setSkinStatus({ kind: 'loading' });
+  // busca a skin do nome salvo nas opções (ao abrir o site, em silêncio) e a cada nome confirmado. só um nome que
+  // deu certo fica salvo; se não achar, continua a skin de antes. a mensagem de sucesso some depois de uns segundos
+  const successTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const loadPlayerSkin = async (name: string, announce: boolean) => {
+    clearTimeout(successTimer.current);
+    if (announce) setSkinStatus({ kind: 'loading' });
     const result = await fetchPlayerSkin(name).catch(() => ({ error: 'upstream' as const }));
     if ('error' in result) {
-      setSkinStatus({ kind: 'error', error: result.error });
+      if (announce) setSkinStatus({ kind: 'error', error: result.error });
       return;
     }
     setPlayerSkin(result.skin ? result : null);
+    updateSettings({ playerName: result.name }); // com a grafia oficial do nome
+    setAppliedName(result.name);
+    if (!announce) return;
     setSkinStatus(result.skin ? { kind: 'found', name: result.name } : { kind: 'default', name: result.name });
+    successTimer.current = setTimeout(() => setSkinStatus({ kind: 'idle' }), SKIN_SUCCESS_MS);
   };
   useEffect(() => {
     const saved = loadSettings().playerName;
-    if (saved) loadPlayerSkin(saved);
+    if (saved) loadPlayerSkin(saved, false);
+    return () => clearTimeout(successTimer.current);
   }, []);
 
   const applyPlayerName = (name: string) => {
+    clearTimeout(successTimer.current);
     if (name && !PLAYER_NAME.test(name)) {
       setSkinStatus({ kind: 'error', error: 'invalid_name' });
       return;
     }
-    updateSettings({ playerName: name });
     if (!name) {
+      // campo vazio: volta pro Steve
+      updateSettings({ playerName: '' });
+      setAppliedName('');
       setPlayerSkin(null);
       setSkinStatus({ kind: 'reset' });
       return;
     }
-    loadPlayerSkin(name);
+    loadPlayerSkin(name, true);
   };
+
+  // Minecraft Wiki: a busca vai com o nome do item no idioma da wiki escolhida. idiomas da interface já estão
+  // carregados; os outros são baixados quando a wiki é escolhida
+  const wikiCode = resolveWiki(settings.wikiLanguage, settings.locale);
+  const [wikiNames, setWikiNames] = useState<{ locale: string; names: Record<string, string> } | null>(null);
+  useEffect(() => {
+    if (!baseData) return;
+    const locale = wikiLocale(wikiCode);
+    let current = true;
+    loadWikiNames(baseData, locale).then((names) => current && setWikiNames({ locale, names }));
+    return () => {
+      current = false;
+    };
+  }, [baseData, wikiCode]);
 
   // Programmer Art: as texturas antigas só são baixadas na primeira vez que alguém liga
   useEffect(() => {
@@ -284,6 +310,14 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     return data && item ? textOf(data, item.name) : key;
   };
 
+  // nome do item no idioma da wiki (enquanto o arquivo carrega, ou se faltar o nome, vai em inglês)
+  const wikiName = (key: string) => {
+    const item = data?.items[key];
+    if (!data || !item) return key;
+    const names = wikiNames?.locale === wikiLocale(wikiCode) ? wikiNames.names : data.fallbackLang;
+    return textOf(data, item.name, names);
+  };
+
   // pisca o cursor da pesquisa enquanto ela tem foco
   useEffect(() => {
     if (!searchFocused) return;
@@ -376,15 +410,15 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       if (lit) sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
     });
 
-    // aba "Inventário": ícones dos slots vazios (armadura e segunda mão) e o destaque do slot sob o mouse
-    if (tab.type === 'inventory') {
-      INVENTORY_SLOTS.forEach((slot, index) => {
-        const y = TOP + slot.y;
-        if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_back', slot.x - 4, y - 4);
-        if (slot.empty) sprite(`sprites/container/slot/${slot.empty}`, slot.x, y);
-        if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_front', slot.x - 4, y - 4);
-      });
-    }
+    // slots do jogador (todos na aba "Inventário", só a barra rápida nas outras): ícones dos slots vazios
+    // (armadura e segunda mão) e o destaque do slot sob o mouse
+    INVENTORY_SLOTS.forEach((slot, index) => {
+      if (!playerSlotShown(slot, tab.type === 'inventory')) return;
+      const y = TOP + slot.y;
+      if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_back', slot.x - 4, y - 4);
+      if (slot.empty) sprite(`sprites/container/slot/${slot.empty}`, slot.x, y);
+      if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_front', slot.x - 4, y - 4);
+    });
     if (tab.type !== 'inventory' && hovered >= visible.length && hovered < PAGE) {
       const [x, y] = slotPosition(hovered);
       sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
@@ -839,7 +873,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
                 ) : (
                   <a
                     key={`${first}-${index}`}
-                    href={wikiUrl(itemName(key), data.locale)}
+                    href={wikiUrl(wikiName(key), wikiCode)}
                     target="_blank"
                     rel="noopener noreferrer"
                     tabIndex={index === slotIndex ? 0 : -1}
@@ -859,7 +893,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
             </div>
           )}
 
-          {/* aba "Inventário": o jogador seguindo o cursor e os slots (vazios — o site não tem inventário de verdade) */}
+          {/* aba "Inventário": o jogador seguindo o cursor */}
           {tab.type === 'inventory' && (
             <>
               {data.player && (
@@ -870,25 +904,29 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
                   aria-hidden="true"
                 />
               )}
-              {INVENTORY_SLOTS.map((slot, index) => (
-                <div
-                  key={index}
-                  aria-hidden={!slot.bin}
-                  role={slot.bin ? 'note' : undefined}
-                  aria-label={slot.bin ? translate(data, UI_KEYS.binSlot) : undefined}
-                  tabIndex={slot.bin ? 0 : undefined}
-                  class="absolute outline-none"
-                  style={box(slot.x - 1, TOP + slot.y - 1, CREATIVE.slot, CREATIVE.slot)}
-                  onPointerEnter={(event) => event.pointerType === 'mouse' && setHoveredInventorySlot(index)}
-                  onPointerLeave={() => setHoveredInventorySlot(-1)}
-                  onFocus={(event) => {
-                    setHoveredInventorySlot(index);
-                    focusTooltip(event.currentTarget);
-                  }}
-                  onBlur={() => setHoveredInventorySlot(-1)}
-                />
-              ))}
             </>
+          )}
+
+          {/* slots do jogador: todos na aba "Inventário" (vazios — o site não tem inventário de verdade), só a barra rápida nas outras */}
+          {INVENTORY_SLOTS.map((slot, index) =>
+            !playerSlotShown(slot, tab.type === 'inventory') ? null : (
+              <div
+                key={index}
+                aria-hidden={!slot.bin}
+                role={slot.bin ? 'note' : undefined}
+                aria-label={slot.bin ? translate(data, UI_KEYS.binSlot) : undefined}
+                tabIndex={slot.bin ? 0 : undefined}
+                class="absolute outline-none"
+                style={box(slot.x - 1, TOP + slot.y - 1, CREATIVE.slot, CREATIVE.slot)}
+                onPointerEnter={(event) => event.pointerType === 'mouse' && setHoveredInventorySlot(index)}
+                onPointerLeave={() => setHoveredInventorySlot(-1)}
+                onFocus={(event) => {
+                  setHoveredInventorySlot(index);
+                  focusTooltip(event.currentTarget);
+                }}
+                onBlur={() => setHoveredInventorySlot(-1)}
+              />
+            ),
           )}
 
           {tab.canScroll && (
@@ -916,7 +954,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       <GuiButton data={data} width={OPTIONS_WIDTH} height={OPTIONS_HEIGHT} label={translate(data, UI_KEYS.optionsButton)} onClick={() => setSettingsOpen(true)} />
 
       {settingsOpen && (
-        <SettingsScreen data={data} settings={settings} strings={strings} skinStatus={skinStatus} onChange={updateSettings} onPlayerName={applyPlayerName} onClose={() => setSettingsOpen(false)} />
+        <SettingsScreen data={data} settings={settings} strings={strings} skinStatus={skinStatus} appliedName={appliedName} onChange={updateSettings} onPlayerName={applyPlayerName} onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );

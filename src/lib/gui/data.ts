@@ -150,6 +150,17 @@ export async function loadProgrammerAtlas(data: VersionData): Promise<AtlasPixel
   }
 }
 
+// nomes dos itens no idioma de uma wiki que não é idioma da interface (wiki/<locale>.json). os idiomas da
+// interface já vêm em langs. se o arquivo faltar (versão publicada antes da opção), a busca usa o inglês
+export async function loadWikiNames(data: VersionData, locale: string): Promise<Record<string, string>> {
+  if (locale in data.langs) return data.langs[locale as Locale];
+  try {
+    return await optionalJson<Record<string, string>>(`${data.baseUrl}/wiki/${locale}.json`, {});
+  } catch {
+    return {};
+  }
+}
+
 // a mesma versão vista num idioma e com/sem Programmer Art. objeto novo = cache de ícones próprio (icons.ts)
 export function viewFor(data: VersionData, locale: Locale, programmerAtlas: AtlasPixels | null): VersionData {
   const programmerArt = Boolean(programmerAtlas);

@@ -1,7 +1,7 @@
 // tela de opções, no estilo do menu de opções do jogo: fundo escurecido, título branco no topo, botões de alternar
 // e "Concluído" embaixo. os textos são os do próprio jogo (ui-keys.ts), então saem como no jogo em cada idioma.
 // é um <dialog> nativo: prende o foco do teclado lá dentro e fecha com Esc, como o jogo
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { FRAME_CLASS, GuiButton, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
 import { LOCALES, type VersionData } from '@/lib/gui/data.ts';
 import type { Settings } from '@/lib/gui/settings.ts';
@@ -9,6 +9,7 @@ import type { SkinError } from '@/lib/gui/skin.ts';
 import { HTML_LANG, type Strings } from '@/lib/gui/strings.ts';
 import { translate } from '@/lib/gui/text.ts';
 import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
+import { WIKI_CHOICES, resolveWiki, wikiHost, type WikiCode } from '@/lib/gui/wiki.ts';
 
 // medidas do jogo (OptionsScreen): botões de 150×20 em duas colunas, 4 px entre eles (ou uma coluna, se não couber);
 // "Concluído" com 200 de largura
@@ -36,6 +37,7 @@ interface Props {
   settings: Settings;
   strings: Strings;
   skinStatus: SkinStatus;
+  appliedName: string; // nome cuja skin está aplicada agora ('' = Steve)
   onChange: (change: Partial<Settings>) => void;
   onPlayerName: (name: string) => void;
   onClose: () => void;
@@ -91,7 +93,7 @@ function GameTextField({ data, value, label, width, onInput, onEnter }: { data: 
   );
 }
 
-export default function SettingsScreen({ data, settings, strings, skinStatus, onChange, onPlayerName, onClose }: Props) {
+export default function SettingsScreen({ data, settings, strings, skinStatus, appliedName, onChange, onPlayerName, onClose }: Props) {
   const [name, setName] = useState(settings.playerName);
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -104,10 +106,32 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, on
   const languageName = `${data.lang[UI_KEYS.languageName] ?? settings.locale} (${data.lang[UI_KEYS.languageRegion] ?? ''})`;
   const nextLocale = LOCALES[(LOCALES.indexOf(settings.locale) + 1) % LOCALES.length]!;
   const status = statusText(strings, skinStatus);
+  // nome aplicado com sucesso: o campo passa a mostrar a grafia oficial ("kauan" → "Kauan")
+  useEffect(() => {
+    setName((current) => (current.trim().toLowerCase() === appliedName.toLowerCase() ? appliedName : current));
+  }, [appliedName]);
+  // confirmar o nome que já está aplicado (ou enquanto busca) não faz nada: o botão fica desativado.
+  // nomes do jogo não diferenciam maiúsculas ("kauan" e "Kauan" são o mesmo jogador)
+  const trimmed = name.trim();
+  const confirmDisabled = skinStatus.kind === 'loading' || trimmed.toLowerCase() === appliedName.toLowerCase();
   const submitName = () => {
-    const trimmed = name.trim();
+    if (confirmDisabled) return;
     setName(trimmed);
     onPlayerName(trimmed);
+  };
+
+  // Minecraft Wiki: automático (segue o idioma) ou uma wiki fixa. o nome do idioma vem do navegador, no idioma
+  // da interface ("Francês", "French"), e embaixo aparece o endereço da wiki que os itens vão abrir
+  const htmlLang = HTML_LANG[settings.locale];
+  const languageNames = useMemo(() => new Intl.DisplayNames([htmlLang], { type: 'language', fallback: 'none' }), [htmlLang]);
+  const wikiLanguageName = (code: WikiCode) => {
+    const name = strings.wikiLanguageNames[code] ?? languageNames.of(code) ?? code;
+    return name.charAt(0).toLocaleUpperCase(htmlLang) + name.slice(1);
+  };
+  const wikiValue = settings.wikiLanguage === 'auto' ? strings.wikiAuto : wikiLanguageName(settings.wikiLanguage);
+  const cycleWiki = (step: number) => {
+    const index = WIKI_CHOICES.indexOf(settings.wikiLanguage);
+    onChange({ wikiLanguage: WIKI_CHOICES[(index + step + WIKI_CHOICES.length) % WIKI_CHOICES.length]! });
   };
 
   return (
@@ -166,13 +190,35 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, on
             }}
           >
             <GameTextField data={data} value={name} label={strings.playerName} width={ROW_WIDTH - GAP - CONFIRM_WIDTH} onInput={setName} onEnter={submitName} />
-            <GuiButton data={data} type="submit" width={CONFIRM_WIDTH} label={strings.confirm} />
+            <GuiButton data={data} type="submit" width={CONFIRM_WIDTH} label={strings.confirm} disabled={confirmDisabled} />
           </form>
           {status && (
             <p role="status" class="self-start" style={{ color: hex(status.color), textShadow: textShadow(status.color) }}>
               {status.text}
             </p>
           )}
+        </section>
+
+        {/* idioma da Minecraft Wiki que os itens abrem */}
+        <section class="flex w-full flex-col items-center" style={{ maxWidth: u(ROW_WIDTH), gap: u(4) }} aria-labelledby="settings-wiki">
+          <h3 id="settings-wiki" style={{ textShadow: textShadow(0xffffff) }}>
+            Minecraft Wiki
+          </h3>
+          <GuiButton
+            data={data}
+            width={ROW_WIDTH}
+            title={strings.wikiHint}
+            aria-description={wikiHost(resolveWiki(settings.wikiLanguage, settings.locale))}
+            label={option(t(UI_KEYS.languageTitle), wikiValue)}
+            onClick={(event) => cycleWiki(event.shiftKey ? -1 : 1)}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              cycleWiki(-1);
+            }}
+          />
+          <p class="self-start" style={{ color: hex(LABEL_COLOR), textShadow: textShadow(LABEL_COLOR) }}>
+            {wikiHost(resolveWiki(settings.wikiLanguage, settings.locale))}
+          </p>
         </section>
 
         <GuiButton data={data} width={DONE_WIDTH} class="mt-auto shrink-0" label={t(UI_KEYS.done)} onClick={() => dialogRef.current?.close()} />

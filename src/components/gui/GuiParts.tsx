@@ -83,13 +83,25 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style' | 'chil
 };
 
 // botão do jogo: textura widget/button (widget/button_highlighted ao passar o mouse ou focar), texto branco com
-// sombra, 2 px de margem pro texto de cada lado (a moldura tem 3 px, então o texto avança 1 px sobre ela)
-export function GuiButton({ data, label, width, height = 20, style, class: className = '', ...rest }: ButtonProps) {
+// sombra, 2 px de margem pro texto de cada lado (a moldura tem 3 px, então o texto avança 1 px sobre ela).
+// desativado: widget/button_disabled, texto cinza (0xA0A0A0, AbstractButton) e cursor de "não permitido"
+export function GuiButton({ data, label, width, height = 20, style, class: className = '', disabled, ...rest }: ButtonProps) {
+  const color = disabled ? 0xa0a0a0 : 0xffffff;
   return (
     <button
       type="button"
-      class={`${FRAME_CLASS} ${FRAME_HOVER_CLASS} flex cursor-pointer items-center justify-center text-white outline-none ${className}`}
-      style={{ ...gameText, ...frameStyle(data, 'button', 'button_highlighted'), textShadow: textShadow(0xffffff), width: u(width), height: u(height), padding: '0', ...style }}
+      disabled={disabled}
+      class={`${FRAME_CLASS} ${disabled ? 'cursor-not-allowed' : `${FRAME_HOVER_CLASS} cursor-pointer`} flex items-center justify-center outline-none ${className}`}
+      style={{
+        ...gameText,
+        ...(disabled ? frameStyle(data, 'button_disabled') : frameStyle(data, 'button', 'button_highlighted')),
+        color: hex(color),
+        textShadow: textShadow(color),
+        width: u(width),
+        height: u(height),
+        padding: '0',
+        ...style,
+      }}
       {...rest}
     >
       <span style={{ marginInline: u(-1) }}>

@@ -17,6 +17,10 @@ const STRINGS = {
     confirm: 'Confirmar',
     skinSuccess: 'Skin aplicada com sucesso.',
     skinNotFound: 'Jogador não encontrado.',
+    wikiAuto: 'Automático',
+    // nomes que o Intl.DisplayNames do navegador às vezes não conhece
+    wikiLanguageNames: { lzh: 'Chinês clássico' } as Record<string, string>,
+    wikiHint: 'Clique pra avançar; Shift + clique (ou botão direito) pra voltar',
   },
   en_us: {
     loading: 'Loading…',
@@ -32,6 +36,9 @@ const STRINGS = {
     confirm: 'Confirm',
     skinSuccess: 'Skin successfully applied.',
     skinNotFound: 'Player not found.',
+    wikiAuto: 'Automatic',
+    wikiLanguageNames: { lzh: 'Literary Chinese' } as Record<string, string>,
+    wikiHint: 'Click to go forward; Shift + click (or right-click) to go back',
   },
 } satisfies Record<Locale, Record<string, unknown>>;
 

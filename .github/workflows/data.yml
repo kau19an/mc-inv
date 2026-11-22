@@ -14,6 +14,7 @@ on:
       - 'src/lib/icons/**'
       - 'src/lib/gui/types.ts'
       - 'src/lib/gui/ui-keys.ts'
+      - 'src/lib/gui/wiki.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/data.yml'

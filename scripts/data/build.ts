@@ -4,6 +4,7 @@
 //   public/data/je/<id>/tabs.json            abas na ordem do jogo, com a lista de itens (chaves de items.json)
 //   public/data/je/<id>/items.json           cada item uma vez só: id, nome (componente de texto) e componentes
 //   public/data/je/<id>/lang/<locale>.json   só as traduções usadas pelo inventário
+//   public/data/je/<id>/wiki/<locale>.json   nomes dos itens nos idiomas das outras wikis (opção Minecraft Wiki)
 //   public/data/je/<id>/tags.json            marcações de item já resolvidas (tag → itens)
 //   public/data/je/<id>/player.json          modelo do jogador (peças separadas) + player/steve.png e player/alex.png
 //   public/data/je/versions.json             versões disponíveis no site
@@ -17,6 +18,7 @@ import { buildIconBundle, toWebp } from './icons/bundle.ts';
 import { buildGuiBundle } from './gui.ts';
 import { buildItemTags } from './tags.ts';
 import { UI_KEYS } from '../../src/lib/gui/ui-keys.ts';
+import { WIKI_LANGUAGES } from '../../src/lib/gui/wiki.ts';
 import type { SpecialMeshes } from './icons/resolve.ts';
 
 // idiomas expostos na interface por enquanto (a busca multilíngue usa todos, mas isso vem na fase 4)
@@ -130,11 +132,13 @@ async function buildVersion(id: string) {
   type PublishedItem = { id: string; count?: number; name: TextComponent; components?: Record<string, unknown>; tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] };
   const items: Record<string, PublishedItem> = {};
   const usedKeys = new Set<string>();
+  const nameKeys = new Set<string>(); // só os nomes dos itens (busca na wiki em outros idiomas)
   const register = (stack: DumpedStack) => {
     const key = itemKey(stack);
     if (!items[key]) {
       items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}), ...tooltipFields(stack) };
       collectKeys(stack.name, usedKeys);
+      collectKeys(stack.name, nameKeys);
       for (const line of [...(stack.tooltip ?? []), ...(stack.tooltipAdvanced ?? [])]) collectKeys(line, usedKeys);
       usedKeys.add('attribute.modifier.equals.0');
     }
@@ -174,6 +178,19 @@ async function buildVersion(id: string) {
   await writeJson(join(outDir, 'tabs.json'), { version: id, gameVersion: dump.version, tabs });
   await writeJson(join(outDir, 'items.json'), items);
   for (const locale of LOCALES) await writeJson(join(outDir, 'lang', `${locale}.json`), lang[locale]);
+  // nomes dos itens nos idiomas das outras wikis (opção "Minecraft Wiki" com idioma fixo). baixado só quando
+  // alguém escolhe aquela wiki; os idiomas da interface já têm tudo em lang/
+  await mkdir(join(outDir, 'wiki'), { recursive: true });
+  for (const { locale } of WIKI_LANGUAGES) {
+    if (LOCALES.includes(locale)) continue;
+    const path = join(versionDir, 'assets/minecraft/lang', `${locale}.json`);
+    if (!existsSync(path)) {
+      console.log(`::warning title=Idioma da wiki ausente::${id}: ${locale}.json não veio com o jogo (a busca nessa wiki usa o nome em inglês)`);
+      continue;
+    }
+    const full = await readJson<Record<string, string>>(path);
+    await writeJson(join(outDir, 'wiki', `${locale}.json`), Object.fromEntries([...nameKeys].sort().filter((key) => key in full).map((key) => [key, full[key]])));
+  }
   await writeJson(join(outDir, 'tags.json'), buildItemTags(versionDir, new Set(Object.values(items).map((item) => stripNamespace(item.id)))));
   // pacote de ícones (modelos resolvidos + atlas de texturas em webp sem perdas). a geometria dos modelos
   // especiais (baú, estandarte…), exportada pelo jogo no dump, entra aqui dentro

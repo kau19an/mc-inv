@@ -1,6 +1,7 @@
 // opções do inventário, salvas neste navegador (localStorage). se o armazenamento estiver bloqueado,
 // tudo funciona igual — só não lembra na próxima visita
 import type { Locale } from './data.ts';
+import { isWikiLanguage, type WikiLanguage } from './wiki.ts';
 
 export interface Settings {
   locale: Locale;
@@ -8,6 +9,7 @@ export interface Settings {
   advancedTooltips: boolean; // também liga/desliga com F3+H
   playerName: string; // nick da Edição Java pra skin na aba "Inventário" ('' = Steve)
   operatorItemsTab: boolean; // aba "Blocos de operador" (desligada por padrão, como no jogo)
+  wikiLanguage: WikiLanguage; // wiki que os itens abrem: 'auto' segue o idioma da interface
 }
 
 const KEY = 'mc-inv:settings';
@@ -16,7 +18,7 @@ const LEGACY_ADVANCED_KEY = 'mc-inv:advanced-tooltips'; // antes das opções, o
 // nome de jogador válido no jogo: letras, números e sublinhado, até 16
 export const PLAYER_NAME = /^[A-Za-z0-9_]{1,16}$/;
 
-export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '', operatorItemsTab: false };
+export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '', operatorItemsTab: false, wikiLanguage: 'auto' };
 
 export function loadSettings(): Settings {
   try {
@@ -27,6 +29,7 @@ export function loadSettings(): Settings {
       programmerArt: saved?.programmerArt === true,
       advancedTooltips: saved?.advancedTooltips ?? legacyAdvanced,
       operatorItemsTab: saved?.operatorItemsTab === true,
+      wikiLanguage: isWikiLanguage(saved?.wikiLanguage) ? saved.wikiLanguage : 'auto',
       playerName: typeof saved?.playerName === 'string' && PLAYER_NAME.test(saved.playerName) ? saved.playerName : '',
     };
   } catch {

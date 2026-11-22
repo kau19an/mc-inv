@@ -78,6 +78,7 @@ export interface InventorySlot {
   y: number;
   empty?: string; // ícone do slot vazio (sprites/container/slot/<nome>)
   bin?: boolean; // slot de destruir
+  hotbar?: boolean; // barra rápida: aparece (e acende) também nas outras abas, embaixo da grade
 }
 
 export const INVENTORY_SLOTS: InventorySlot[] = [
@@ -87,9 +88,13 @@ export const INVENTORY_SLOTS: InventorySlot[] = [
   { x: 108, y: 33, empty: 'boots' },
   { x: 35, y: 20, empty: 'shield' },
   ...Array.from({ length: 27 }, (_, index) => ({ x: 9 + (index % 9) * 18, y: 54 + Math.floor(index / 9) * 18 })),
-  ...Array.from({ length: 9 }, (_, index) => ({ x: 9 + index * 18, y: 112 })),
+  ...Array.from({ length: 9 }, (_, index) => ({ x: 9 + index * 18, y: 112, hotbar: true })),
   { x: 173, y: 112, bin: true },
 ];
+
+// slots do jogador que aparecem na aba: todos na "Inventário"; nas outras, só a barra rápida
+// (CreativeModeInventoryScreen.ItemPickerMenu põe os 9 da barra embaixo da grade, nas mesmas posições)
+export const playerSlotShown = (slot: InventorySlot, inventoryTab: boolean) => inventoryTab || slot.hotbar === true;
 
 // aba "Barras rápidas salvas" sem nada salvo: 9 barras vazias, cada uma com um papel na posição dela
 // (a diagonal) explicando como salvar — CreativeModeInventoryScreen.selectTab
