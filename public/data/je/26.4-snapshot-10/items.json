@@ -31061,6 +31061,7 @@
   },
   "end_crystal": {
     "id": "end_crystal",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.end_crystal"
     },
@@ -48837,6 +48838,7 @@
   },
   "enchanted_golden_apple": {
     "id": "enchanted_golden_apple",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_golden_apple"
     },
@@ -59557,6 +59559,7 @@
   },
   "nether_star": {
     "id": "nether_star",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.nether_star"
     },
@@ -62910,6 +62913,7 @@
   },
   "experience_bottle": {
     "id": "experience_bottle",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.experience_bottle"
     },
@@ -63000,6 +63004,7 @@
   },
   "enchanted_book~0f9851ed": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63039,6 +63044,7 @@
   },
   "enchanted_book~ed654f98": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63084,6 +63090,7 @@
   },
   "enchanted_book~d07d75bf": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63129,6 +63136,7 @@
   },
   "enchanted_book~356ccc23": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63174,6 +63182,7 @@
   },
   "enchanted_book~83490447": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63219,6 +63228,7 @@
   },
   "enchanted_book~c3344c57": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63264,6 +63274,7 @@
   },
   "enchanted_book~8c3b78ad": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63303,6 +63314,7 @@
   },
   "enchanted_book~53155a63": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63348,6 +63360,7 @@
   },
   "enchanted_book~1fdb178e": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63393,6 +63406,7 @@
   },
   "enchanted_book~57f6afba": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63438,6 +63452,7 @@
   },
   "enchanted_book~2a747da1": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63483,6 +63498,7 @@
   },
   "enchanted_book~ed13765b": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63528,6 +63544,7 @@
   },
   "enchanted_book~f9e48c73": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63573,6 +63590,7 @@
   },
   "enchanted_book~a682a14f": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63618,6 +63636,7 @@
   },
   "enchanted_book~1beca9fe": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63663,6 +63682,7 @@
   },
   "enchanted_book~599d9a34": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63702,6 +63722,7 @@
   },
   "enchanted_book~142a072a": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63747,6 +63768,7 @@
   },
   "enchanted_book~15589f25": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63792,6 +63814,7 @@
   },
   "enchanted_book~a6ff4dbc": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63837,6 +63860,7 @@
   },
   "enchanted_book~3908421c": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63882,6 +63906,7 @@
   },
   "enchanted_book~fd7f0f7f": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63927,6 +63952,7 @@
   },
   "enchanted_book~3a92fc22": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -63972,6 +63998,7 @@
   },
   "enchanted_book~4f46045a": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64017,6 +64044,7 @@
   },
   "enchanted_book~2878ff38": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64062,6 +64090,7 @@
   },
   "enchanted_book~f012e01e": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64107,6 +64136,7 @@
   },
   "enchanted_book~ffb30fd8": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64152,6 +64182,7 @@
   },
   "enchanted_book~a558ab7f": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64197,6 +64228,7 @@
   },
   "enchanted_book~88fe4c09": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64242,6 +64274,7 @@
   },
   "enchanted_book~74ac1741": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64287,6 +64320,7 @@
   },
   "enchanted_book~ca9bf962": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64332,6 +64366,7 @@
   },
   "enchanted_book~4c26bc8d": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64377,6 +64412,7 @@
   },
   "enchanted_book~1f4149e5": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64422,6 +64458,7 @@
   },
   "enchanted_book~822f65a0": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64467,6 +64504,7 @@
   },
   "enchanted_book~7b6cba59": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64512,6 +64550,7 @@
   },
   "enchanted_book~c02e23dd": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64557,6 +64596,7 @@
   },
   "enchanted_book~0f671497": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64602,6 +64642,7 @@
   },
   "enchanted_book~aa12a3ad": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64647,6 +64688,7 @@
   },
   "enchanted_book~ce2b02ad": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64692,6 +64734,7 @@
   },
   "enchanted_book~36e5f5de": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64737,6 +64780,7 @@
   },
   "enchanted_book~0d09dabe": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64776,6 +64820,7 @@
   },
   "enchanted_book~7e110478": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64821,6 +64866,7 @@
   },
   "enchanted_book~151aa67b": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64866,6 +64912,7 @@
   },
   "enchanted_book~d85d30b5": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64911,6 +64958,7 @@
   },
   "enchanted_book~c78b16c8": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -64956,6 +65004,7 @@
   },
   "enchanted_book~5eea01d8": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65001,6 +65050,7 @@
   },
   "enchanted_book~9a6f77b8": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65046,6 +65096,7 @@
   },
   "enchanted_book~2be9e705": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65091,6 +65142,7 @@
   },
   "enchanted_book~85f643d2": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65136,6 +65188,7 @@
   },
   "enchanted_book~bc80f57e": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65181,6 +65234,7 @@
   },
   "enchanted_book~0bb698d9": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65226,6 +65280,7 @@
   },
   "enchanted_book~b273fe3b": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65265,6 +65320,7 @@
   },
   "enchanted_book~25f2d8ae": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65310,6 +65366,7 @@
   },
   "enchanted_book~62382f7c": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65355,6 +65412,7 @@
   },
   "enchanted_book~710b1d45": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65400,6 +65458,7 @@
   },
   "enchanted_book~03b429f3": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65445,6 +65504,7 @@
   },
   "enchanted_book~a26bb8b1": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65490,6 +65550,7 @@
   },
   "enchanted_book~72d431bf": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65535,6 +65596,7 @@
   },
   "enchanted_book~b4f9ece9": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65580,6 +65642,7 @@
   },
   "enchanted_book~be177d90": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65625,6 +65688,7 @@
   },
   "enchanted_book~555eb3f5": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65670,6 +65734,7 @@
   },
   "enchanted_book~8d57fbd7": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65715,6 +65780,7 @@
   },
   "enchanted_book~ea06a0b8": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65760,6 +65826,7 @@
   },
   "enchanted_book~1aa02836": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65805,6 +65872,7 @@
   },
   "enchanted_book~6e6f0736": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65850,6 +65918,7 @@
   },
   "enchanted_book~07fd5d40": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65895,6 +65964,7 @@
   },
   "enchanted_book~a0708429": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65940,6 +66010,7 @@
   },
   "enchanted_book~baba0282": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -65985,6 +66056,7 @@
   },
   "enchanted_book~d1a8e0cd": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66030,6 +66102,7 @@
   },
   "enchanted_book~c9615a8a": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66069,6 +66142,7 @@
   },
   "enchanted_book~bd533a1f": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66108,6 +66182,7 @@
   },
   "enchanted_book~133ab7cf": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66153,6 +66228,7 @@
   },
   "enchanted_book~d725a7fe": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66198,6 +66274,7 @@
   },
   "enchanted_book~1f94c585": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66243,6 +66320,7 @@
   },
   "enchanted_book~2c198b2c": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66288,6 +66366,7 @@
   },
   "enchanted_book~cd8b5d56": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66333,6 +66412,7 @@
   },
   "enchanted_book~0af7a586": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66378,6 +66458,7 @@
   },
   "enchanted_book~a143028d": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66423,6 +66504,7 @@
   },
   "enchanted_book~ddae3d33": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66468,6 +66550,7 @@
   },
   "enchanted_book~6c386d1d": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66513,6 +66596,7 @@
   },
   "enchanted_book~a5f204fc": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66558,6 +66642,7 @@
   },
   "enchanted_book~1b55e966": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66603,6 +66688,7 @@
   },
   "enchanted_book~7fecbaf5": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66648,6 +66734,7 @@
   },
   "enchanted_book~a1865ac7": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66693,6 +66780,7 @@
   },
   "enchanted_book~ad10f8b0": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66738,6 +66826,7 @@
   },
   "enchanted_book~baf1c38d": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66783,6 +66872,7 @@
   },
   "enchanted_book~cdcace7c": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66828,6 +66918,7 @@
   },
   "enchanted_book~d2ec1f1f": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66873,6 +66964,7 @@
   },
   "enchanted_book~a87f105f": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66918,6 +67010,7 @@
   },
   "enchanted_book~68c65de6": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -66963,6 +67056,7 @@
   },
   "enchanted_book~16b9607c": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67008,6 +67102,7 @@
   },
   "enchanted_book~a9be17b1": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67053,6 +67148,7 @@
   },
   "enchanted_book~f87a8c22": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67098,6 +67194,7 @@
   },
   "enchanted_book~01dd14bd": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67143,6 +67240,7 @@
   },
   "enchanted_book~5610ff9a": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67188,6 +67286,7 @@
   },
   "enchanted_book~0b3568d5": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67233,6 +67332,7 @@
   },
   "enchanted_book~27301f49": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67278,6 +67378,7 @@
   },
   "enchanted_book~d3366748": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67323,6 +67424,7 @@
   },
   "enchanted_book~55fda044": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67368,6 +67470,7 @@
   },
   "enchanted_book~a5635ef1": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67413,6 +67516,7 @@
   },
   "enchanted_book~e944caf4": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67458,6 +67562,7 @@
   },
   "enchanted_book~59f022aa": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67503,6 +67608,7 @@
   },
   "enchanted_book~9cd2aaf8": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67548,6 +67654,7 @@
   },
   "enchanted_book~6bb85a40": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67593,6 +67700,7 @@
   },
   "enchanted_book~d5969542": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67632,6 +67740,7 @@
   },
   "enchanted_book~77d86e88": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67677,6 +67786,7 @@
   },
   "enchanted_book~507c6b07": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67722,6 +67832,7 @@
   },
   "enchanted_book~00985ddf": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67767,6 +67878,7 @@
   },
   "enchanted_book~a2f7587a": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67812,6 +67924,7 @@
   },
   "enchanted_book~fdcd3e71": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67857,6 +67970,7 @@
   },
   "enchanted_book~f9df389c": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67902,6 +68016,7 @@
   },
   "enchanted_book~b8135f23": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67947,6 +68062,7 @@
   },
   "enchanted_book~f3749955": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -67992,6 +68108,7 @@
   },
   "enchanted_book~7414bce3": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68037,6 +68154,7 @@
   },
   "enchanted_book~4666960b": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68082,6 +68200,7 @@
   },
   "enchanted_book~f0c86bce": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68127,6 +68246,7 @@
   },
   "enchanted_book~34ed8974": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68172,6 +68292,7 @@
   },
   "enchanted_book~92488221": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68217,6 +68338,7 @@
   },
   "enchanted_book~6dbeeca8": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68262,6 +68384,7 @@
   },
   "enchanted_book~ef8a6c58": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68307,6 +68430,7 @@
   },
   "enchanted_book~517d0424": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68352,6 +68476,7 @@
   },
   "enchanted_book~64a0a573": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68397,6 +68522,7 @@
   },
   "enchanted_book~4e1227a4": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68442,6 +68568,7 @@
   },
   "enchanted_book~dcf28779": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68487,6 +68614,7 @@
   },
   "enchanted_book~bd0f5e60": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68532,6 +68660,7 @@
   },
   "enchanted_book~25e9f6ed": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68571,6 +68700,7 @@
   },
   "enchanted_book~9a85833d": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68616,6 +68746,7 @@
   },
   "enchanted_book~0b0a1523": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -68661,6 +68792,7 @@
   },
   "enchanted_book~a68a5d93": {
     "id": "enchanted_book",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.enchanted_book"
     },
@@ -71674,6 +71806,7 @@
   },
   "debug_stick": {
     "id": "debug_stick",
+    "foil": true,
     "name": {
       "translate": "item.minecraft.debug_stick"
     },
