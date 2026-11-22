@@ -82,6 +82,35 @@ jobs:
       - name: Montar as abas do inventário criativo
         run: npm run dump -- --versions=${{ inputs.versions || 'tracked' }}
 
+      # temporário: se o dump falhar, sonda o jar atrás das classes envolvidas
+      - name: Sondar (se falhar)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
+          mkdir -p /tmp/jar && unzip -q -o "$jar" 'net/*' -d /tmp/jar
+          {
+            echo "# quem referencia DATA_COMPONENT_INITIALIZERS:"
+            grep -rl --include='*.class' 'DATA_COMPONENT_INITIALIZERS' /tmp/jar | sed 's#/tmp/jar/##' | head -30
+            echo
+            echo "## DataComponentInitializers"
+            javap -cp "$jar" -public net.minecraft.core.component.DataComponentInitializers 2>&1 | head -60
+            echo
+            echo "## Holder\$Reference"
+            javap -cp "$jar" -public 'net.minecraft.core.Holder$Reference' 2>&1 | head -60
+            for class in $(grep -rl --include='*.class' 'DATA_COMPONENT_INITIALIZERS' /tmp/jar | sed 's#/tmp/jar/##;s#\.class$##;s#/#.#g' | head -6); do
+              echo
+              echo "## $class (trechos com DATA_COMPONENT_INITIALIZERS)"
+              javap -cp "$jar" -c -p "$class" 2>&1 | grep -B30 -A12 'DATA_COMPONENT_INITIALIZERS' | grep -E 'invoke|getstatic|Method |^  [a-z].*\(' | head -40
+            done
+          } > probe.txt
+          gh api "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name='mc-inv: sondagem' -f head_sha="$GITHUB_SHA" \
+            -f status=completed -f conclusion=neutral \
+            -f 'output[title]=Sondagem' -f 'output[summary]=Classes envolvidas no erro do dump.' \
+            -f "output[text]=$(head -c 65000 probe.txt)" > /dev/null
+
       # relatório das abas como check run (texto longo, que o claude lê pela api)
       - name: Relatório das abas
         if: always()
