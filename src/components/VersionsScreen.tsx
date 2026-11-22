@@ -1,7 +1,9 @@
 // tela "Versões...": escolher a versão do jogo mostrada no inventário. imita as telas de lista do jogo
 // (seleção de idioma, de mundo): título e controles no cabeçalho, linha separadora, a lista sobre o fundo de lista,
 // outra linha separadora e o "Concluído" no rodapé.
-// escolher já aplica (não tem "Confirmar"): clicar numa linha, as setas do teclado ou os atalhos "Mais recente" e
+// as versões ficam agrupadas por drop ("Deep Freeze", "Wilderness Bound"…), em grupos recolhidos que abrem no "+",
+// com a linha vertical de árvore à esquerda das versões de dentro.
+// escolher já aplica (não tem "Confirmar"): clicar numa versão, as setas do teclado ou os atalhos "Mais recente" e
 // "Snapshot", que seguem a mais recente de cada tipo (quando sair uma nova, o site passa pra ela)
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { FRAME_CLASS, GuiButton, fitWidth, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
@@ -11,9 +13,14 @@ import { HTML_LANG, type Strings } from '@/lib/gui/strings.ts';
 import type { Settings } from '@/lib/gui/settings.ts';
 import { translate } from '@/lib/gui/text.ts';
 import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
+import { dropName, dropOf } from '@/lib/gui/drops.ts';
 
 const ROW_WIDTH = 304; // a largura das duas colunas de opções (cabe a busca e os dois atalhos alinhados)
 const ROW_HEIGHT = 24; // duas linhas de texto: versão e, embaixo, tipo (ou destaque) · data
+const DROP_HEIGHT = 20; // linha do drop: nome, número e o +/−
+const INDENT = 14; // recuo das versões dentro do drop
+const TREE_LINE_X = 6; // posição da linha vertical da árvore, dentro do recuo
+const TREE_LINE_COLOR = 0x808080;
 const BUTTON_WIDTH = 150;
 const GAP = 4;
 const DONE_WIDTH = 200;
@@ -51,6 +58,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   const listRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [listFocused, setListFocused] = useState(false);
+  const [usingKeyboard, setUsingKeyboard] = useState(false); // o contorno de cursor só aparece navegando pelo teclado
   const [scroll, setScroll] = useState({ top: 0, height: 0, content: 0 });
   const t = (key: string) => translate(data, key);
   const htmlLang = HTML_LANG[settings.locale];
@@ -65,30 +73,67 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   const dateFormat = useMemo(() => new Intl.DateTimeFormat(htmlLang, { dateStyle: 'medium' }), [htmlLang]);
   const kindName = (entry: VersionEntry) => strings.versionKinds[entry.kind] ?? entry.kind;
 
-  // busca: todas as palavras no id ou no tipo ("snapshot 26.4", "pré")
+  // busca: todas as palavras no id, no tipo ou no nome do drop ("snapshot 26.4", "pré", "deep")
   const normalize = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  const terms = normalize(query).split(/\s+/).filter(Boolean);
   const shown = useMemo(() => {
-    const terms = normalize(query).split(/\s+/).filter(Boolean);
     if (!terms.length) return list.versions;
     return list.versions.filter((entry) => {
-      const haystack = normalize(`${entry.id} ${kindName(entry)}`);
+      const haystack = normalize(`${entry.id} ${kindName(entry)} ${dropName(dropOf(entry.id))}`);
       return terms.every((term) => haystack.includes(term));
     });
   }, [query, list, strings]);
 
+  // drops na ordem da lista (mais novo primeiro), cada um com as suas versões (também mais nova primeiro)
+  const drops = useMemo(() => {
+    const groups = new Map<string, VersionEntry[]>();
+    for (const entry of shown) {
+      const drop = dropOf(entry.id);
+      groups.set(drop, [...(groups.get(drop) ?? []), entry]);
+    }
+    return [...groups].map(([drop, versions]) => ({ drop, versions }));
+  }, [shown]);
+
+  // tudo recolhido por padrão (pedido do Kauan); buscando, os drops com resultado abrem sozinhos
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const isOpen = (drop: string) => terms.length > 0 || expanded.has(drop);
+  const toggle = (drop: string) =>
+    setExpanded((previous) => {
+      const next = new Set(previous);
+      if (next.has(drop)) next.delete(drop);
+      else next.add(drop);
+      return next;
+    });
+
+  // linhas visíveis, em ordem: drop, as versões dele (se aberto), próximo drop…
+  type Row = { kind: 'drop'; drop: string; count: number; hasCurrent: boolean } | { kind: 'version'; drop: string; entry: VersionEntry };
+  const rows: Row[] = drops.flatMap(({ drop, versions }) => [
+    { kind: 'drop' as const, drop, count: versions.length, hasCurrent: versions.some((entry) => entry.id === current) },
+    ...(isOpen(drop) ? versions.map((entry) => ({ kind: 'version' as const, drop, entry })) : []),
+  ]);
+  const rowKey = (row: Row) => (row.kind === 'drop' ? `drop-${row.drop}` : `version-${row.entry.id}`);
+  const rowId = (key: string) => key.replace(/[^a-z0-9-]/gi, '_');
+
   const select = (id: string) => onChange({ version: id });
 
-  // a versão selecionada fica à vista ao abrir (centralizada, como o centerScrollOn do jogo) e ao mudar pelo teclado
-  const rowId = (id: string) => `version-${id.replace(/[^a-z0-9-]/gi, '_')}`;
-  const scrollToSelected = (center: boolean) => {
+  // cursor do teclado (qual linha está "em foco" dentro da árvore). numa versão, mover o cursor também escolhe ela
+  const [active, setActive] = useState<string>(() => `version-${current}`);
+  const activeIndex = Math.max(
+    rows.findIndex((row) => rowKey(row) === active),
+    0,
+  );
+
+  // a versão escolhida (ou o drop dela, se estiver recolhido) fica à vista ao abrir — centralizada, como o
+  // centerScrollOn do jogo — e a linha do cursor, ao andar pelo teclado
+  const scrollToRow = (key: string, center: boolean) => {
     const box = listRef.current;
-    const row = box?.querySelector<HTMLElement>(`#${CSS.escape(rowId(current))}`);
+    const row = box?.querySelector<HTMLElement>(`#${CSS.escape(rowId(key))}`);
     if (!box || !row) return;
     if (center) box.scrollTop = row.offsetTop + row.offsetHeight / 2 - box.clientHeight / 2;
     else row.scrollIntoView({ block: 'nearest' });
   };
-  useLayoutEffect(() => scrollToSelected(true), []);
-  useLayoutEffect(() => scrollToSelected(false), [current]);
+  useLayoutEffect(() => scrollToRow(isOpen(dropOf(current)) ? `version-${current}` : `drop-${dropOf(current)}`, true), []);
+  useLayoutEffect(() => scrollToRow(active, false), [active]);
 
   // barra de rolagem desenhada como a do jogo (widget/scroller sobre widget/scroller_background); a rolagem em si
   // é a do navegador (roda do mouse, toque, teclado), com a barra nativa escondida
@@ -103,24 +148,51 @@ export default function VersionsScreen({ data, list, settings, current, strings,
     const observer = new ResizeObserver(measure);
     observer.observe(box);
     return () => observer.disconnect();
-  }, [shown]);
+  }, [rows.length]);
   const maxScroll = Math.max(scroll.content - scroll.height, 0);
   const scrollerHeight = Math.min(Math.max(scroll.height ? (scroll.height * scroll.height) / Math.max(scroll.content, 1) : 0, MIN_SCROLLER * unitOf(listRef.current)), Math.max(scroll.height - 8, 0));
   const scrollerTop = maxScroll ? (scroll.top / maxScroll) * (scroll.height - scrollerHeight) : 0;
   const drag = useRef<{ startY: number; startTop: number } | null>(null);
 
-  // teclado na lista: setas, Home e End escolhem a versão (e já aplicam, como o clique)
+  // teclado na árvore (como as árvores de arquivos): ↑/↓ andam pelas linhas (numa versão, já escolhem ela);
+  // → abre o drop, ← fecha (numa versão, volta pro drop dela); Enter/Espaço abrem e fecham; Home/End
+  const moveTo = (index: number) => {
+    const row = rows[Math.min(Math.max(index, 0), rows.length - 1)];
+    if (!row) return;
+    setActive(rowKey(row));
+    if (row.kind === 'version') select(row.entry.id);
+  };
   const onListKey = (event: KeyboardEvent) => {
-    if (!shown.length) return;
-    const index = shown.findIndex((entry) => entry.id === current);
-    const target =
-      event.key === 'ArrowDown' ? Math.min(index + 1, shown.length - 1) : event.key === 'ArrowUp' ? Math.max(index - 1, 0) : event.key === 'Home' ? 0 : event.key === 'End' ? shown.length - 1 : null;
-    if (target === null) return;
-    event.preventDefault();
-    select(shown[target === -1 ? 0 : target]!.id);
+    const row = rows[activeIndex];
+    if (!row) return;
+    const handled = (() => {
+      switch (event.key) {
+        case 'ArrowDown':
+          return moveTo(activeIndex + 1), true;
+        case 'ArrowUp':
+          return moveTo(activeIndex - 1), true;
+        case 'Home':
+          return moveTo(0), true;
+        case 'End':
+          return moveTo(rows.length - 1), true;
+        case 'ArrowRight':
+          if (row.kind === 'drop' && !isOpen(row.drop)) toggle(row.drop);
+          return true;
+        case 'ArrowLeft':
+          if (row.kind === 'version') setActive(`drop-${row.drop}`);
+          else if (isOpen(row.drop) && !terms.length) toggle(row.drop);
+          return true;
+        case 'Enter':
+        case ' ':
+          if (row.kind === 'drop') toggle(row.drop);
+          return true;
+        default:
+          return false;
+      }
+    })();
+    if (handled) event.preventDefault();
   };
 
-  const outline = listFocused ? OUTLINE_FOCUSED : OUTLINE_UNFOCUSED;
 
   return (
     <dialog
@@ -152,46 +224,87 @@ export default function VersionsScreen({ data, list, settings, current, strings,
         <div class="relative min-h-0 flex-1" style={tileStyle(data, 'menu_list_background', 'rgb(0 0 0 / 0.44)')}>
           <div
             ref={listRef}
-            role="listbox"
+            role="tree"
             tabIndex={0}
             aria-label={strings.versionsList}
-            aria-activedescendant={shown.some((entry) => entry.id === current) ? rowId(current) : undefined}
+            aria-activedescendant={rows.length ? rowId(rowKey(rows[activeIndex]!)) : undefined}
             class="h-full overflow-y-auto outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={{ paddingBlock: u(4) }}
             onScroll={measure}
-            onKeyDown={onListKey}
+            onKeyDown={(event) => {
+              setUsingKeyboard(true);
+              onListKey(event);
+            }}
+            onPointerDown={() => setUsingKeyboard(false)}
             onFocus={() => setListFocused(true)}
             onBlur={() => setListFocused(false)}
           >
-            {shown.map((entry) => {
+            {rows.map((row) => {
+              const key = rowKey(row);
+              const cursor = listFocused && usingKeyboard && key === rowKey(rows[activeIndex]!);
+              // contorno do jogo: 1 px (branco com a lista em foco, cinza sem) e preto por dentro
+              const outlined = (color: number) => ({ background: '#000', boxShadow: `inset 0 0 0 ${u(1)} ${hex(color)}` });
+
+              if (row.kind === 'drop') {
+                const open = isOpen(row.drop);
+                // drop recolhido com a versão escolhida dentro: o contorno fica nele, pra não "sumir" a seleção
+                const marked = cursor || (row.hasCurrent && !open);
+                return (
+                  <div
+                    key={key}
+                    id={rowId(key)}
+                    role="treeitem"
+                    aria-expanded={open}
+                    aria-level={1}
+                    aria-label={`${dropName(row.drop)} (${row.drop})`}
+                    class="relative mx-auto cursor-pointer select-none"
+                    style={{ width: u(rowWidth), height: u(DROP_HEIGHT), ...(marked ? outlined(cursor ? OUTLINE_FOCUSED : OUTLINE_UNFOCUSED) : {}) }}
+                    onClick={() => {
+                      setActive(key);
+                      if (!terms.length) toggle(row.drop);
+                      listRef.current?.focus({ preventScroll: true });
+                    }}
+                  >
+                    <span class="absolute truncate" style={{ left: u(4), right: u(16), top: u(6), textShadow: textShadow(0xffffff) }}>
+                      {dropName(row.drop)}
+                      {dropName(row.drop) !== row.drop && <span style={{ color: hex(GRAY), textShadow: textShadow(GRAY) }}> {row.drop}</span>}
+                    </span>
+                    <span aria-hidden="true" class="absolute" style={{ right: u(4), top: u(6), textShadow: textShadow(0xffffff) }}>
+                      {open ? '-' : '+'}
+                    </span>
+                  </div>
+                );
+              }
+
+              const { entry } = row;
               const selected = entry.id === current;
               const latest = entry.id === list.latest.release ? { text: strings.latestReleaseTag, color: LATEST_RELEASE_COLOR } : entry.id === list.latest.snapshot ? { text: strings.latestSnapshotTag, color: LATEST_SNAPSHOT_COLOR } : null;
               return (
-                <div
-                  key={entry.id}
-                  id={rowId(entry.id)}
-                  role="option"
-                  aria-selected={selected}
-                  class="relative mx-auto cursor-pointer"
-                  style={{
-                    width: u(rowWidth),
-                    height: u(ROW_HEIGHT),
-                    // seleção do jogo: contorno de 1 px (branco com foco, cinza sem) e preto por dentro
-                    ...(selected ? { background: '#000', boxShadow: `inset 0 0 0 ${u(1)} ${hex(outline)}` } : {}),
-                  }}
-                  onClick={() => {
-                    select(entry.id);
-                    listRef.current?.focus({ preventScroll: true });
-                  }}
-                >
-                  <span class="absolute" style={{ left: u(4), top: u(3), textShadow: textShadow(0xffffff) }}>
-                    {entry.id}
-                  </span>
-                  {/* segunda linha: o tipo em cinza (ou, nas mais recentes, o destaque colorido no lugar dele) · a data */}
-                  <span class="absolute truncate" style={{ left: u(4), right: u(4), top: u(13), color: hex(GRAY), textShadow: textShadow(GRAY) }}>
-                    {latest ? <span style={{ color: hex(latest.color), textShadow: textShadow(latest.color) }}>{latest.text}</span> : kindName(entry)} ·{' '}
-                    {dateFormat.format(new Date(entry.releaseTime))}
-                  </span>
+                <div key={key} class="relative mx-auto" style={{ width: u(rowWidth), height: u(ROW_HEIGHT) }}>
+                  {/* linha vertical da árvore, ligando as versões do drop */}
+                  <span aria-hidden="true" class="absolute top-0 bottom-0" style={{ left: u(TREE_LINE_X), width: u(1), background: hex(TREE_LINE_COLOR) }} />
+                  <div
+                    id={rowId(key)}
+                    role="treeitem"
+                    aria-level={2}
+                    aria-selected={selected}
+                    class="absolute top-0 right-0 bottom-0 cursor-pointer"
+                    style={{ left: u(INDENT), ...(selected || cursor ? outlined(listFocused ? OUTLINE_FOCUSED : OUTLINE_UNFOCUSED) : {}) }}
+                    onClick={() => {
+                      setActive(key);
+                      select(entry.id);
+                      listRef.current?.focus({ preventScroll: true });
+                    }}
+                  >
+                    <span class="absolute" style={{ left: u(4), top: u(3), textShadow: textShadow(0xffffff) }}>
+                      {entry.id}
+                    </span>
+                    {/* segunda linha: o tipo em cinza (ou, nas mais recentes, o destaque colorido no lugar dele) · a data */}
+                    <span class="absolute truncate" style={{ left: u(4), right: u(4), top: u(13), color: hex(GRAY), textShadow: textShadow(GRAY) }}>
+                      {latest ? <span style={{ color: hex(latest.color), textShadow: textShadow(latest.color) }}>{latest.text}</span> : kindName(entry)} ·{' '}
+                      {dateFormat.format(new Date(entry.releaseTime))}
+                    </span>
+                  </div>
                 </div>
               );
             })}
