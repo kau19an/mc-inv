@@ -1,6 +1,9 @@
 // versões do jogo: tipos do manifesto da mojang e a classificação que a gente mostra no site
 import overrides from '../version-overrides.json' with { type: 'json' };
 import { DROP_NAMES, assignDrops } from '../../../src/lib/gui/drops.ts';
+import { appendFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { CACHE_DIR } from './files.ts';
 
 // o manifesto só conhece esses quatro tipos (pre-release e release candidate vêm como "snapshot")
 export type ManifestType = 'release' | 'snapshot' | 'old_beta' | 'old_alpha';
@@ -71,8 +74,11 @@ export function selectIds(list: VersionList, spec: string): string[] {
 }
 
 // erro de uma versão sem parar as outras (--keep-going): vira anotação no github actions e a etapa segue
+// e vai inteiro pra .cache/failures.md, que o CI publica como check run (as anotações do github têm limite por
+// etapa, e com dezenas de versões falhando a maioria some)
 export function reportFailure(id: string, error: unknown): void {
-  const message = (error instanceof Error ? error.message : String(error)).split('\n').slice(0, 20).join('%0A');
-  console.error(`✗ ${id}: ${error instanceof Error ? error.message : String(error)}`);
-  if (process.env.GITHUB_ACTIONS) console.log(`::error title=${id} falhou::${message}`);
+  const text = error instanceof Error ? error.message : String(error);
+  console.error(`✗ ${id}: ${text}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=${id} falhou::${text.split('\n').slice(0, 20).join('%0A')}`);
+  appendFileSync(join(CACHE_DIR, 'failures.md'), `## ${id}\n\n\`\`\`\n${text.split('\n').slice(0, 150).join('\n')}\n\`\`\`\n\n`);
 }

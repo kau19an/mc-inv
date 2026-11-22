@@ -28,7 +28,7 @@ public final class PlayerModelDump {
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
 
-    EntityModelSet models = EntityModelSet.vanilla();
+    EntityModelSet models = DumpUtil.entityModels();
     JsonObject result = new JsonObject();
     result.add("wide", part(models.bakeLayer(layer("PLAYER"))));
     result.add("slim", part(models.bakeLayer(layer("PLAYER_SLIM"))));
@@ -53,16 +53,12 @@ public final class PlayerModelDump {
     json.add("scale", scale);
 
     JsonArray quads = new JsonArray();
-    for (ModelPart.Cube cube : (List<ModelPart.Cube>) privateField(part, "cubes")) {
-      for (ModelPart.Polygon polygon : cube.polygons) {
+    for (Object cube : (List<?>) privateField(part, "cubes")) {
+      for (float[][] polygon : DumpUtil.cubeQuads(cube)) {
         JsonArray quad = new JsonArray();
-        for (ModelPart.Vertex vertex : polygon.vertices()) {
+        for (float[] vertex : polygon) {
           JsonArray point = new JsonArray();
-          point.add(round(vertex.worldX()));
-          point.add(round(vertex.worldY()));
-          point.add(round(vertex.worldZ()));
-          point.add(round(vertex.u()));
-          point.add(round(vertex.v()));
+          for (float value : vertex) point.add(round(value));
           quad.add(point);
         }
         quads.add(quad);

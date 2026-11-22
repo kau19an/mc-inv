@@ -19,7 +19,7 @@ import type { IconModel, SpecialModel } from '../../src/lib/icons/types.ts';
 
 const { values: args } = parseArgs({ options: { versions: { type: 'string', default: 'tracked' }, 'keep-going': { type: 'boolean', default: false } } });
 
-const DUMPERS = ['CreativeTabsDump.java', 'SpecialModelsDump.java', 'PlayerModelDump.java'].map((file) => join(import.meta.dirname, 'dumper', file));
+const DUMPERS = ['DumpUtil.java', 'CreativeTabsDump.java', 'SpecialModelsDump.java', 'PlayerModelDump.java'].map((file) => join(import.meta.dirname, 'dumper', file));
 
 // roda um comando; se falhar, publica o fim da saída de erro como anotação do github actions
 // (é o único jeito do claude ler o erro, já que ele não acessa os logs)
@@ -31,7 +31,8 @@ function run(command: string, commandArgs: string[], cwd?: string) {
     const tail = output.trim().split('\n').slice(-40).join('\n');
     console.error(tail);
     if (process.env.GITHUB_ACTIONS) console.log(`::error title=${command} falhou::${tail.replaceAll('%', '%25').replaceAll('\r', '').replaceAll('\n', '%0A')}`);
-    throw new Error(`${command} falhou`);
+    // a mensagem leva a saída inteira (até 150 linhas): vai pro relatório de falhas do grupo (check run)
+    throw new Error(`${command} falhou\n${output.trim().split('\n').slice(-150).join('\n')}`);
   }
 }
 

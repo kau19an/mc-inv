@@ -148,6 +148,20 @@ jobs:
           path: result.json
           retention-days: 1
 
+      # erros completos das versões que falharam neste grupo (texto longo, que o claude lê pela api)
+      - name: Relatório de falhas
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f .cache/failures.md ] || exit 0
+          gh api "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name='mc-inv: falhas (grupo ${{ strategy.job-index }})' -f head_sha="$GITHUB_SHA" \
+            -f status=completed -f conclusion=neutral \
+            -f "output[title]=$(grep -c '^## ' .cache/failures.md) versão(ões) com falha" \
+            -f 'output[summary]=Erro completo de cada versão que falhou neste grupo.' \
+            -f "output[text]=$(head -c 65000 .cache/failures.md)" > /dev/null
+
       # relatório das abas como check run (texto longo, que o claude lê pela api)
       - name: Relatório das abas
         if: always()
