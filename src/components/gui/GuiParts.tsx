@@ -34,11 +34,12 @@ export function frameStyle(data: VersionData, name: string, hover?: string): Rec
 
 // texto que não cabe desliza pra frente e pra trás, pra sempre, como nos botões do jogo
 // (AbstractWidget.renderScrollingString): deslocamento = excesso × (sin(π/2 · cos(2π·t / período)) / 2 + 0,5),
-// período = máx(excesso × 0,5; 3) segundos, em pixels inteiros da gui. se couber, fica centralizado.
+// período = máx(excesso × 0,5; 3) segundos, em pixels inteiros da gui. se couber, fica sempre centralizado.
 // com "reduzir movimento" ligado no sistema, corta com reticências em vez de deslizar
 export function ScrollingText({ data, text, width }: { data: VersionData; text: string; width: number }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const overflow = data.font.width(text) - width;
+  // o avanço da última letra inclui 1 px de espaço depois dela, que não conta como texto
+  const overflow = data.font.width(text) - 1 - width;
   useEffect(() => {
     const element = ref.current;
     if (!element || overflow <= 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -54,7 +55,7 @@ export function ScrollingText({ data, text, width }: { data: VersionData; text: 
     return () => cancelAnimationFrame(frame);
   }, [overflow, text]);
   return (
-    <span class={`block overflow-hidden whitespace-pre motion-reduce:text-ellipsis ${overflow > 0 ? 'text-left' : 'text-center'}`} style={{ width: u(width) }}>
+    <span class={`block overflow-hidden text-center whitespace-pre motion-reduce:text-ellipsis ${overflow > 0 ? 'motion-safe:text-left' : ''}`} style={{ width: u(width) }}>
       <span ref={ref} class="motion-safe:inline-block">
         {text}
       </span>
