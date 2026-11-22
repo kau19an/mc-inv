@@ -21,7 +21,7 @@ on:
         default: tracked
 
 permissions:
-  contents: read
+  contents: write # commitar os dados gerados em public/data
   checks: write # relatório como check run (o claude lê pela api)
 
 # duas execuções seguidas: a mais nova cancela a anterior
@@ -126,3 +126,24 @@ jobs:
             -f 'output[title]=Abas do inventário criativo' \
             -f 'output[summary]=Abas montadas pelo próprio jogo (primeiros itens de cada uma).' \
             -f "output[text]=$(head -c 65000 .cache/dump-report.md)" > /dev/null
+
+      # transforma o que foi extraído nos jsons do site e commita se algo mudou.
+      # o push dispara o deploy da vercel; não dispara este workflow de novo (public/ fica fora dos paths
+      # e pushes feitos com o token do actions não acionam workflows)
+      - name: Gerar os dados do site
+        run: npm run build-data
+
+      - name: Publicar os dados
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "::notice title=Dados do site::nada mudou"
+            exit 0
+          fi
+          versions=$(jq -r '[.versions[].id] | join(", ")' public/data/je/versions.json)
+          git commit -q -m "chore(data): dados do jogo ($versions)"
+          git pull -q --rebase origin project/mc-inv
+          git push -q origin HEAD:project/mc-inv
+          echo "::notice title=Dados do site::publicados ($versions) em $(git rev-parse --short HEAD)"

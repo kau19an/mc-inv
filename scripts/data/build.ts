@@ -1,0 +1,151 @@
+// npm run build-data — transforma o que o pipeline extraiu (.cache) nos jsons que o site usa (public/data/je)
+//
+// para cada versão acompanhada que tenha dump das abas:
+//   public/data/je/<id>/tabs.json            abas na ordem do jogo, com a lista de itens (chaves de items.json)
+//   public/data/je/<id>/items.json           cada item uma vez só: id, nome (componente de texto) e componentes
+//   public/data/je/<id>/lang/<locale>.json   só as traduções usadas pelo inventário
+//   public/data/je/versions.json             versões disponíveis no site
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { join } from 'node:path';
+import { CACHE_DIR } from './lib/files.ts';
+import type { VersionKind } from './lib/versions.ts';
+
+// idiomas expostos na interface por enquanto (a busca multilíngue usa todos, mas isso vem na fase 4)
+const LOCALES = ['en_us', 'pt_br'];
+const OUT_DIR = join(import.meta.dirname, '../../public/data/je');
+
+// o que o dumper grava (scripts/data/dumper/CreativeTabsDump.java)
+type TextComponent = string | { translate?: string; with?: TextComponent[]; extra?: TextComponent[]; [key: string]: unknown };
+interface DumpedStack {
+  id: string;
+  count?: number;
+  name: TextComponent;
+  components?: Record<string, unknown>;
+}
+interface DumpedTab {
+  id: string;
+  type: 'category' | 'hotbar' | 'search' | 'inventory';
+  row: 'top' | 'bottom';
+  column: number;
+  alignedRight: boolean;
+  showTitle: boolean;
+  canScroll: boolean;
+  background: string;
+  name: TextComponent;
+  icon: DumpedStack;
+  items: DumpedStack[];
+}
+interface Dump {
+  version: string;
+  tabs: DumpedTab[];
+}
+
+const stripNamespace = (id: string) => id.replace(/^minecraft:/, '');
+
+// json com chaves em ordem: o mesmo conteúdo sempre vira o mesmo texto (hash estável, diff limpo no git)
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([key, inner]) => `${JSON.stringify(key)}:${stableStringify(inner)}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+// chave do item: o id puro quando não tem componentes ("oak_log"); com componentes, id + hash curto
+// ("potion~1a2b3c4d"). os nomes legíveis pra url (potion/swiftness) entram na fase 4
+function itemKey(stack: DumpedStack): string {
+  const id = stripNamespace(stack.id);
+  if (!stack.components && !stack.count) return id;
+  const hash = createHash('sha1').update(stableStringify({ components: stack.components, count: stack.count })).digest('hex').slice(0, 8);
+  return `${id}~${hash}`;
+}
+
+// todas as chaves de tradução de um componente de texto (inclusive as aninhadas em "with"/"extra")
+function collectKeys(component: TextComponent, keys: Set<string>): void {
+  if (typeof component === 'string') return;
+  if (component.translate) keys.add(component.translate);
+  for (const child of [...(component.with ?? []), ...(component.extra ?? [])]) collectKeys(child, keys);
+}
+
+async function readJson<T>(path: string): Promise<T> {
+  return JSON.parse(await readFile(path, 'utf8')) as T;
+}
+
+const writeJson = (path: string, data: unknown) => writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
+
+async function buildVersion(id: string) {
+  const versionDir = join(CACHE_DIR, 'versions', id);
+  const dump = await readJson<Dump>(join(versionDir, 'creative_tabs.json'));
+
+  const items: Record<string, { id: string; count?: number; name: TextComponent; components?: Record<string, unknown> }> = {};
+  const usedKeys = new Set<string>();
+  const register = (stack: DumpedStack) => {
+    const key = itemKey(stack);
+    if (!items[key]) {
+      items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}) };
+      collectKeys(stack.name, usedKeys);
+    }
+    return key;
+  };
+
+  const tabs = dump.tabs.map((tab) => {
+    collectKeys(tab.name, usedKeys);
+    return {
+      id: stripNamespace(tab.id),
+      type: tab.type,
+      row: tab.row,
+      column: tab.column,
+      alignedRight: tab.alignedRight,
+      showTitle: tab.showTitle,
+      canScroll: tab.canScroll,
+      background: tab.background,
+      name: tab.name,
+      icon: register(tab.icon),
+      items: tab.items.map(register),
+    };
+  });
+
+  // traduções: só as chaves usadas. se faltar alguma no idioma, o site cai no en_us
+  const lang: Record<string, Record<string, string>> = {};
+  for (const locale of LOCALES) {
+    const full = await readJson<Record<string, string>>(join(versionDir, 'assets/minecraft/lang', `${locale}.json`));
+    lang[locale] = Object.fromEntries([...usedKeys].sort().filter((key) => key in full).map((key) => [key, full[key]]));
+  }
+
+  const outDir = join(OUT_DIR, id);
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(join(outDir, 'lang'), { recursive: true });
+  await writeJson(join(outDir, 'tabs.json'), { version: id, gameVersion: dump.version, tabs });
+  await writeJson(join(outDir, 'items.json'), items);
+  for (const locale of LOCALES) await writeJson(join(outDir, 'lang', `${locale}.json`), lang[locale]);
+
+  const missing = LOCALES.map((locale) => `${locale}: ${usedKeys.size - Object.keys(lang[locale]!).length}`).join(', ');
+  console.log(`✓ ${id}: ${tabs.length} abas, ${Object.keys(items).length} itens únicos, ${usedKeys.size} traduções (faltando → ${missing})`);
+  return { items: Object.keys(items).length, translations: usedKeys.size };
+}
+
+// versões classificadas pelo npm run data
+const catalog = await readJson<{ latest: { release: string; snapshot: string }; versions: { id: string; kind: VersionKind; releaseTime: string }[] }>(
+  join(CACHE_DIR, 'versions.json'),
+);
+const available = (await readdir(join(CACHE_DIR, 'versions'))).filter((id) => existsSync(join(CACHE_DIR, 'versions', id, 'creative_tabs.json')));
+if (available.length === 0) throw new Error('nenhuma versão com dump das abas: rode npm run data e npm run dump antes');
+
+for (const id of available) await buildVersion(id);
+
+// só ficam no site as versões geradas agora (quando sai uma release nova, a anterior sai junto, por enquanto)
+for (const entry of existsSync(OUT_DIR) ? await readdir(OUT_DIR, { withFileTypes: true }) : []) {
+  if (entry.isDirectory() && !available.includes(entry.name)) await rm(join(OUT_DIR, entry.name), { recursive: true, force: true });
+}
+
+const versions = catalog.versions
+  .filter((version) => available.includes(version.id))
+  .map(({ id, kind, releaseTime }) => ({ id, kind, releaseTime }));
+const pick = (wanted: string) => (available.includes(wanted) ? wanted : null);
+await writeJson(join(OUT_DIR, 'versions.json'), {
+  latest: { release: pick(catalog.latest.release), snapshot: pick(catalog.latest.snapshot) },
+  versions,
+});

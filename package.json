@@ -13,7 +13,8 @@
     "check": "astro check",
     "astro": "astro",
     "data": "node scripts/data/index.ts",
-    "dump": "node scripts/data/dump.ts"
+    "dump": "node scripts/data/dump.ts",
+    "build-data": "node scripts/data/build.ts"
   },
   "dependencies": {
     "@astrojs/preact": "^6.1.6",
