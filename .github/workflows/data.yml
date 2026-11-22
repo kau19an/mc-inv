@@ -91,19 +91,17 @@ jobs:
           jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
           mkdir -p /tmp/jar && unzip -q -o "$jar" 'net/*' -d /tmp/jar
           {
-            echo "# quem referencia DATA_COMPONENT_INITIALIZERS:"
-            grep -rl --include='*.class' 'DATA_COMPONENT_INITIALIZERS' /tmp/jar | sed 's#/tmp/jar/##' | head -30
+            echo "## DataComponentInitializers\$PendingComponents"
+            javap -cp "$jar" -public 'net.minecraft.core.component.DataComponentInitializers$PendingComponents' 2>&1 | head -40
             echo
-            echo "## DataComponentInitializers"
-            javap -cp "$jar" -public net.minecraft.core.component.DataComponentInitializers 2>&1 | head -60
+            echo "## RegistryDataCollector: lambdas de updateComponents"
+            javap -cp "$jar" -c -p net.minecraft.client.multiplayer.RegistryDataCollector 2>&1 | grep -A14 'lambda\$updateComponents' | head -40
             echo
-            echo "## Holder\$Reference"
-            javap -cp "$jar" -public 'net.minecraft.core.Holder$Reference' 2>&1 | head -60
-            for class in $(grep -rl --include='*.class' 'DATA_COMPONENT_INITIALIZERS' /tmp/jar | sed 's#/tmp/jar/##;s#\.class$##;s#/#.#g' | head -6); do
-              echo
-              echo "## $class (trechos com DATA_COMPONENT_INITIALIZERS)"
-              javap -cp "$jar" -c -p "$class" 2>&1 | grep -B30 -A12 'DATA_COMPONENT_INITIALIZERS' | grep -E 'invoke|getstatic|Method |^  [a-z].*\(' | head -40
-            done
+            echo "## ReloadableServerResources: o que faz com a lista"
+            javap -cp "$jar" -c -p net.minecraft.server.ReloadableServerResources 2>&1 | grep -B2 -A14 'PendingComponents' | grep -E 'invoke|Method |^  [a-z]' | head -30
+            echo
+            echo "## CreativeModeTabs: tags usadas"
+            javap -cp "$jar" -c -p net.minecraft.world.item.CreativeModeTabs 2>&1 | grep -oE 'Field net/minecraft/tags/[A-Za-z]+\.[A-Z_]+' | sort -u | head -20
           } > probe.txt
           gh api "repos/$GITHUB_REPOSITORY/check-runs" \
             -f name='mc-inv: sondagem' -f head_sha="$GITHUB_SHA" \
