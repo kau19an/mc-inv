@@ -30,6 +30,7 @@ export interface ResolvedIcon {
 export interface StackContext {
   components?: Record<string, unknown>;
   potionColor?: number;
+  tintColors?: number[]; // cores por camada calculadas pelo jogo (ovos de geração antigos)
 }
 
 export class IconResolver {
@@ -270,7 +271,8 @@ export class IconResolver {
     // itens desenhados por código naquela época: a definição da versão de referência (dump.ts, REFERENCE_ID)
     const borrowed = this.readJson(join(this.root, 'legacy-items', `${id}.json`));
     if (borrowed) return borrowed;
-    return { model: { type: 'minecraft:model', model: `minecraft:item/${id}`, tints: (legacyTints as Record<string, Json[]>)[id] } };
+    const tints = this.context.tintColors?.map((value) => ({ type: 'minecraft:constant', value: value | (0xff << 24) })) ?? (legacyTints as Record<string, Json[]>)[id];
+    return { model: { type: 'minecraft:model', model: `minecraft:item/${id}`, tints } };
   }
 
   resolve(itemId: string, context: StackContext = {}): ResolvedIcon {

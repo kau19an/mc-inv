@@ -117,6 +117,14 @@ public final class CreativeTabsDump {
     // cor da poção (tint "potion" das poções e flechas): depende dos efeitos, que ficam no código do jogo
     Integer potionColor = potionColor(stack);
     if (potionColor != null) json.addProperty("potionColor", potionColor);
+    // ovos de geração antes da 1.21.5: o modelo é um ovo cinza pintado com duas cores que ficam no código
+    // (SpawnEggItem.getColor(camada)). da 1.21.5 em diante cada ovo tem a própria textura e o método não existe
+    int[] eggColors = eggColors(stack);
+    if (eggColors != null) {
+      JsonArray colors = new JsonArray();
+      for (int color : eggColors) colors.add(color);
+      json.add("tintColors", colors);
+    }
     json.add("name", ComponentSerialization.CODEC.encodeStart(ops, stack.getHoverName()).getOrThrow());
     DataComponentPatch patch = stack.getComponentsPatch();
     if (!patch.isEmpty()) json.add("components", DataComponentPatch.CODEC.encodeStart(ops, patch).getOrThrow());
@@ -128,6 +136,17 @@ public final class CreativeTabsDump {
     return json;
   }
 
+  private static int[] eggColors(ItemStack stack) {
+    Item item = stack.getItem();
+    if (!item.getClass().getSimpleName().equals("SpawnEggItem")) return null;
+    try {
+      java.lang.reflect.Method method = item.getClass().getMethod("getColor", int.class);
+      return new int[] {(int) method.invoke(item, 0), (int) method.invoke(item, 1)};
+    } catch (ReflectiveOperationException | RuntimeException newer) {
+      return null;
+    }
+  }
+
   // PotionContents.getColorOr(padrão), pelo nome (com reflexão, pra não quebrar a compilação se a assinatura mudar
   // numa versão). sem efeito nem cor própria (ex.: água), devolve null e o site usa o padrão do tint
   private static Integer potionColor(ItemStack stack) {
@@ -137,6 +156,13 @@ public final class CreativeTabsDump {
     try {
       int color = (int) contents.getClass().getMethod("getColorOr", int.class).invoke(contents, none);
       return color == none ? null : color;
+    } catch (NoSuchMethodException older) {
+      // 1.21.x: getColor() (sem efeito, devolve a cor padrão da água, que é a mesma do tint)
+      try {
+        return (int) contents.getClass().getMethod("getColor").invoke(contents);
+      } catch (ReflectiveOperationException | RuntimeException error) {
+        return null;
+      }
     } catch (ReflectiveOperationException | RuntimeException error) {
       return null;
     }
