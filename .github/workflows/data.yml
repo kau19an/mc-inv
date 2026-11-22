@@ -250,13 +250,18 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - name: Baixar o jar da release mais recente
-        run: npm run data -- --source=official --versions="$(curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -r .latest.release)" --locales=en_us
+      # a primeira linha pode ser "@version <id>" (descompila essa versão); sem ela, a release mais recente
+      - name: Baixar o jar
+        run: |
+          version=$(sed -n 's/^@version[[:space:]]*//p' scripts/data/probe-classes.txt | head -1)
+          [ -n "$version" ] || version=$(curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -r .latest.release)
+          echo "PROBE_VERSION=$version" >> "$GITHUB_ENV"
+          npm run data -- --source=official --versions="$version" --locales=en_us
       - name: Descompilar classes (desenvolvimento)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
+          jar=".cache/jars/$PROBE_VERSION.jar"
           version=$(curl -s https://repo1.maven.org/maven2/org/vineflower/vineflower/maven-metadata.xml | grep -oP '(?<=<release>)[^<]+')
           curl -sfL -o /tmp/vineflower.jar "https://repo1.maven.org/maven2/org/vineflower/vineflower/$version/vineflower-$version.jar"
           mkdir -p /tmp/classes /tmp/source
@@ -267,6 +272,7 @@ jobs:
           } > /tmp/listing.txt
           while read -r class; do
             [ -z "$class" ] && continue
+            [[ "$class" == @* ]] && continue
             # arquivo de recurso do jar (shader, json…): vai como texto
             if [[ "$class" == assets/* ]]; then
               { echo; echo "// ===== $class"; unzip -p "$jar" "$class" || echo "não achei"; } >> /tmp/resources.txt
@@ -295,6 +301,6 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/check-runs" \
               -f name="mc-inv: código ($n/$total)" -f head_sha="$GITHUB_SHA" \
               -f status=completed -f conclusion=neutral \
-              -f "output[title]=Código descompilado ($n/$total)" -f 'output[summary]=Classes de scripts/data/probe-classes.txt' \
+              -f "output[title]=Código descompilado de $PROBE_VERSION ($n/$total)" -f 'output[summary]=Classes de scripts/data/probe-classes.txt' \
               -f "output[text]=$(cat "$part")" > /dev/null
           done

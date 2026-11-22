@@ -1,0 +1,9 @@
+@version 26.1-snapshot-1
+net.minecraft.client.renderer.special.SpecialModelRenderer
+net.minecraft.client.renderer.special.SpecialModelRenderers
+net.minecraft.client.renderer.special.ChestSpecialRenderer
+net.minecraft.client.renderer.special.BannerSpecialRenderer
+net.minecraft.client.renderer.SubmitNodeCollector
+net.minecraft.client.resources.model.Material
+net.minecraft.client.resources.model.MaterialSet
+net.minecraft.server.ReloadableServerResources
