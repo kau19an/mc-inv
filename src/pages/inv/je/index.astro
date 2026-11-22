@@ -1,11 +1,11 @@
 ---
-// /inv/je: inventário do modo criativo (edição java)
+// /inv/je: inventário do modo criativo (edição java), aberto na primeira aba
 import Base from '@/layouts/Base.astro';
 import CreativeInventory from '@/components/CreativeInventory.tsx';
 ---
 
 <Base title="Inventário do Minecraft" description="Réplica interativa do inventário do Modo Criativo da Edição Java do Minecraft." noindex>
-  <main class="grid min-h-dvh place-items-center overflow-hidden bg-neutral-950 p-2">
+  <main class="min-h-dvh bg-neutral-950 p-2 lg:grid lg:place-items-center">
     <h1 class="sr-only">Inventário do Minecraft: Edição Java</h1>
     <CreativeInventory client:only="preact" />
   </main>

@@ -4,6 +4,7 @@
 //   public/data/je/<id>/tabs.json            abas na ordem do jogo, com a lista de itens (chaves de items.json)
 //   public/data/je/<id>/items.json           cada item uma vez só: id, nome (componente de texto) e componentes
 //   public/data/je/<id>/lang/<locale>.json   só as traduções usadas pelo inventário
+//   public/data/je/<id>/tags.json            marcações de item já resolvidas (tag → itens)
 //   public/data/je/versions.json             versões disponíveis no site
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -13,6 +14,7 @@ import { CACHE_DIR } from './lib/files.ts';
 import type { VersionKind } from './lib/versions.ts';
 import { buildIconBundle, toWebp } from './icons/bundle.ts';
 import { buildGuiBundle } from './gui.ts';
+import { buildItemTags } from './tags.ts';
 import type { SpecialMeshes } from './icons/resolve.ts';
 
 // idiomas expostos na interface por enquanto (a busca multilíngue usa todos, mas isso vem na fase 4)
@@ -124,6 +126,7 @@ async function buildVersion(id: string) {
   await writeJson(join(outDir, 'tabs.json'), { version: id, gameVersion: dump.version, tabs });
   await writeJson(join(outDir, 'items.json'), items);
   for (const locale of LOCALES) await writeJson(join(outDir, 'lang', `${locale}.json`), lang[locale]);
+  await writeJson(join(outDir, 'tags.json'), buildItemTags(versionDir, new Set(Object.values(items).map((item) => stripNamespace(item.id)))));
   // pacote de ícones (modelos resolvidos + atlas de texturas em webp sem perdas). a geometria dos modelos
   // especiais (baú, estandarte…), exportada pelo jogo no dump, entra aqui dentro
   const specialsFile = join(versionDir, 'specials.json');

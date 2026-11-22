@@ -1,13 +1,76 @@
 ---
-// 404: na fase 4 vira o "resolvedor" de urls adivinhadas (hífen, nome em outro idioma, id antigo) antes de desistir
+// 404 com "resolvedor": antes de desistir, tenta entender a url que a pessoa digitou ou adivinhou
+//   /inv/je/wooden-pickaxe        hífen no lugar do sublinhado
+//   /inv/je/Minecraft:Wooden_Pickaxe   maiúsculas e namespace
+//   /inv/je/picareta-de-madeira   nome em português (ou em inglês), com ou sem acento
+//   /inv/je/wooden_pickaxe/crafting   ação que ainda não existe → abre o item
 import Base from '@/layouts/Base.astro';
 ---
 
 <Base title="Página não encontrada" noindex>
   <main class="grid min-h-dvh place-items-center p-6 text-center">
-    <div>
+    <div data-not-found hidden>
       <h1 class="text-2xl font-medium">Página não encontrada</h1>
       <p class="mt-2"><a href="/inv/je" class="underline underline-offset-4">Ir para o inventário</a></p>
     </div>
+    <p data-resolving class="text-neutral-400">Procurando…</p>
   </main>
 </Base>
+
+<script>
+  import { ROOT } from '@/lib/gui/routes.ts';
+
+  const normalize = (text: string) =>
+    text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .replace(/^minecraft:/, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+  const giveUp = () => {
+    document.querySelector<HTMLElement>('[data-resolving]')!.hidden = true;
+    document.querySelector<HTMLElement>('[data-not-found]')!.hidden = false;
+  };
+
+  async function resolve(): Promise<string | null> {
+    const path = window.location.pathname;
+    if (!path.startsWith(`${ROOT}/`)) return null;
+    let slug: string;
+    try {
+      slug = decodeURIComponent(path.slice(ROOT.length + 1).split('/')[0]!);
+    } catch {
+      return null;
+    }
+    const wanted = normalize(slug);
+    if (!wanted) return null;
+
+    const json = async <T,>(url: string) => (await fetch(url)).json() as Promise<T>;
+    const { latest } = await json<{ latest: { release: string } }>('/data/je/versions.json');
+    const base = `/data/je/${latest.release}`;
+    const [{ tabs }, items, ptBr, enUs] = await Promise.all([
+      json<{ tabs: { id: string; name: { translate?: string } }[] }>(`${base}/tabs.json`),
+      json<Record<string, { id: string; name: { translate?: string } }>>(`${base}/items.json`),
+      json<Record<string, string>>(`${base}/lang/pt_br.json`),
+      json<Record<string, string>>(`${base}/lang/en_us.json`),
+    ]);
+
+    // id normalizado e nomes (pt-BR e inglês) normalizados → id de verdade
+    const candidates = new Map<string, string>();
+    const add = (key: string | undefined, id: string) => key && !candidates.has(key) && candidates.set(key, id);
+    const entries = [...tabs.map((tab) => ({ id: tab.id, name: tab.name })), ...Object.values(items).map((item) => ({ id: item.id.replace(/^minecraft:/, ''), name: item.name }))];
+    for (const { id } of entries) add(normalize(id), id);
+    for (const { id, name } of entries) {
+      if (!name.translate) continue;
+      add(ptBr[name.translate] && normalize(ptBr[name.translate]!), id);
+      add(enUs[name.translate] && normalize(enUs[name.translate]!), id);
+    }
+    const id = candidates.get(wanted);
+    return id ? `${ROOT}/${id}` : null;
+  }
+
+  resolve()
+    .then((target) => (target && target !== window.location.pathname ? window.location.replace(target) : giveUp()))
+    .catch(giveUp);
+</script>

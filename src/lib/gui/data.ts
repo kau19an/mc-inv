@@ -22,6 +22,7 @@ export interface VersionData {
   gui: GuiBundle;
   guiAtlas: ImageBitmap;
   font: BitmapFont;
+  itemTags: Record<string, string[]>; // id do item (sem variante) → marcações
 }
 
 interface VersionList {
@@ -34,6 +35,12 @@ async function json<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`falha ao carregar ${url} (${response.status})`);
   return response.json() as Promise<T>;
+}
+
+// arquivo opcional: versões publicadas antes dele existir só ficam sem a informação
+async function optionalJson<T>(url: string, fallback: T): Promise<T> {
+  const response = await fetch(url);
+  return response.ok ? (response.json() as Promise<T>) : fallback;
 }
 
 async function image(url: string): Promise<ImageBitmap> {
@@ -57,7 +64,7 @@ export async function latestRelease(): Promise<string> {
 
 export async function loadVersion(id: string, locale: string): Promise<VersionData> {
   const base = `${BASE}/${encodeURIComponent(id)}`;
-  const [tabs, items, lang, fallbackLang, icons, gui, atlas, guiAtlas] = await Promise.all([
+  const [tabs, items, lang, fallbackLang, icons, gui, atlas, guiAtlas, tags] = await Promise.all([
     json<{ tabs: TabInfo[] }>(`${base}/tabs.json`),
     json<Record<string, ItemInfo>>(`${base}/items.json`),
     json<Record<string, string>>(`${base}/lang/${locale}.json`),
@@ -66,7 +73,11 @@ export async function loadVersion(id: string, locale: string): Promise<VersionDa
     json<GuiBundle>(`${base}/gui.json`),
     image(`${base}/textures.webp`),
     image(`${base}/gui.webp`),
+    optionalJson<Record<string, string[]>>(`${base}/tags.json`, {}),
   ]);
+  // tags.json vem como tag → itens; o painel precisa do contrário
+  const itemTags: Record<string, string[]> = {};
+  for (const [tag, members] of Object.entries(tags)) for (const item of members) (itemTags[item] ??= []).push(tag);
   const font = await loadFont(gui.font, base);
   return {
     id,
@@ -79,6 +90,7 @@ export async function loadVersion(id: string, locale: string): Promise<VersionDa
     gui,
     guiAtlas,
     font,
+    itemTags,
   };
 }
 

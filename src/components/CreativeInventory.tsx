@@ -1,9 +1,26 @@
 // inventário do modo criativo: a tela é desenhada num canvas (pixel a pixel, em escala inteira) e, por cima,
-// ficam botões transparentes nas mesmas posições — eles cuidam do mouse, do toque, do teclado e dos leitores de tela
+// ficam botões transparentes nas mesmas posições — eles cuidam do mouse, do toque, do teclado e dos leitores de tela.
+// ao lado (computador) ou abaixo (celular) fica o painel do item; a url acompanha a aba ou o item escolhido
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { iconFor } from '@/lib/icons/bundle.ts';
-import { renderIcon } from '@/lib/icons/raster.ts';
-import { CANVAS_HEIGHT, CANVAS_WIDTH, TOP, clamp01, firstRow, guiScale, hiddenRows, scrollFromPointer, scrollerY, slotPosition, tabIconPosition, tabX, tabY, type TabInfo } from '@/lib/gui/creative.ts';
+import ItemPanel from './ItemPanel.tsx';
+import { iconCanvas } from '@/lib/gui/icons.ts';
+import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
+import {
+  CANVAS_HEIGHT,
+  CANVAS_WIDTH,
+  TOP,
+  clamp01,
+  firstRow,
+  guiScale,
+  hiddenRows,
+  scrollFromPointer,
+  scrollerY,
+  slotPosition,
+  tabIconPosition,
+  tabX,
+  tabY,
+  type TabInfo,
+} from '@/lib/gui/creative.ts';
 import { latestRelease, loadVersion, textOf, type VersionData } from '@/lib/gui/data.ts';
 import { CREATIVE } from '@/lib/gui/types.ts';
 
@@ -12,6 +29,9 @@ const PAGE = CREATIVE.columns * CREATIVE.rows;
 const SEARCH_MAX_LENGTH = 50; // o mesmo limite da caixa de pesquisa do jogo
 const CARET_BLINK_MS = 300;
 const WHEEL_STEP = 40; // quanto de rolagem (em px) vira uma linha; mouse comum manda ~100 por clique
+const WIDE_MIN_WIDTH = 1024; // a partir daqui o painel fica ao lado do inventário
+const PANEL_WIDTH = 360;
+const LAYOUT_GAP = 24;
 
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
@@ -27,7 +47,11 @@ interface Drag {
   moved: boolean;
 }
 
-export default function CreativeInventory() {
+interface Props {
+  initial?: Route; // vem da página estática (/inv/je, /inv/je/<aba>, /inv/je/<item>)
+}
+
+export default function CreativeInventory({ initial = { kind: 'home' } }: Props) {
   const [data, setData] = useState<VersionData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
@@ -38,12 +62,12 @@ export default function CreativeInventory() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [caretVisible, setCaretVisible] = useState(true);
   const [metrics, setMetrics] = useState<Metrics>({ scale: 2, dpr: 1 });
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
-  const iconCache = useRef(new Map<string, HTMLCanvasElement>());
   const wheel = useRef(0);
   const drag = useRef<Drag | null>(null);
   const focusAfterRender = useRef<'slot' | 'tab' | null>(null);
@@ -62,7 +86,8 @@ export default function CreativeInventory() {
     const update = () => {
       const dpr = window.devicePixelRatio || 1;
       const margin = 16;
-      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin, window.innerHeight - margin, dpr) });
+      const sidePanel = window.innerWidth >= WIDE_MIN_WIDTH ? PANEL_WIDTH + LAYOUT_GAP : 0;
+      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin - sidePanel, window.innerHeight - margin, dpr) });
       media?.removeEventListener('change', update);
       media = window.matchMedia(`(resolution: ${dpr}dppx)`);
       media.addEventListener('change', update);
@@ -74,9 +99,6 @@ export default function CreativeInventory() {
       media?.removeEventListener('change', update);
     };
   }, []);
-
-  // ícones mudam de tamanho com a escala
-  useEffect(() => iconCache.current.clear(), [metrics.scale, data]);
 
   const tab: TabInfo | undefined = data?.tabs[tabIndex];
 
@@ -138,18 +160,8 @@ export default function CreativeInventory() {
     };
 
     const icon = (key: string, x: number, y: number) => {
-      let cached = iconCache.current.get(key);
-      if (!cached) {
-        const found = iconFor(data.icons, key);
-        if (!found) return;
-        const size = 16 * scale;
-        const rendered = renderIcon(found.model, { size, tints: found.tints, textures: data.textures });
-        cached = document.createElement('canvas');
-        cached.width = cached.height = size;
-        cached.getContext('2d')!.putImageData(new ImageData(rendered.data as Uint8ClampedArray<ArrayBuffer>, size, size), 0, 0);
-        iconCache.current.set(key, cached);
-      }
-      ctx.drawImage(cached, x * scale, y * scale);
+      const canvas = iconCanvas(data, key, 16 * scale);
+      if (canvas) ctx.drawImage(canvas, x * scale, y * scale);
     };
 
     const tabSprite = (candidate: TabInfo, selected: boolean) => {
@@ -171,11 +183,13 @@ export default function CreativeInventory() {
     if (tab.showTitle) data.font.draw(ctx, textOf(data, tab.name), CREATIVE.titleX, TOP + CREATIVE.titleY, { color: CREATIVE.titleColor, scale });
     if (tab.canScroll) sprite(`sprites/container/creative_inventory/${rows > 0 ? 'scroller' : 'scroller_disabled'}`, CREATIVE.scrollerX, scrollerY(scroll));
 
+    // o item aberto no painel fica destacado como se o mouse estivesse em cima dele
     visible.forEach((key, index) => {
       const [x, y] = slotPosition(index);
-      if (index === hovered) sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
+      const lit = index === hovered || key === selectedKey;
+      if (lit) sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
       icon(key, x, y);
-      if (index === hovered) sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
+      if (lit) sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
     });
     if (hovered >= visible.length && hovered < PAGE) {
       const [x, y] = slotPosition(hovered);
@@ -184,7 +198,7 @@ export default function CreativeInventory() {
     }
 
     tabSprite(tab, true);
-  }, [data, tab, metrics, scroll, rows, visible.join(), hovered, query, searchFocused, caretVisible]);
+  }, [data, tab, metrics, scroll, rows, visible.join(), hovered, selectedKey, query, searchFocused, caretVisible]);
 
   // move o foco do teclado depois que a tela redesenha
   useEffect(() => {
@@ -193,15 +207,113 @@ export default function CreativeInventory() {
     focusAfterRender.current = null;
   });
 
+  // onde um item "mora": a primeira aba de categoria que o tem (senão, a pesquisa) e a posição dele lá
+  const homeOf = (id: string, preferredTab?: number) => {
+    if (!data) return null;
+    const order = data.tabs.map((_, index) => index).sort((a, b) => (a === preferredTab ? -1 : b === preferredTab ? 1 : 0));
+    const candidates = [...order.filter((index) => data.tabs[index]!.type === 'category'), ...order.filter((index) => data.tabs[index]!.type === 'search')];
+    for (const index of candidates) {
+      const position = data.tabs[index]!.items.findIndex((key) => baseId(key) === id);
+      if (position >= 0) return { tabIndex: index, position, key: data.tabs[index]!.items[position]! };
+    }
+    return null;
+  };
+
+  // rola só o necessário pra linha do item ficar visível (de preferência na terceira linha, no meio da grade)
+  const scrollToShow = (tabItems: number, position: number) => {
+    const hidden = hiddenRows(tabItems);
+    if (hidden <= 0) return 0;
+    const row = Math.floor(position / CREATIVE.columns);
+    return Math.min(Math.max(row - 2, 0), hidden) / hidden;
+  };
+
+  const titleOf = (route: Route) => {
+    if (!data || route.kind === 'home') return documentTitle(SITE_SECTION);
+    if (route.kind === 'tab') {
+      const found = data.tabs.find((candidate) => candidate.id === route.id);
+      return documentTitle(`${found ? textOf(data, found.name) : route.id} · ${SITE_SECTION}`);
+    }
+    const item = data.items[route.id] ?? Object.values(data.items).find((candidate) => baseId(candidate.id.replace(/^minecraft:/, '')) === route.id);
+    return documentTitle(`${item ? textOf(data, item.name) : route.id} · ${SITE_SECTION}`);
+  };
+
+  const navigate = (route: Route) => {
+    const path = pathOf(route);
+    if (path !== window.location.pathname) window.history.pushState(null, '', path);
+    document.title = titleOf(route);
+  };
+
+  // estado da tela a partir de uma rota (carregamento, voltar/avançar do navegador)
+  const applyRoute = (route: Route) => {
+    if (!data) return;
+    setHovered(-1);
+    setFocusedSlot(0);
+    if (route.kind === 'item') {
+      const home = homeOf(route.id);
+      if (home) {
+        setTabIndex(home.tabIndex);
+        setScroll(scrollToShow(data.tabs[home.tabIndex]!.items.length, home.position));
+        setSelectedKey(home.key);
+        return;
+      }
+    }
+    const index = route.kind === 'tab' ? data.tabs.findIndex((candidate) => candidate.id === route.id) : 0;
+    setTabIndex(Math.max(index, 0));
+    setScroll(0);
+    setSelectedKey(null);
+  };
+
+  useEffect(() => {
+    if (!data) return;
+    applyRoute(initial);
+    document.title = titleOf(initial);
+    const tabIds = new Set(data.tabs.map((candidate) => candidate.id));
+    const itemIds = new Set(Object.keys(data.items).map(baseId));
+    const onPopState = () => applyRoute(parseRoute(window.location.pathname, tabIds, itemIds) ?? { kind: 'home' });
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [data]);
+
   const selectTab = (index: number) => {
     if (!data) return;
     setTabIndex(index);
     setScroll(0);
     setHovered(-1);
     setFocusedSlot(0);
+    setSelectedKey(null);
+    navigate(index === 0 ? { kind: 'home' } : { kind: 'tab', id: data.tabs[index]!.id });
     // no celular não abre o teclado sozinho; no computador a pesquisa já começa focada, como no jogo
     if (data.tabs[index]?.type === 'search' && window.matchMedia('(pointer: fine)').matches) requestAnimationFrame(() => searchRef.current?.focus());
   };
+
+  const selectItem = (key: string) => {
+    setSelectedKey(key);
+    navigate({ kind: 'item', id: baseId(key) });
+  };
+
+  const closePanel = () => {
+    if (!data) return;
+    setSelectedKey(null);
+    navigate(tabIndex === 0 ? { kind: 'home' } : { kind: 'tab', id: data.tabs[tabIndex]!.id });
+  };
+
+  // "onde fica": abre a aba escolhida já rolada até o item
+  const showInTab = (index: number, key: string) => {
+    if (!data) return;
+    const position = data.tabs[index]!.items.findIndex((candidate) => baseId(candidate) === baseId(key));
+    setTabIndex(index);
+    setScroll(scrollToShow(data.tabs[index]!.items.length, Math.max(position, 0)));
+    setHovered(-1);
+    if (position >= 0) setSelectedKey(data.tabs[index]!.items[position]!);
+  };
+
+  // esc fecha o painel
+  useEffect(() => {
+    if (!selectedKey) return;
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && !(event.target instanceof HTMLInputElement) && closePanel();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedKey, tabIndex, data]);
 
   const scrollByRows = (delta: number) => {
     if (rows > 0) setScroll((value) => clamp01(value + delta / rows));
@@ -234,7 +346,12 @@ export default function CreativeInventory() {
     );
   }
 
-  const box = (x: number, y: number, width: number, height: number): Record<string, string> => ({ left: `${x * unit}px`, top: `${y * unit}px`, width: `${width * unit}px`, height: `${height * unit}px` });
+  const box = (x: number, y: number, width: number, height: number): Record<string, string> => ({
+    left: `${x * unit}px`,
+    top: `${y * unit}px`,
+    width: `${width * unit}px`,
+    height: `${height * unit}px`,
+  });
 
   if (!data || !tab) {
     return (
@@ -331,104 +448,114 @@ export default function CreativeInventory() {
   const tabName = textOf(data, tab.name);
   const slotIndex = Math.min(focusedSlot, Math.max(visible.length - 1, 0));
 
+  const inventoryHeight = `${CANVAS_HEIGHT * unit}px`;
+
   return (
-    <div class="relative touch-none select-none" style={{ width: `${CANVAS_WIDTH * unit}px`, height: `${CANVAS_HEIGHT * unit}px` }} onWheel={onWheel}>
-      <canvas ref={canvasRef} class="absolute inset-0 h-full w-full" aria-hidden="true" />
+    <div class="flex w-full flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center lg:gap-6">
+      <div class="relative shrink-0 touch-none select-none" style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }} onWheel={onWheel}>
+        <canvas ref={canvasRef} class="absolute inset-0 h-full w-full" aria-hidden="true" />
 
-      <div ref={tabsRef} role="tablist" aria-label="Abas do inventário" onKeyDown={onTabsKeyDown}>
-        {data.tabs.map((candidate, index) => (
-          <button
-            key={candidate.id}
-            type="button"
-            role="tab"
-            id={`tab-${candidate.id}`}
-            aria-selected={index === tabIndex}
-            aria-controls="inventory-panel"
-            tabIndex={index === tabIndex ? 0 : -1}
-            class="absolute cursor-pointer focus-visible:outline-2 focus-visible:outline-yellow-300"
-            style={box(tabX(candidate), tabY(candidate), CREATIVE.tabWidth, CREATIVE.tabHeight)}
-            onClick={() => selectTab(index)}
-          >
-            <span class="sr-only">{textOf(data, candidate.name)}</span>
-          </button>
-        ))}
-      </div>
-
-      <div id="inventory-panel" role="tabpanel" aria-labelledby={`tab-${tab.id}`}>
-        {tab.type === 'search' && (
-          <input
-            ref={searchRef}
-            type="text"
-            inputMode="search"
-            value={query}
-            maxLength={SEARCH_MAX_LENGTH}
-            aria-label="Pesquisar itens"
-            autoComplete="off"
-            spellcheck={false}
-            enterKeyHint="search"
-            class="absolute appearance-none border-0 bg-transparent p-0 text-base text-transparent caret-transparent outline-none"
-            style={box(CREATIVE.searchX, TOP + CREATIVE.searchY - 1, CREATIVE.searchWidth, CREATIVE.searchHeight + 2)}
-            onInput={(event) => {
-              setQuery(event.currentTarget.value.slice(0, SEARCH_MAX_LENGTH));
-              setScroll(0);
-              setFocusedSlot(0);
-            }}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-          />
-        )}
-
-        <div
-          ref={gridRef}
-          role="group"
-          aria-label={`Itens: ${tabName}`}
-          class="absolute"
-          style={box(CREATIVE.gridX - 1, TOP + CREATIVE.gridY - 1, CREATIVE.columns * CREATIVE.slot, CREATIVE.rows * CREATIVE.slot)}
-          onKeyDown={onGridKeyDown}
-          onPointerDown={onGridPointerDown}
-          onPointerMove={onGridPointerMove}
-          onPointerUp={onGridPointerUp}
-          onPointerCancel={() => (drag.current = null)}
-          onClickCapture={onGridClickCapture}
-          onPointerLeave={(event) => event.pointerType === 'mouse' && setHovered(-1)}
-        >
-          {visible.map((key, index) => (
+        <div ref={tabsRef} role="tablist" aria-label="Abas do inventário" onKeyDown={onTabsKeyDown}>
+          {data.tabs.map((candidate, index) => (
             <button
-              key={`${first}-${index}`}
+              key={candidate.id}
               type="button"
-              tabIndex={index === slotIndex ? 0 : -1}
-              aria-label={itemName(key)}
-              class="absolute cursor-pointer outline-none"
-              style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
-              onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
-              onFocus={() => {
-                setFocusedSlot(index);
-                setHovered(index);
-              }}
-              onBlur={() => setHovered(-1)}
-            />
+              role="tab"
+              id={`tab-${candidate.id}`}
+              aria-selected={index === tabIndex}
+              aria-controls="inventory-panel"
+              tabIndex={index === tabIndex ? 0 : -1}
+              class="absolute cursor-pointer focus-visible:outline-2 focus-visible:outline-yellow-300"
+              style={box(tabX(candidate), tabY(candidate), CREATIVE.tabWidth, CREATIVE.tabHeight)}
+              onClick={() => selectTab(index)}
+            >
+              <span class="sr-only">{textOf(data, candidate.name)}</span>
+            </button>
           ))}
         </div>
 
-        {tab.canScroll && (
-          <div
-            role="scrollbar"
-            aria-controls="inventory-panel"
-            aria-orientation="vertical"
-            aria-valuemin={0}
-            aria-valuemax={rows}
-            aria-valuenow={first}
-            aria-label="Rolagem dos itens"
-            class="absolute"
-            style={box(CREATIVE.scrollerX, TOP + CREATIVE.scrollerY, CREATIVE.scrollerWidth, CREATIVE.scrollerTrack)}
-            onPointerDown={onScrollbarPointerDown}
-            onPointerMove={onScrollbarPointerMove}
-          />
-        )}
+        <div id="inventory-panel" role="tabpanel" aria-labelledby={`tab-${tab.id}`}>
+          {tab.type === 'search' && (
+            <input
+              ref={searchRef}
+              type="text"
+              inputMode="search"
+              value={query}
+              maxLength={SEARCH_MAX_LENGTH}
+              aria-label="Pesquisar itens"
+              autoComplete="off"
+              spellcheck={false}
+              enterKeyHint="search"
+              class="absolute appearance-none border-0 bg-transparent p-0 text-base text-transparent caret-transparent outline-none"
+              style={box(CREATIVE.searchX, TOP + CREATIVE.searchY - 1, CREATIVE.searchWidth, CREATIVE.searchHeight + 2)}
+              onInput={(event) => {
+                setQuery(event.currentTarget.value.slice(0, SEARCH_MAX_LENGTH));
+                setScroll(0);
+                setFocusedSlot(0);
+              }}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+            />
+          )}
 
-        <p class="sr-only" aria-live="polite">
-          {tab.type === 'search' && query ? `${items.length} ${items.length === 1 ? 'item encontrado' : 'itens encontrados'}` : ''}
-        </p>
+          <div
+            ref={gridRef}
+            role="group"
+            aria-label={`Itens: ${tabName}`}
+            class="absolute"
+            style={box(CREATIVE.gridX - 1, TOP + CREATIVE.gridY - 1, CREATIVE.columns * CREATIVE.slot, CREATIVE.rows * CREATIVE.slot)}
+            onKeyDown={onGridKeyDown}
+            onPointerDown={onGridPointerDown}
+            onPointerMove={onGridPointerMove}
+            onPointerUp={onGridPointerUp}
+            onPointerCancel={() => (drag.current = null)}
+            onClickCapture={onGridClickCapture}
+            onPointerLeave={(event) => event.pointerType === 'mouse' && setHovered(-1)}
+          >
+            {visible.map((key, index) => (
+              <button
+                key={`${first}-${index}`}
+                type="button"
+                tabIndex={index === slotIndex ? 0 : -1}
+                aria-label={itemName(key)}
+                class="absolute cursor-pointer outline-none"
+                style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
+                aria-pressed={key === selectedKey}
+                onClick={() => selectItem(key)}
+                onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
+                onFocus={() => {
+                  setFocusedSlot(index);
+                  setHovered(index);
+                }}
+                onBlur={() => setHovered(-1)}
+              />
+            ))}
+          </div>
+
+          {tab.canScroll && (
+            <div
+              role="scrollbar"
+              aria-controls="inventory-panel"
+              aria-orientation="vertical"
+              aria-valuemin={0}
+              aria-valuemax={rows}
+              aria-valuenow={first}
+              aria-label="Rolagem dos itens"
+              class="absolute"
+              style={box(CREATIVE.scrollerX, TOP + CREATIVE.scrollerY, CREATIVE.scrollerWidth, CREATIVE.scrollerTrack)}
+              onPointerDown={onScrollbarPointerDown}
+              onPointerMove={onScrollbarPointerMove}
+            />
+          )}
+
+          <p class="sr-only" aria-live="polite">
+            {tab.type === 'search' && query ? `${items.length} ${items.length === 1 ? 'item encontrado' : 'itens encontrados'}` : ''}
+          </p>
+        </div>
+      </div>
+
+      <div class="w-full max-w-md lg:h-(--inventory-height) lg:w-[360px] lg:max-w-none" style={{ '--inventory-height': inventoryHeight }}>
+        <ItemPanel data={data} itemKey={selectedKey} onClose={closePanel} onShowInTab={showInTab} />
       </div>
     </div>
   );

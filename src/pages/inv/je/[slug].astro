@@ -1,0 +1,47 @@
+---
+// /inv/je/<aba> e /inv/je/<item>: a mesma tela, já aberta na aba ou com o painel do item.
+// cada item ganha sua própria página estática (título, descrição e og próprios)
+import Base from '@/layouts/Base.astro';
+import CreativeInventory from '@/components/CreativeInventory.tsx';
+import { latestStaticVersion, staticItems } from '@/lib/gui/static.ts';
+import { SITE_SECTION, type Route } from '@/lib/gui/routes.ts';
+
+export function getStaticPaths() {
+  const version = latestStaticVersion();
+  const tabs = version.tabs.map((tab) => {
+    const name = version.name(tab.name);
+    return {
+      params: { slug: tab.id },
+      props: {
+        route: { kind: 'tab', id: tab.id } as Route,
+        heading: name,
+        title: `${name} · ${SITE_SECTION}`,
+        description: `Aba "${name}" do inventário do Modo Criativo da Edição Java do Minecraft (${version.id}).`,
+      },
+    };
+  });
+  const items = staticItems(version).map(({ id, item }) => {
+    const name = version.name(item.name);
+    const english = version.englishName(item.name);
+    return {
+      params: { slug: id },
+      props: {
+        route: { kind: 'item', id } as Route,
+        heading: name,
+        title: `${name} · ${SITE_SECTION}`,
+        description: `${name}${english !== name ? ` (${english})` : ''}, minecraft:${id}: onde fica no inventário do Modo Criativo da Edição Java do Minecraft, marcações e mais.`,
+      },
+    };
+  });
+  return [...tabs, ...items];
+}
+
+const { route, heading, title, description } = Astro.props;
+---
+
+<Base title={title} description={description} noindex>
+  <main class="min-h-dvh bg-neutral-950 p-2 lg:grid lg:place-items-center">
+    <h1 class="sr-only">{heading}: Inventário do Minecraft, Edição Java</h1>
+    <CreativeInventory client:only="preact" initial={route} />
+  </main>
+</Base>
