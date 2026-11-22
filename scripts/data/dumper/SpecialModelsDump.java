@@ -125,9 +125,12 @@ public final class SpecialModelsDump {
       setField(minecraftClass, minecraft, modelManagerClass, modelManager, false);
       Object atlasSet = allocate(atlasSetClass);
       setField(modelManagerClass, modelManager, atlasSetClass, atlasSet, false);
+      // o valor do mapa é o AtlasEntry (o StitchResult também guarda um TextureAtlas, mas é outra coisa)
       Class<?> entryClass = null;
       for (Class<?> nested : atlasSetClass.getDeclaredClasses()) {
-        for (Field field : nested.getDeclaredFields()) if (field.getType() == atlasClass) entryClass = nested;
+        boolean holdsAtlas = false;
+        for (Field field : nested.getDeclaredFields()) if (field.getType() == atlasClass) holdsAtlas = true;
+        if (holdsAtlas && (entryClass == null || nested.getSimpleName().equals("AtlasEntry"))) entryClass = nested;
       }
       Class<?> finalEntryClass = entryClass;
       Map<Object, Object> entries = new java.util.HashMap<>() {
