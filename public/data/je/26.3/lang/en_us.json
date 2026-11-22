@@ -1227,6 +1227,8 @@
   "instrument.minecraft.seek_goat_horn": "Seek",
   "instrument.minecraft.sing_goat_horn": "Sing",
   "instrument.minecraft.yearn_goat_horn": "Yearn",
+  "inventory.binSlot": "Destroy Item",
+  "inventory.hotbarInfo": "Save hotbar with %1$s + %2$s",
   "item.components": "%s component(s)",
   "item.minecraft.acacia_boat": "Acacia Boat",
   "item.minecraft.acacia_chest_boat": "Acacia Boat with Chest",

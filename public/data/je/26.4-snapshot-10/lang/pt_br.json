@@ -1252,6 +1252,8 @@
   "instrument.minecraft.seek_goat_horn": "Busca",
   "instrument.minecraft.sing_goat_horn": "Canto",
   "instrument.minecraft.yearn_goat_horn": "Anseio",
+  "inventory.binSlot": "Destruir item",
+  "inventory.hotbarInfo": "Salve a barra rápida com %1$s + %2$s",
   "item.components": "%s componente(s)",
   "item.minecraft.acacia_boat": "Bote de Acácia",
   "item.minecraft.acacia_chest_boat": "Bote de Acácia com Baú",
