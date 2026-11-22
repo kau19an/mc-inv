@@ -1005,6 +1005,10 @@
       "pt": "Ovo Gerador de Aranha-das-Cavernas",
       "en": "Cave Spider Spawn Egg"
     },
+    "chain": {
+      "pt": "Corrente",
+      "en": "Iron Chain"
+    },
     "chain_command_block": {
       "pt": "Bloco de Comando em Cadeia",
       "en": "Chain Command Block"
@@ -2041,6 +2045,10 @@
       "pt": "Espada de Diamante",
       "en": "Diamond Sword"
     },
+    "dimension_control": {
+      "pt": "Dimension Control",
+      "en": "Dimension Control"
+    },
     "diorite": {
       "pt": "Diorito",
       "en": "Diorite"
@@ -2221,6 +2229,10 @@
       "pt": "Ovo Gerador de Invocador",
       "en": "Evoker Spawn Egg"
     },
+    "exit_eye": {
+      "pt": "Eye of Exit",
+      "en": "Eye of Exit"
+    },
     "experience_bottle": {
       "pt": "Frasco d'Encantamento",
       "en": "Bottle o' Enchanting"
@@ -2336,6 +2348,10 @@
     "fire_coral_fan": {
       "pt": "Gorgônia-de-Fogo",
       "en": "Fire Coral Fan"
+    },
+    "fire_wand": {
+      "pt": "Fire Wand",
+      "en": "Fire Wand"
     },
     "firefly_bush": {
       "pt": "Arbusto-Vaga-Lume",
@@ -2588,6 +2604,10 @@
     "grass_block": {
       "pt": "Bloco de Grama",
       "en": "Grass Block"
+    },
+    "grave_advancement": {
+      "pt": "Grave",
+      "en": "Grave"
     },
     "gravel": {
       "pt": "Cascalho",
@@ -3657,6 +3677,22 @@
       "pt": "Balde de Leite",
       "en": "Milk Bucket"
     },
+    "mine": {
+      "pt": "Mine",
+      "en": "Mine"
+    },
+    "mine_crafter": {
+      "pt": "Mine Crafter",
+      "en": "Mine Crafter"
+    },
+    "mine_ingredient": {
+      "pt": "Mine Ingredient",
+      "en": "Mine Ingredient"
+    },
+    "mine_revisitor": {
+      "pt": "Mine Revisitor",
+      "en": "Mine Revisitor"
+    },
     "minecart": {
       "pt": "Carrinho de Mina",
       "en": "Minecart"
@@ -3668,6 +3704,10 @@
     "mineshaft_map": {
       "pt": "Mapa de Mina Abandonada",
       "en": "Mineshaft Map"
+    },
+    "mob_trophy": {
+      "pt": "Trophy",
+      "en": "Trophy"
     },
     "mojang_banner_pattern": {
       "pt": "Figura para Estandarte de Emblema",
@@ -3771,6 +3811,10 @@
     },
     "music_disc_5": {
       "pt": "Disco Musical",
+      "en": "Music Disc"
+    },
+    "music_disc_and_action": {
+      "pt": "Music Disc",
       "en": "Music Disc"
     },
     "music_disc_blocks": {
@@ -5385,6 +5429,10 @@
       "pt": "Enfeite de Moldador",
       "en": "Shaper Armor Trim"
     },
+    "shazboots": {
+      "pt": "Shazboots!",
+      "en": "Shazboots!"
+    },
     "sheaf_pottery_sherd": {
       "pt": "Óstraco de Trigo",
       "en": "Sheaf Pottery Sherd"
@@ -5408,6 +5456,14 @@
     "shield": {
       "pt": "Escudo",
       "en": "Shield"
+    },
+    "shimmering_door": {
+      "pt": "Shimmering Door",
+      "en": "Shimmering Door"
+    },
+    "shimmering_key": {
+      "pt": "Shimmering Key",
+      "en": "Shimmering Key"
     },
     "short_dry_grass": {
       "pt": "Grama Seca Baixa",
@@ -5460,6 +5516,14 @@
     "skull_pottery_sherd": {
       "pt": "Óstraco de Caveira",
       "en": "Skull Pottery Sherd"
+    },
+    "sky": {
+      "pt": "Sky",
+      "en": "Sky"
+    },
+    "sky_box": {
+      "pt": "Sky Box",
+      "en": "Sky Box"
     },
     "slime_ball": {
       "pt": "Bola de Slime",
@@ -6021,6 +6085,10 @@
       "pt": "Alvo",
       "en": "Target"
     },
+    "teleportation_wand": {
+      "pt": "Displacement Wand",
+      "en": "Displacement Wand"
+    },
     "terracotta": {
       "pt": "Terracota",
       "en": "Terracotta"
@@ -6096,6 +6164,10 @@
     "tripwire_hook": {
       "pt": "Gancho de Armadilha",
       "en": "Tripwire Hook"
+    },
+    "trophy": {
+      "pt": "Trophy",
+      "en": "Trophy"
     },
     "tropical_fish": {
       "pt": "Peixe Tropical",
@@ -6732,6 +6804,10 @@
     "wind_charge": {
       "pt": "Projétil de Vento",
       "en": "Wind Charge"
+    },
+    "wind_wand": {
+      "pt": "Wind Wand",
+      "en": "Wind Wand"
     },
     "witch_spawn_egg": {
       "pt": "Ovo Gerador de Bruxa",
