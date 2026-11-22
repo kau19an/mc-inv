@@ -261,7 +261,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # ferramenta de investigação: um passo que falha não pode impedir a publicação do que deu certo
+          set +e
           jar=".cache/jars/$PROBE_VERSION.jar"
+          ls -la "$jar" || { echo "::error::jar não encontrado: $jar"; ls -la .cache/jars; exit 1; }
           version=$(curl -s https://repo1.maven.org/maven2/org/vineflower/vineflower/maven-metadata.xml | grep -oP '(?<=<release>)[^<]+')
           curl -sfL -o /tmp/vineflower.jar "https://repo1.maven.org/maven2/org/vineflower/vineflower/$version/vineflower-$version.jar"
           mkdir -p /tmp/classes /tmp/source
