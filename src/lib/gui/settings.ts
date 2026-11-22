@@ -11,7 +11,7 @@ export interface Settings {
   operatorItemsTab: boolean; // aba "Blocos de operador" (desligada por padrão, como no jogo)
   wikiLanguage: WikiLanguage; // wiki que os itens abrem: 'auto' segue o idioma da interface
   version: string; // versão do jogo escolhida em "Versões..." ('' = a release mais recente)
-  hiddenVersionKinds: string[]; // tipos escondidos pelo filtro "Tipos..." da tela "Versões..." (snapshot, pre_release…)
+  hiddenVersionKinds: string[]; // tipos escondidos pelo filtro da tela "Versões..." (snapshot, pre_release…)
 }
 
 const KEY = 'mc-inv:settings';

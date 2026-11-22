@@ -5,7 +5,7 @@
 // com a linha vertical de árvore à esquerda das versões de dentro.
 // escolher já aplica (não tem "Confirmar"): clicar numa versão, as setas do teclado ou os atalhos "Mais recente" e
 // "Snapshot", que seguem a mais recente de cada tipo (quando sair uma nova, o site passa pra ela).
-// o botão "Tipos..." ao lado da busca abre uma janelinha (fundo popup/background do jogo) com uma caixa de seleção
+// o botão "Filtro" ao lado da busca abre uma janelinha (fundo popup/background do jogo) com uma caixa de seleção
 // por tipo de versão (Lançamento, Snapshot, Pre-Release, Release Candidate…): os desmarcados somem da lista
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { FRAME_CLASS, GuiButton, fitWidth, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
@@ -76,7 +76,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   // largura das linhas: 304 ou, em tela estreita, o que couber (sobrando lugar pra barra de rolagem)
   const rowWidth = fitWidth(ROW_WIDTH, unit) - (fitWidth(ROW_WIDTH, unit) < ROW_WIDTH ? (SCROLLBAR_WIDTH + SCROLLBAR_GAP) * 2 : 0);
   const buttonWidth = Math.min(BUTTON_WIDTH, Math.floor((rowWidth - GAP) / 2));
-  // "Tipos..." do tamanho do texto (com a margem do botão), e a busca ocupa o resto da linha
+  // "Filtro" do tamanho do texto (com a margem do botão), e a busca ocupa o resto da linha
   const filterWidth = font(strings.versionsFilter) + 16;
   const searchWidth = rowWidth - filterWidth - GAP;
 
@@ -88,7 +88,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   // tipo da versão: os de desenvolvimento com o nome da Mojang ("Snapshot", "Pre-Release", "Release Candidate")
   const kindName = (entry: VersionEntry) => developmentKindName(entry.kind) ?? strings.versionKinds[entry.kind] ?? entry.kind;
 
-  // filtro "Tipos...": os tipos que existem na lista, com quantas versões cada um tem
+  // filtro: os tipos que existem na lista, com quantas versões cada um tem
   const hidden = new Set(settings.hiddenVersionKinds);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
