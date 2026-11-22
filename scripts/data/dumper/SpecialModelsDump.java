@@ -79,7 +79,16 @@ public final class SpecialModelsDump {
     for (Map.Entry<String, JsonElement> entry : entries.entrySet()) {
       try {
         Object unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
-        Object renderer = bake(unbaked, models);
+        Object renderer;
+        try {
+          renderer = bake(unbaked, models);
+        } catch (java.lang.reflect.InvocationTargetException error) {
+          // algumas versões pedem coisas do jogo aberto ao montar (25w31a–25w33a: Minecraft.getSkinManager() na
+          // cabeça de jogador): monta o Minecraft falso e tenta de novo
+          if (!String.valueOf(error.getCause()).contains("Minecraft.getInstance()") || fakeInstalled) throw error;
+          installFakeAtlases();
+          renderer = bake(unbaked, models);
+        }
         JsonArray parts = new JsonArray();
         lastSprite = null;
         // sem dados do item (padrão): estandarte liso, vaso sem cacos, cabeça com a skin padrão…
@@ -113,7 +122,10 @@ public final class SpecialModelsDump {
   // sem jogo aberto, monta essa corrente com objetos vazios (achados pelo tipo de cada campo) e um mapa que devolve
   // um sprite falso pra qualquer textura pedida — e lembra qual foi, como no caminho novo
   @SuppressWarnings({"unchecked", "rawtypes"})
+  private static boolean fakeInstalled;
+
   private static void installFakeAtlases() {
+    fakeInstalled = true;
     try {
       Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
       Class<?> modelManagerClass = Class.forName("net.minecraft.client.resources.model.ModelManager");
