@@ -1,0 +1,5 @@
+@version 26.3
+net.minecraft.client.gui.components.toasts.TutorialToast
+net.minecraft.client.gui.components.toasts.SystemToast
+net.minecraft.client.gui.components.toasts.Toast
+net.minecraft.client.gui.components.toasts.ToastManager
