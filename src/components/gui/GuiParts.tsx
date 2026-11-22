@@ -38,7 +38,7 @@ export function GuiButton({ data, style, children, class: className = '', ...res
   return (
     <button
       type="button"
-      class={`${FRAME_CLASS} ${FRAME_HOVER_CLASS} cursor-pointer whitespace-nowrap text-white outline-none ${className}`}
+      class={`${FRAME_CLASS} ${FRAME_HOVER_CLASS} cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap text-white outline-none ${className}`}
       style={{ ...gameText, ...frameStyle(data, 'button', 'button_highlighted'), textShadow: textShadow(0xffffff), padding: `${u(1)} ${u(3)}`, ...style }}
       {...rest}
     >

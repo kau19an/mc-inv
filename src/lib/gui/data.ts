@@ -14,14 +14,22 @@ export interface ItemInfo {
   advanced?: unknown[]; // a avançada inteira, quando ela muda algo no meio
 }
 
+// idiomas publicados (a interface troca entre eles nas opções)
+export const LOCALES = ['pt_br', 'en_us'] as const;
+export type Locale = (typeof LOCALES)[number];
+
 export interface VersionData {
   id: string;
   baseUrl: string; // /data/je/<versão>
   tabs: TabInfo[];
   items: Record<string, ItemInfo>;
-  lang: Record<string, string>; // idioma da interface
+  langs: Record<Locale, Record<string, string>>;
+  locale: Locale; // idioma desta "visão" dos dados (ver viewFor)
+  lang: Record<string, string>; // = langs[locale]
   fallbackLang: Record<string, string>; // en_us
   icons: IconBundle;
+  atlas: AtlasPixels; // textures.webp decodificado
+  programmerArt: boolean; // esta visão usa as texturas antigas?
   textures: TextureLookup;
   gui: GuiBundle;
   guiAtlas: ImageBitmap;
@@ -77,36 +85,64 @@ export async function latestRelease(): Promise<string> {
   return (await json<VersionList>(`${BASE}/versions.json`)).latest.release;
 }
 
-export async function loadVersion(id: string, locale: string): Promise<VersionData> {
+export async function loadVersion(id: string, locale: Locale): Promise<VersionData> {
   const base = `${BASE}/${encodeURIComponent(id)}`;
-  const [tabs, items, lang, fallbackLang, icons, gui, atlas, guiAtlas, tags] = await Promise.all([
+  const [tabs, items, ptBr, enUs, icons, gui, atlas, guiAtlas, tags] = await Promise.all([
     json<{ tabs: TabInfo[] }>(`${base}/tabs.json`),
     json<Record<string, ItemInfo>>(`${base}/items.json`),
-    json<Record<string, string>>(`${base}/lang/${locale}.json`),
-    locale === 'en_us' ? Promise.resolve({}) : json<Record<string, string>>(`${base}/lang/en_us.json`),
+    json<Record<string, string>>(`${base}/lang/pt_br.json`),
+    json<Record<string, string>>(`${base}/lang/en_us.json`),
     json<IconBundle>(`${base}/icons.json`),
     json<GuiBundle>(`${base}/gui.json`),
     image(`${base}/textures.webp`),
     image(`${base}/gui.webp`),
     optionalJson<Record<string, string[]>>(`${base}/tags.json`, {}),
   ]);
-  // tags.json vem como tag → itens; o painel precisa do contrário
+  // tags.json vem como tag → itens; a pesquisa com "#" precisa do contrário
   const itemTags: Record<string, string[]> = {};
   for (const [tag, members] of Object.entries(tags)) for (const item of members) (itemTags[item] ??= []).push(tag);
   const [font] = await Promise.all([loadFont(gui.font, base), loadFontFace(base)]);
+  const langs = { pt_br: ptBr, en_us: enUs };
+  const atlasPixels = pixelsOf(atlas);
   return {
     id,
     baseUrl: base,
     tabs: tabs.tabs,
     items,
-    lang,
-    fallbackLang: locale === 'en_us' ? lang : fallbackLang,
+    langs,
+    locale,
+    lang: langs[locale],
+    fallbackLang: enUs,
     icons,
-    textures: createTextureLookup(icons, pixelsOf(atlas)),
+    atlas: atlasPixels,
+    programmerArt: false,
+    textures: createTextureLookup(icons, atlasPixels),
     gui,
     guiAtlas,
     font,
     itemTags,
+  };
+}
+
+// as texturas antigas (textures-programmer.webp) só são baixadas quando alguém liga o Programmer Art
+export async function loadProgrammerAtlas(data: VersionData): Promise<AtlasPixels | null> {
+  try {
+    return pixelsOf(await image(`${data.baseUrl}/textures-programmer.webp`));
+  } catch {
+    return null; // versão sem o pacote
+  }
+}
+
+// a mesma versão vista num idioma e com/sem Programmer Art. objeto novo = cache de ícones próprio (icons.ts)
+export function viewFor(data: VersionData, locale: Locale, programmerAtlas: AtlasPixels | null): VersionData {
+  const programmerArt = Boolean(programmerAtlas);
+  if (data.locale === locale && data.programmerArt === programmerArt) return data;
+  return {
+    ...data,
+    locale,
+    lang: data.langs[locale],
+    programmerArt,
+    textures: programmerAtlas ? createTextureLookup(data.icons, data.atlas, programmerAtlas) : createTextureLookup(data.icons, data.atlas),
   };
 }
 

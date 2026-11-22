@@ -25,11 +25,18 @@ import {
   tabY,
   type TabInfo,
 } from '@/lib/gui/creative.ts';
-import { latestRelease, loadVersion, textOf, type VersionData } from '@/lib/gui/data.ts';
+import { latestRelease, loadProgrammerAtlas, loadVersion, textOf, viewFor, type VersionData } from '@/lib/gui/data.ts';
+import type { AtlasPixels } from '@/lib/icons/bundle.ts';
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from '@/lib/gui/settings.ts';
+import { HTML_LANG, stringsFor } from '@/lib/gui/strings.ts';
+import SettingsScreen from './SettingsScreen.tsx';
+import { GuiButton } from './gui/GuiParts.tsx';
 import { CREATIVE } from '@/lib/gui/types.ts';
 
-const LOCALE = 'pt_br';
-const ADVANCED_TOOLTIPS_KEY = 'mc-inv:advanced-tooltips';
+// botão "Opções..." embaixo do inventário: 4 px de espaço + 20 px de botão (altura dos botões do jogo)
+const OPTIONS_GAP = 4;
+const OPTIONS_WIDTH = 98;
+const OPTIONS_HEIGHT = 20;
 const PAGE = CREATIVE.columns * CREATIVE.rows;
 const SEARCH_MAX_LENGTH = 50; // o mesmo limite da caixa de pesquisa do jogo
 const CARET_BLINK_MS = 300;
@@ -54,7 +61,16 @@ interface Props {
 }
 
 export default function CreativeInventory({ initial = { kind: 'home' } }: Props) {
-  const [data, setData] = useState<VersionData | null>(null);
+  const [baseData, setBaseData] = useState<VersionData | null>(null);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [programmerAtlas, setProgrammerAtlas] = useState<AtlasPixels | null>(null);
+  // os dados vistos no idioma escolhido e com/sem Programmer Art (ícones e nomes se ajustam sozinhos)
+  const data = useMemo(
+    () => (baseData ? viewFor(baseData, settings.locale, settings.programmerArt ? programmerAtlas : null) : null),
+    [baseData, settings.locale, settings.programmerArt, programmerAtlas],
+  );
+  const strings = stringsFor(settings.locale);
   const [error, setError] = useState<string | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
   const [scroll, setScroll] = useState(0);
@@ -63,15 +79,29 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [hoveredTab, setHoveredTab] = useState(-1);
   // onde a tooltip se ancora: o ponteiro do mouse, ou o centro do slot/aba focado pelo teclado
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
-  const [advancedTooltips, setAdvancedTooltips] = useState(false);
+  const advancedTooltips = settings.advancedTooltips;
 
-  // tooltips avançadas: F3+H, como no jogo (fica salvo neste navegador)
+  // opções salvas neste navegador; toda mudança é salva
+  useEffect(() => setSettings(loadSettings()), []);
+  const updateSettings = (change: Partial<Settings>) =>
+    setSettings((current) => {
+      const next = { ...current, ...change };
+      saveSettings(next);
+      return next;
+    });
+
+  // Programmer Art: as texturas antigas só são baixadas na primeira vez que alguém liga
   useEffect(() => {
-    try {
-      setAdvancedTooltips(localStorage.getItem(ADVANCED_TOOLTIPS_KEY) === '1');
-    } catch {
-      // armazenamento bloqueado: começa desligado
-    }
+    if (settings.programmerArt && baseData && !programmerAtlas) loadProgrammerAtlas(baseData).then(setProgrammerAtlas);
+  }, [settings.programmerArt, baseData, programmerAtlas]);
+
+  // idioma: o atributo lang da página acompanha (leitores de tela pronunciam certo)
+  useEffect(() => {
+    document.documentElement.lang = HTML_LANG[settings.locale];
+  }, [settings.locale]);
+
+  // tooltips avançadas: F3+H, como no jogo
+  useEffect(() => {
     let f3Held = false;
     const onDown = (event: KeyboardEvent) => {
       if (event.key === 'F3') {
@@ -80,13 +110,10 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       } else if (f3Held && event.key.toLowerCase() === 'h') {
         event.preventDefault();
         event.stopImmediatePropagation(); // não deixa o "h" pular pra pesquisa
-        setAdvancedTooltips((value) => {
-          try {
-            localStorage.setItem(ADVANCED_TOOLTIPS_KEY, value ? '0' : '1');
-          } catch {
-            // sem armazenamento: vale só nesta visita
-          }
-          return !value;
+        setSettings((current) => {
+          const next = { ...current, advancedTooltips: !current.advancedTooltips };
+          saveSettings(next);
+          return next;
         });
       }
     };
@@ -118,8 +145,8 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   // carrega a versão mais recente
   useEffect(() => {
     latestRelease()
-      .then((id) => loadVersion(id, LOCALE))
-      .then(setData)
+      .then((id) => loadVersion(id, loadSettings().locale))
+      .then(setBaseData)
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)));
   }, []);
 
@@ -129,7 +156,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     const update = () => {
       const dpr = window.devicePixelRatio || 1;
       const margin = 16;
-      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin, window.innerHeight - margin, dpr) });
+      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin, window.innerHeight - margin, dpr, CANVAS_HEIGHT + OPTIONS_GAP + OPTIONS_HEIGHT) });
       media?.removeEventListener('change', update);
       media = window.matchMedia(`(resolution: ${dpr}dppx)`);
       media.addEventListener('change', update);
@@ -150,10 +177,10 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     const searchTab = data.tabs.find((candidate) => candidate.type === 'search');
     return (searchTab?.items ?? []).map((key) => {
       const item = data.items[key];
-      const names = item ? [textOf(data, item.name), textOf(data, item.name, data.fallbackLang)] : [];
+      const names = item ? Object.values(data.langs).map((lang) => textOf(data, item.name, lang)) : [];
       return { key, text: normalize([...names, key.split('~')[0]!.replace(/_/g, ' ')].join('\n')) };
     });
-  }, [data]);
+  }, [baseData]);
 
   const items = useMemo(() => {
     if (!tab) return [];
@@ -320,7 +347,14 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     const onPopState = () => applyRoute(parseRoute(window.location.pathname, tabIds, itemIds) ?? { kind: 'home' });
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [data]);
+  }, [baseData]);
+
+  // trocou o idioma: o título da aba do navegador acompanha
+  useEffect(() => {
+    if (!data) return;
+    const route = parseRoute(window.location.pathname, new Set(data.tabs.map((candidate) => candidate.id)), new Set(Object.keys(data.items).map(baseId)));
+    document.title = titleOf(route ?? { kind: 'home' });
+  }, [data?.locale]);
 
   // foco pelo teclado (não pelo clique) também mostra a tooltip, ancorada no centro do elemento
   const focusTooltip = (element: HTMLElement, then?: () => void) => {
@@ -375,7 +409,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   if (error) {
     return (
       <p role="alert" class="text-center text-red-300">
-        Não deu pra carregar o inventário: {error}
+        {strings.loadError} {error}
       </p>
     );
   }
@@ -390,7 +424,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   if (!data || !tab) {
     return (
       <div class="grid place-items-center text-neutral-400" style={{ width: `${CANVAS_WIDTH * unit}px`, height: `${CANVAS_HEIGHT * unit}px` }} aria-busy="true">
-        Carregando…
+        {strings.loading}
       </div>
     );
   }
@@ -502,7 +536,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const inventoryHeight = `${CANVAS_HEIGHT * unit}px`;
 
   return (
-    <div class="flex w-full justify-center" style={{ '--u': `${unit}px` }}>
+    <div class="flex w-full flex-col items-center" style={{ '--u': `${unit}px`, gap: `${OPTIONS_GAP * unit}px` }}>
       <div
         class="relative shrink-0 touch-none select-none"
         style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }}
@@ -513,7 +547,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
         <canvas ref={canvasRef} class="absolute inset-0 h-full w-full" aria-hidden="true" />
         {pointer && tooltipLines.length > 0 && <GameTooltip data={data} lines={tooltipLines} pointerX={pointer.x} pointerY={pointer.y} unit={unit} />}
 
-        <div ref={tabsRef} role="tablist" aria-label="Abas do inventário" onKeyDown={onTabsKeyDown}>
+        <div ref={tabsRef} role="tablist" aria-label={strings.tabs} onKeyDown={onTabsKeyDown}>
           {data.tabs.map((candidate, index) => (
             <button
               key={candidate.id}
@@ -544,7 +578,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
               inputMode="search"
               value={query}
               maxLength={SEARCH_MAX_LENGTH}
-              aria-label="Pesquisar itens"
+              aria-label={strings.search}
               autoComplete="off"
               spellcheck={false}
               enterKeyHint="search"
@@ -563,7 +597,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
           <div
             ref={gridRef}
             role="group"
-            aria-label={`Itens: ${tabName}`}
+            aria-label={`${strings.items}: ${tabName}`}
             class="absolute"
             style={box(CREATIVE.gridX - 1, TOP + CREATIVE.gridY - 1, CREATIVE.columns * CREATIVE.slot, CREATIVE.rows * CREATIVE.slot)}
             onKeyDown={onGridKeyDown}
@@ -577,11 +611,11 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
             {visible.map((key, index) => (
               <a
                 key={`${first}-${index}`}
-                href={wikiUrl(itemName(key))}
+                href={wikiUrl(itemName(key), data.locale)}
                 target="_blank"
                 rel="noopener noreferrer"
                 tabIndex={index === slotIndex ? 0 : -1}
-                aria-label={`${itemName(key)} (abre a Minecraft Wiki em outra aba)`}
+                aria-label={`${itemName(key)} (${strings.opensWiki})`}
                 class="absolute cursor-pointer outline-none"
                 style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
                 draggable={false}
@@ -604,7 +638,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
               aria-valuemin={0}
               aria-valuemax={rows}
               aria-valuenow={first}
-              aria-label="Rolagem dos itens"
+              aria-label={strings.scroll}
               class="absolute"
               style={box(CREATIVE.scrollerX, TOP + CREATIVE.scrollerY, CREATIVE.scrollerWidth, CREATIVE.scrollerTrack)}
               onPointerDown={onScrollbarPointerDown}
@@ -613,10 +647,16 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
           )}
 
           <p class="sr-only" aria-live="polite">
-            {tab.type === 'search' && query ? `${items.length} ${items.length === 1 ? 'item encontrado' : 'itens encontrados'}` : ''}
+            {tab.type === 'search' && query ? strings.found(items.length) : ''}
           </p>
         </div>
       </div>
+
+      <GuiButton data={data} style={{ width: `${OPTIONS_WIDTH * unit}px`, height: `${OPTIONS_HEIGHT * unit}px`, padding: '0' }} onClick={() => setSettingsOpen(true)}>
+        {strings.options}
+      </GuiButton>
+
+      {settingsOpen && <SettingsScreen data={data} settings={settings} strings={strings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }
