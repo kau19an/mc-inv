@@ -113,6 +113,43 @@ jobs:
             -f 'output[title]=Sondagem' -f 'output[summary]=Classes envolvidas no erro do dump.' \
             -f "output[text]=$(head -c 65000 probe.txt)" > /dev/null
 
+      # ferramenta de desenvolvimento (autorizada pelo Kauan): se scripts/data/probe-classes.txt existir,
+      # descompila as classes listadas com o vineflower e publica o código como check runs (partes de até 60 mil caracteres)
+      - name: Descompilar classes (desenvolvimento)
+        if: hashFiles('scripts/data/probe-classes.txt') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
+          version=$(curl -s https://repo1.maven.org/maven2/org/vineflower/vineflower/maven-metadata.xml | grep -oP '(?<=<release>)[^<]+')
+          curl -sfL -o /tmp/vineflower.jar "https://repo1.maven.org/maven2/org/vineflower/vineflower/$version/vineflower-$version.jar"
+          mkdir -p /tmp/classes /tmp/source
+          {
+            echo "# classes em client/renderer/special:"
+            unzip -l "$jar" | grep -oE 'net/minecraft/client/renderer/special/[A-Za-z$]+\.class' | grep -v '\$' | sed 's#.*/##' | tr '\n' ' '
+            echo
+          } > /tmp/listing.txt
+          while read -r class; do
+            [ -z "$class" ] && continue
+            file="${class//.//}"
+            unzip -q -o "$jar" "$file.class" "$file\$*.class" -d /tmp/classes 2>/dev/null || unzip -q -o "$jar" "$file.class" -d /tmp/classes 2>/dev/null || echo "não achei: $class" >> /tmp/listing.txt
+          done < scripts/data/probe-classes.txt
+          java -jar /tmp/vineflower.jar -e="$jar" /tmp/classes /tmp/source > /dev/null 2>&1 || true
+          {
+            cat /tmp/listing.txt
+            find /tmp/source -name '*.java' | sort | while read -r f; do echo; echo "// ===== ${f#/tmp/source/}"; grep -v '^import ' "$f"; done
+          } > /tmp/decompiled.txt
+          split -C 60000 -d /tmp/decompiled.txt /tmp/part-
+          total=$(ls /tmp/part-* | wc -l); n=0
+          for part in /tmp/part-*; do
+            n=$((n + 1))
+            gh api "repos/$GITHUB_REPOSITORY/check-runs" \
+              -f name="mc-inv: código ($n/$total)" -f head_sha="$GITHUB_SHA" \
+              -f status=completed -f conclusion=neutral \
+              -f "output[title]=Código descompilado ($n/$total)" -f 'output[summary]=Classes de scripts/data/probe-classes.txt' \
+              -f "output[text]=$(cat "$part")" > /dev/null
+          done
+
       # relatório das abas como check run (texto longo, que o claude lê pela api)
       - name: Relatório das abas
         if: always()
