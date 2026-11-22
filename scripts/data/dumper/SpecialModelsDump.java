@@ -36,8 +36,6 @@ import net.minecraft.core.MappedRegistry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.special.SpecialModelRenderer;
-import net.minecraft.client.renderer.special.SpecialModelRenderers;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.server.Bootstrap;
@@ -58,15 +56,29 @@ public final class SpecialModelsDump {
 
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
-    Codec<SpecialModelRenderer.Unbaked> codec = specialModelCodec();
-    SpecialModelRenderer.BakingContext context = bakingContext(DumpUtil.entityModels());
-
     JsonObject result = new JsonObject();
     JsonObject entries = JsonParser.parseString(Files.readString(input)).getAsJsonObject();
+
+    // os modelos especiais (definições de item "minecraft:special") só existem da 1.21.4 em diante
+    Class<?> renderers;
+    try {
+      renderers = Class.forName(SPECIAL + "SpecialModelRenderers");
+    } catch (ClassNotFoundException older) {
+      for (String key : entries.keySet()) {
+        JsonObject failed = new JsonObject();
+        failed.addProperty("error", "versão sem modelos especiais (antes da 1.21.4)");
+        result.add(key, failed);
+      }
+      Files.writeString(output, new GsonBuilder().disableHtmlEscaping().create().toJson(result));
+      return;
+    }
+    Codec<?> codec = specialModelCodec(renderers);
+    EntityModelSet models = DumpUtil.entityModels();
+
     for (Map.Entry<String, JsonElement> entry : entries.entrySet()) {
       try {
-        SpecialModelRenderer.Unbaked unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
-        SpecialModelRenderer<?> renderer = (SpecialModelRenderer<?>) DumpUtil.invoke(unbaked, "bake", context);
+        Object unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
+        Object renderer = bake(unbaked, models);
         JsonArray parts = new JsonArray();
         lastSprite = null;
         // sem dados do item (padrão): estandarte liso, vaso sem cacos, cabeça com a skin padrão…
@@ -84,28 +96,44 @@ public final class SpecialModelsDump {
     Files.writeString(output, new GsonBuilder().disableHtmlEscaping().create().toJson(result));
   }
 
+  private static final String SPECIAL = "net.minecraft.client.renderer.special.";
+
+  // Unbaked.bake(contexto): 1.21.9 em diante recebe um BakingContext (modelos, sprites, skins);
+  // antes, só o EntityModelSet
+  private static Object bake(Object unbaked, EntityModelSet models) throws ReflectiveOperationException {
+    for (Class<?> type = unbaked.getClass(); type != null; type = type.getSuperclass()) {
+      for (Method method : type.getDeclaredMethods()) {
+        if (!method.getName().equals("bake") || method.getParameterCount() != 1 || method.isSynthetic()) continue;
+        Class<?> parameter = method.getParameterTypes()[0];
+        method.setAccessible(true);
+        return method.invoke(unbaked, parameter.isInstance(models) ? models : bakingContext(parameter, models));
+      }
+    }
+    throw new NoSuchMethodException(unbaked.getClass().getName() + ".bake");
+  }
+
   // a api muda entre versões, então tudo por reflexão (compila contra qualquer uma):
   // - até a 26.3: bootstrap() sem parâmetro preenche um mapa interno, e o CODEC estático usa esse mapa
   // - 26.4: bootstrap(registro) preenche um registro do cliente; a gente cria um registro próprio,
   //   pede pro jogo preencher e monta o mesmo "dispatch" do CODEC em cima dele
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private static Codec<SpecialModelRenderer.Unbaked> specialModelCodec() throws ReflectiveOperationException {
-    for (Method method : SpecialModelRenderers.class.getMethods()) {
+  private static Codec<?> specialModelCodec(Class<?> renderers) throws ReflectiveOperationException {
+    for (Method method : renderers.getMethods()) {
       if (!method.getName().equals("bootstrap")) continue;
       if (method.getParameterCount() == 0) {
         method.invoke(null);
-        return (Codec<SpecialModelRenderer.Unbaked>) SpecialModelRenderers.class.getField("CODEC").get(null);
+        return (Codec<?>) renderers.getField("CODEC").get(null);
       }
       if (method.getParameterCount() == 1) {
         MappedRegistry registry = new MappedRegistry(registryKey("special_model_renderer_type"), Lifecycle.stable());
         method.invoke(null, registry);
         registry.freeze(); // sem congelar, as entradas ficam "não ligadas" e o codec não acha nada
         Codec<MapCodec> types = registry.byNameCodec();
-        return (Codec) types.dispatch(unbaked -> ((SpecialModelRenderer.Unbaked) unbaked).type(), type -> (MapCodec) type);
+        return types.dispatch(unbaked -> (MapCodec) call(unbaked, "type"), type -> (MapCodec) type);
       }
     }
     // versões sem bootstrap: o CODEC já vem pronto
-    return (Codec<SpecialModelRenderer.Unbaked>) SpecialModelRenderers.class.getField("CODEC").get(null);
+    return (Codec<?>) renderers.getField("CODEC").get(null);
   }
 
   // chave de registro "minecraft:<nome>": Identifier (26.x) ou ResourceLocation (1.21.x)
@@ -125,15 +153,14 @@ public final class SpecialModelsDump {
   // - 26.1-pre-1 em diante: sprites() devolve um SpriteGetter (sprite pela SpriteId)
   // - antes: materials() devolve um MaterialSet (sprite pelo Material)
   // os dois são interfaces de um método só, então um proxy atende qualquer um
-  private static SpecialModelRenderer.BakingContext bakingContext(EntityModelSet models) {
+  private static Object bakingContext(Class<?> type, EntityModelSet models) {
     InvocationHandler handler = (proxy, method, args) -> switch (method.getName()) {
       case "entityModelSet" -> models;
       case "playerSkinRenderCache" -> null;
       case "sprites", "materials" -> spriteLookup(method.getReturnType());
       default -> method.isDefault() ? InvocationHandler.invokeDefault(proxy, method, args) : defaultValue(method.getReturnType());
     };
-    return (SpecialModelRenderer.BakingContext) Proxy.newProxyInstance(
-        SpecialModelRenderer.class.getClassLoader(), new Class<?>[] {SpecialModelRenderer.BakingContext.class}, handler);
+    return Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type}, handler);
   }
 
   private static Object spriteLookup(Class<?> type) {
@@ -146,8 +173,8 @@ public final class SpecialModelsDump {
   }
 
   // chama submit() (SubmitNodeCollector) ou render() (MultiBufferSource), montando os argumentos pelos tipos
-  private static void draw(SpecialModelRenderer<?> renderer, JsonArray parts) throws ReflectiveOperationException {
-    for (Method method : SpecialModelRenderer.class.getMethods()) {
+  private static void draw(Object renderer, JsonArray parts) throws ReflectiveOperationException {
+    for (Method method : Class.forName(SPECIAL + "SpecialModelRenderer").getMethods()) {
       if (!method.getName().equals("submit") && !method.getName().equals("render")) continue;
       Class<?>[] types = method.getParameterTypes();
       Object[] args = new Object[types.length];

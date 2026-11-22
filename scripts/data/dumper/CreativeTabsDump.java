@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Locale;
+import java.util.concurrent.ForkJoinPool;
 import net.minecraft.SharedConstants;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.RegistryAccess;
@@ -30,8 +31,6 @@ import net.minecraft.server.Bootstrap;
 import net.minecraft.server.WorldLoader;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.server.packs.repository.ServerPacksSource;
-import net.minecraft.server.permissions.LevelBasedPermissionSet;
-import net.minecraft.util.Util;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -52,10 +51,7 @@ public final class CreativeTabsDump {
     // sem experimentos: é o inventário que um mundo normal mostra
     WorldDataConfiguration dataConfig = WorldDataConfiguration.DEFAULT;
     PackRepository packs = ServerPacksSource.createVanillaTrustedRepository();
-    WorldLoader.InitConfig init = new WorldLoader.InitConfig(
-        new WorldLoader.PackConfig(packs, dataConfig, false, true),
-        Commands.CommandSelection.DEDICATED,
-        LevelBasedPermissionSet.GAMEMASTER);
+    WorldLoader.InitConfig init = initConfig(new WorldLoader.PackConfig(packs, dataConfig, false, true));
     RegistryAccess.Frozen registries = WorldLoader.<Void, RegistryAccess.Frozen>load(
         init,
         context -> new WorldLoader.DataLoadOutput<>(null, context.datapackDimensions()),
@@ -64,8 +60,8 @@ public final class CreativeTabsDump {
           applyStaticTags(reloadable);
           return layers.compositeAccess();
         },
-        Util.backgroundExecutor(),
-        Util.backgroundExecutor()).join();
+        ForkJoinPool.commonPool(),
+        ForkJoinPool.commonPool()).join();
 
     // com permissão de operador, pra aba "Utilidades de operador" vir junto
     CreativeModeTabs.tryRebuildTabContents(dataConfig.enabledFeatures(), true, registries);
@@ -104,7 +100,7 @@ public final class CreativeTabsDump {
     }
 
     JsonObject root = new JsonObject();
-    root.addProperty("version", SharedConstants.getCurrentVersion().name());
+    root.addProperty("version", versionName());
     root.add("tabs", tabs);
     root.add("searchOnly", searchOnly);
     Files.writeString(out, new GsonBuilder().disableHtmlEscaping().create().toJson(root));
@@ -155,7 +151,7 @@ public final class CreativeTabsDump {
       components = stack.getTooltipLines(context, null, flag);
     } catch (RuntimeException error) {
       System.err.println("tooltip de " + BuiltInRegistries.ITEM.getKey(stack.getItem()) + " falhou: " + error);
-      components = List.of(stack.getStyledHoverName());
+      components = List.of(stack.getHoverName());
     }
     for (Component line : components) lines.add(ComponentSerialization.CODEC.encodeStart(ops, line).getOrThrow());
     return lines;
@@ -173,5 +169,29 @@ public final class CreativeTabsDump {
       }
     }
     throw new IllegalStateException("ReloadableServerResources sem método de aplicar as tags");
+  }
+
+  // InitConfig(pacotes, seleção de comandos, permissão das funções): a permissão era um número (nível de operador 2)
+  // até a 1.21.x e virou LevelBasedPermissionSet.GAMEMASTER depois. por reflexão, pra compilar contra as duas
+  private static WorldLoader.InitConfig initConfig(WorldLoader.PackConfig packs) throws ReflectiveOperationException {
+    for (java.lang.reflect.Constructor<?> constructor : WorldLoader.InitConfig.class.getConstructors()) {
+      Class<?>[] types = constructor.getParameterTypes();
+      if (types.length != 3) continue;
+      Object permission = types[2] == int.class
+          ? (Object) 2
+          : Class.forName("net.minecraft.server.permissions.LevelBasedPermissionSet").getField("GAMEMASTER").get(null);
+      return (WorldLoader.InitConfig) constructor.newInstance(packs, Commands.CommandSelection.DEDICATED, permission);
+    }
+    throw new IllegalStateException("WorldLoader.InitConfig sem construtor de 3 parâmetros");
+  }
+
+  // nome da versão que o jogo diz ter: name() (26.x) ou getName() (1.21.x)
+  private static String versionName() throws ReflectiveOperationException {
+    Object version = SharedConstants.getCurrentVersion();
+    try {
+      return (String) version.getClass().getMethod("name").invoke(version);
+    } catch (NoSuchMethodException older) {
+      return (String) version.getClass().getMethod("getName").invoke(version);
+    }
   }
 }
