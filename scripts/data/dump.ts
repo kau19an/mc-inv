@@ -86,12 +86,13 @@ function referenceDumper(all: Version[]) {
     await rm(classes, { recursive: true, force: true });
     await mkdir(classes, { recursive: true });
     run('javac', ['-nowarn', '-cp', classpath.join(delimiter), '-d', classes, ...DUMPERS]);
-    // definições de item que usam um modelo especial (o texto do json, pra copiar como está)
+    // definições de item que usam um modelo especial, e as dos ovos de geração (o texto do json, pra copiar como está)
     const items: Record<string, string> = {};
     const entries = unzipSync(await clientJar(version, pkg), { filter: (file) => file.name.startsWith('assets/minecraft/items/') && file.name.endsWith('.json') });
     for (const [name, data] of Object.entries(entries)) {
       const text = new TextDecoder().decode(data);
-      if (text.includes('"minecraft:special"')) items[name.slice('assets/minecraft/items/'.length, -'.json'.length)] = text;
+      // ovos de geração também: na referência as duas cores já vêm como tints constantes da definição
+      if (text.includes('"minecraft:special"') || name.endsWith('_spawn_egg.json')) items[name.slice('assets/minecraft/items/'.length, -'.json'.length)] = text;
     }
     return { classes, classpath, items };
   })();
