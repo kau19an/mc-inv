@@ -13,6 +13,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -48,7 +49,13 @@ public final class SpecialModelsDump {
 
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
-    SpecialModelRenderers.bootstrap();
+    // a api muda entre versões (na 26.3, bootstrap() sem parâmetro; no 26.4, recebe um registro):
+    // chama o que existir sem parâmetro e pega o CODEC por reflexão, pra compilar contra qualquer uma
+    for (Method method : SpecialModelRenderers.class.getMethods()) {
+      if (method.getName().equals("bootstrap") && method.getParameterCount() == 0) method.invoke(null);
+    }
+    @SuppressWarnings("unchecked")
+    Codec<SpecialModelRenderer.Unbaked<?>> codec = (Codec<SpecialModelRenderer.Unbaked<?>>) SpecialModelRenderers.class.getField("CODEC").get(null);
 
     EntityModelSet models = EntityModelSet.vanilla();
     SpriteGetter sprites = SpecialModelsDump::fakeSprite;
@@ -62,7 +69,7 @@ public final class SpecialModelsDump {
     JsonObject entries = JsonParser.parseString(Files.readString(input)).getAsJsonObject();
     for (Map.Entry<String, JsonElement> entry : entries.entrySet()) {
       try {
-        SpecialModelRenderer.Unbaked<?> unbaked = SpecialModelRenderers.CODEC.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
+        SpecialModelRenderer.Unbaked<?> unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
         @SuppressWarnings("unchecked")
         SpecialModelRenderer<Object> renderer = (SpecialModelRenderer<Object>) unbaked.bake(context);
         JsonArray parts = new JsonArray();
