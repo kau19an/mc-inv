@@ -162,6 +162,9 @@ jobs:
             aws s3 sync "public/data/je/$id" "s3://$R2_BUCKET/je/$id/${{ needs.plan.outputs.lot }}" \
               --endpoint-url "$R2_ENDPOINT" --only-show-errors --no-progress \
               --cache-control 'public, max-age=31536000, immutable'
+            # folha de contato da versão (fora do lote: sempre a mais recente), pra conferir de olho
+            [ -f ".cache/contact/$id.png" ] && aws s3 cp ".cache/contact/$id.png" "s3://$R2_BUCKET/je/_contact/$id.png" \
+              --endpoint-url "$R2_ENDPOINT" --only-show-errors --content-type image/png --cache-control 'no-cache'
             echo "::notice title=$id::enviado (lote ${{ needs.plan.outputs.lot }})"
           done
           # as que este grupo devia gerar e não gerou ficam registradas como falha (só tentam de novo com outro pipeline)
@@ -174,15 +177,6 @@ jobs:
           name: result-${{ strategy.job-index }}
           path: result.json
           retention-days: 1
-
-      # folhas de contato (todos os ícones de cada versão numa imagem), pra conferir de olho
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: contact-${{ strategy.job-index }}
-          path: .cache/contact/*.png
-          retention-days: 7
-          if-no-files-found: ignore
 
       # erros completos das versões que falharam neste grupo (texto longo, que o claude lê pela api)
       - name: Relatório de falhas
