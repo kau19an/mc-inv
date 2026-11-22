@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { FRAME_CLASS, GuiButton, fitWidth, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
 import GameTextField from './gui/GameTextField.tsx';
+import { useWidgetTooltip } from './gui/useWidgetTooltip.tsx';
 import { LATEST_RELEASE, LATEST_SNAPSHOT, type VersionData, type VersionEntry, type VersionList } from '@/lib/gui/data.ts';
 import { HTML_LANG, type Strings } from '@/lib/gui/strings.ts';
 import type { Settings } from '@/lib/gui/settings.ts';
@@ -64,6 +65,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   const t = (key: string) => translate(data, key);
   const htmlLang = HTML_LANG[settings.locale];
   const font = (text: string) => data.font.width(text); // largura do texto em pixels da gui
+  const { tooltip, renderTooltip } = useWidgetTooltip(data, unit);
   // largura das linhas: 304 ou, em tela estreita, o que couber (sobrando lugar pra barra de rolagem)
   const rowWidth = fitWidth(ROW_WIDTH, unit) - (fitWidth(ROW_WIDTH, unit) < ROW_WIDTH ? (SCROLLBAR_WIDTH + SCROLLBAR_GAP) * 2 : 0);
   const buttonWidth = Math.min(BUTTON_WIDTH, Math.floor((rowWidth - GAP) / 2));
@@ -233,8 +235,8 @@ export default function VersionsScreen({ data, list, settings, current, strings,
           <div class="flex flex-col" style={{ width: u(rowWidth), gap: u(GAP) }}>
             <GameTextField data={data} value={query} label={strings.versionsSearch} placeholder={strings.versionsSearch} width={rowWidth} maxLength={64} onInput={setQuery} />
             <div class="flex" style={{ gap: u(GAP) }}>
-              <GuiButton data={data} width={buttonWidth} label={strings.versionsLatest} aria-pressed={settings.version === LATEST_RELEASE} onClick={() => choose(LATEST_RELEASE, list.latest.release)} disabled={!list.latest.release} />
-              <GuiButton data={data} width={buttonWidth} label={strings.versionsDevelopment} aria-pressed={settings.version === LATEST_SNAPSHOT} onClick={() => choose(LATEST_SNAPSHOT, list.latest.snapshot)} disabled={!list.latest.snapshot} />
+              <GuiButton data={data} width={buttonWidth} label={strings.versionsLatest} aria-pressed={settings.version === LATEST_RELEASE} onClick={() => choose(LATEST_RELEASE, list.latest.release)} disabled={!list.latest.release} {...tooltip('latest', strings.versionsLatestTooltip)} />
+              <GuiButton data={data} width={buttonWidth} label={strings.versionsDevelopment} aria-pressed={settings.version === LATEST_SNAPSHOT} onClick={() => choose(LATEST_SNAPSHOT, list.latest.snapshot)} disabled={!list.latest.snapshot} {...tooltip('development', strings.versionsDevelopmentTooltip)} />
             </div>
           </div>
         </header>
@@ -376,6 +378,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
           <GuiButton data={data} width={DONE_WIDTH} label={t(UI_KEYS.done)} onClick={() => dialogRef.current?.close()} />
         </footer>
       </div>
+      {renderTooltip()}
     </dialog>
   );
 }
