@@ -122,6 +122,18 @@ async function buildVersion(id: string) {
   await writeJson(join(outDir, 'items.json'), items);
   for (const locale of LOCALES) await writeJson(join(outDir, 'lang', `${locale}.json`), lang[locale]);
 
+  // validação: um idioma sem a maior parte das traduções indica arquivo errado ou formato novo
+  for (const locale of LOCALES) {
+    const found = Object.keys(lang[locale]!).length;
+    if (found < usedKeys.size * 0.9) {
+      const path = join(versionDir, 'assets/minecraft/lang', `${locale}.json`);
+      const raw = await readFile(path, 'utf8');
+      const detail = `${id}/${locale}: ${found} de ${usedKeys.size} traduções. arquivo com ${raw.length} caracteres, começa com: ${raw.slice(0, 300)}`;
+      if (process.env.GITHUB_ACTIONS) console.log(`::error title=Idioma incompleto::${detail.replaceAll('\n', '%0A')}`);
+      throw new Error(detail);
+    }
+  }
+
   const missing = LOCALES.map((locale) => `${locale}: ${usedKeys.size - Object.keys(lang[locale]!).length}`).join(', ');
   console.log(`✓ ${id}: ${tabs.length} abas, ${Object.keys(items).length} itens únicos, ${usedKeys.size} traduções (faltando → ${missing})`);
   return { items: Object.keys(items).length, translations: usedKeys.size };
