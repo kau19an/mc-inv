@@ -84,8 +84,9 @@ export const official: Source = {
     const download = (hash: string) => fetchBuffer(`${RESOURCES_URL}/${hash.slice(0, 2)}/${hash}`, hash);
 
     for (const [key, { hash }] of Object.entries(index.objects)) {
-      // "minecraft/lang/pt_br.json" (atual) ou "lang/pt_BR.lang" (versões antigas)
-      if (/(^|\/)lang\/[^/]+\.(json|lang)$/.test(key)) {
+      // "minecraft/lang/pt_br.json" (atual) ou "lang/pt_BR.lang" (versões antigas).
+      // só esses dois caminhos: o índice também tem "realms/lang/en_us.json", que sobrescrevia o en_us de verdade
+      if (/^(minecraft\/)?lang\/[^/]+\.(json|lang)$/.test(key)) {
         if (wantsLocale(locales, basename(key))) await writeFileDeep(join(outDir, 'assets/minecraft/lang', basename(key)), await download(hash));
       } else if (isProgrammerArt(key)) {
         programmerArt ??= await download(hash);
