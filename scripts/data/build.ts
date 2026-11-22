@@ -121,6 +121,9 @@ async function buildVersion(id: string) {
   await writeJson(join(outDir, 'tabs.json'), { version: id, gameVersion: dump.version, tabs });
   await writeJson(join(outDir, 'items.json'), items);
   for (const locale of LOCALES) await writeJson(join(outDir, 'lang', `${locale}.json`), lang[locale]);
+  // geometria dos modelos especiais (baú, estandarte…), exportada pelo próprio jogo. vira parte dos ícones na fase 3
+  const specials = join(versionDir, 'specials.json');
+  if (existsSync(specials)) await writeFile(join(outDir, 'specials.json'), await readFile(specials));
 
   // validação: um idioma sem a maior parte das traduções indica arquivo errado ou formato novo
   for (const locale of LOCALES) {

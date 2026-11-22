@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
-import type { Element, Face, FaceName, GuiTransform, IconModel, LocalTransform, Texture, Tint, Vec3 } from '../../../src/lib/icons/types.ts';
+import type { Element, Face, FaceName, GuiTransform, IconModel, LocalTransform, MeshQuad, SpecialModel, Texture, Tint, Vec3 } from '../../../src/lib/icons/types.ts';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -12,6 +12,11 @@ const IDENTITY_GUI: GuiTransform = { rotation: [0, 0, 0], translation: [0, 0, 0]
 
 // "minecraft:block/oak_log" ou "block/oak_log" → "block/oak_log"
 const path = (id: string) => id.replace(/^minecraft:/, '');
+
+// geometria exportada pelo dumper (SpecialModelsDump): por definição de modelo especial, as partes desenhadas
+export interface SpecialMeshes {
+  [key: string]: { error?: string; parts?: { texture?: string; renderType: string; tint: number; quads: [number, number, number, number, number][][] }[] };
+}
 
 export interface ResolvedIcon {
   model: IconModel;
@@ -24,6 +29,7 @@ export class IconResolver {
 
   private root: string;
   private overlay: string | undefined;
+  meshes: SpecialMeshes = {};
 
   // root: pasta da versão extraída (.cache/versions/<id>); overlay: pasta do programmer art, se for esse o pacote
   constructor(root: string, overlay?: string) {
@@ -190,12 +196,77 @@ export class IconResolver {
     };
   }
 
+  // transformação de gui e luz de um modelo (seguindo os pais), sem precisar de elementos (ex.: item/chest)
+  private guiOf(id: string): { gui: GuiTransform; light: 'side' | 'front' } {
+    let gui: Json | undefined;
+    let light: 'side' | 'front' | undefined;
+    let current: string | undefined = id;
+    for (let depth = 0; current && depth < 20; depth++) {
+      const json = this.model(current);
+      if (!json) break;
+      gui ??= json.display?.gui;
+      light ??= json.gui_light;
+      current = json.parent;
+    }
+    return {
+      gui: gui ? { rotation: gui.rotation ?? [0, 0, 0], translation: gui.translation ?? [0, 0, 0], scale: gui.scale ?? [1, 1, 1] } : IDENTITY_GUI,
+      light: light ?? 'side',
+    };
+  }
+
+  // modelo especial → malha: geometria do jogo (em blocos) · transformação local do item · ×16 (escala dos modelos de bloco)
+  private toMesh(special: SpecialModel): IconModel {
+    const mesh = this.meshes[special.key];
+    if (!mesh?.parts) return special;
+    const { gui, light } = special.base ? this.guiOf(special.base) : { gui: IDENTITY_GUI, light: 'side' as const };
+    const local = special.transform;
+    const quads: MeshQuad[] = [];
+    for (const part of mesh.parts) {
+      const texture = part.texture ?? textureFromRenderType(part.renderType);
+      if (!texture) continue;
+      for (const quad of part.quads) {
+        if (quad.length !== 4) continue;
+        const vertices = quad.map(([x, y, z]) => {
+          const [tx, ty, tz] = local ? applyLocal(local, [x, y, z]) : [x, y, z];
+          return [tx * 16, ty * 16, tz * 16] as Vec3;
+        }) as MeshQuad['vertices'];
+        const uvs = quad.map(([, , , u, v]) => [u, v] as [number, number]) as MeshQuad['uvs'];
+        quads.push({ texture, tint: part.tint, vertices, uvs });
+      }
+    }
+    return { kind: 'mesh', quads, gui, light };
+  }
+
   resolve(itemId: string): ResolvedIcon {
     const definition = this.readJson(join(this.root, 'assets/minecraft/items', `${path(itemId)}.json`));
     const tints: Tint[] = [];
     if (!definition?.model) return { model: { kind: 'empty' }, tints };
-    return { model: this.pick(definition.model, tints), tints };
+    const toMeshes = (model: IconModel): IconModel =>
+      model.kind === 'special' ? this.toMesh(model) : model.kind === 'composite' ? { ...model, parts: model.parts.map(toMeshes) } : model;
+    return { model: toMeshes(this.pick(definition.model, tints)), tints };
   }
+}
+
+// cabeças e estátuas não usam sprite de atlas: a textura vem dentro do "render type" (ex.: "minecraft:textures/entity/skeleton/skeleton.png")
+function textureFromRenderType(renderType: string): string | undefined {
+  const match = /([a-z0-9_.-]+):textures\/([a-z0-9_/.-]+)\.png/.exec(renderType);
+  return match ? `${match[1]}:${match[2]}` : undefined;
+}
+
+// rotação de um vetor por um quaternion [x, y, z, w]
+function rotate([qx, qy, qz, qw]: [number, number, number, number], [x, y, z]: Vec3): Vec3 {
+  const ix = qw * x + qy * z - qz * y;
+  const iy = qw * y + qz * x - qx * z;
+  const iz = qw * z + qx * y - qy * x;
+  const iw = -qx * x - qy * y - qz * z;
+  return [ix * qw + iw * -qx + iy * -qz - iz * -qy, iy * qw + iw * -qy + iz * -qx - ix * -qz, iz * qw + iw * -qz + ix * -qy - iy * -qx];
+}
+
+// transformação local do jogo (Transformation): translação · rotação esquerda · escala · rotação direita
+function applyLocal(local: LocalTransform, point: Vec3): Vec3 {
+  const [rx, ry, rz] = rotate(local.rightRotation, point);
+  const [lx, ly, lz] = rotate(local.leftRotation, [rx * local.scale[0], ry * local.scale[1], rz * local.scale[2]]);
+  return [lx + local.translation[0], ly + local.translation[1], lz + local.translation[2]];
 }
 
 // chave estável de um modelo especial: o mesmo json sempre vira a mesma chave

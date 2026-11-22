@@ -3,7 +3,7 @@
 // - blocos: cubos com a transformação de gui do modelo (ex.: rotação 30/225, escala 0.625), projeção
 //   ortográfica, z-buffer e sombreamento por face
 // sem dependências e sem apis do node: roda igual no build e no navegador
-import type { BlockModel, Element, Face, FaceName, FlatModel, IconModel, Texture, TextureLookup, Tint, Vec3 } from './types.ts';
+import type { BlockModel, Element, Face, FaceName, FlatModel, IconModel, MeshModel, Texture, TextureLookup, Tint, Vec3 } from './types.ts';
 
 export interface RenderOptions {
   size: number; // lado do ícone em pixels (16 = 1 pixel por pixel da gui)
@@ -147,20 +147,24 @@ function brightness(normal: Vec3, shade: boolean, light: 'side' | 'front'): numb
   return (top * 1 + left * 0.8 + right * 0.6 + bottom * 0.5) / total;
 }
 
-function renderBlock(model: BlockModel, options: RenderOptions, out: Uint8ClampedArray, missing: string[]) {
-  const { size } = options;
-  const depth = new Float32Array(size * size).fill(-Infinity);
+// transformação de gui (ordem do jogo: translação · rotação x→y→z, como Quaternionf.rotationXYZ · escala)
+// devolve a função modelo (0..16) → tela (pixels; y pra baixo; z maior = mais perto) e a matriz de rotação
+function guiProjection(model: BlockModel | MeshModel, size: number) {
   const { rotation, translation, scale } = model.gui;
-  // ordem do jogo: translação · rotação (x, depois y, depois z, como Quaternionf.rotationXYZ) · escala
   const rotationMatrix = multiply(multiply(rotationX(rotation[0] * DEG), rotationY(rotation[1] * DEG)), rotationZ(rotation[2] * DEG));
   const pixelsPerUnit = size / 16;
-
-  // modelo (0..16) → tela (pixels; y pra baixo; z maior = mais perto)
   const toScreen = (v: Vec3): Vec3 => {
     const centered: Vec3 = [(v[0] - 8) * scale[0], (v[1] - 8) * scale[1], (v[2] - 8) * scale[2]];
     const [x, y, z] = apply(rotationMatrix, centered);
     return [(x + translation[0]) * pixelsPerUnit + size / 2, size / 2 - (y + translation[1]) * pixelsPerUnit, z];
   };
+  return { toScreen, rotationMatrix };
+}
+
+function renderBlock(model: BlockModel, options: RenderOptions, out: Uint8ClampedArray, missing: string[]) {
+  const { size } = options;
+  const depth = new Float32Array(size * size).fill(-Infinity);
+  const { toScreen, rotationMatrix } = guiProjection(model, size);
 
   for (const element of model.elements) {
     const rotate = elementRotation(element);
@@ -197,6 +201,44 @@ function renderBlock(model: BlockModel, options: RenderOptions, out: Uint8Clampe
           blend(out, i * 4, r * tr * light, g * tg * light, bl * tb * light, alpha);
         }, size);
       }
+    }
+  }
+}
+
+// malha de quadrados (modelos especiais exportados pelo jogo): mesma projeção dos blocos, mas cada quadrado
+// já vem com os 4 vértices e uv (0..1). a normal sai do produto vetorial dos vértices na tela
+function renderMesh(model: MeshModel, options: RenderOptions, out: Uint8ClampedArray, missing: string[]) {
+  const { size } = options;
+  const depth = new Float32Array(size * size).fill(-Infinity);
+  const { toScreen } = guiProjection(model, size);
+  for (const quad of model.quads) {
+    const texture = options.textures(quad.texture);
+    if (!texture) {
+      missing.push(quad.texture);
+      continue;
+    }
+    const corners = quad.vertices.map(toScreen);
+    // normal em espaço de tela (y da tela é invertido, então desfaz antes de calcular a luz)
+    const a = subtract(corners[1]!, corners[0]!);
+    const b = subtract(corners[2]!, corners[0]!);
+    const normal: Vec3 = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const length = Math.hypot(normal[0], normal[1], normal[2]) || 1;
+    const screenNormal: Vec3 = [normal[0] / length, -normal[1] / length, normal[2] / length];
+    // modelos de entidade costumam ser desenhados dos dois lados (cutout sem culling), então não descarta pela normal;
+    // a luz usa o lado que está virado pra tela
+    const facing: Vec3 = screenNormal[2] < 0 ? [-screenNormal[0], -screenNormal[1], -screenNormal[2]] : screenNormal;
+    const light = brightness(facing, true, model.light);
+    const [tr, tg, tb] = quad.tint === TINT_NONE ? [1, 1, 1] : [((quad.tint >> 16) & 255) / 255, ((quad.tint >> 8) & 255) / 255, (quad.tint & 255) / 255];
+    const uvs = quad.uvs.map(([u, v]) => [u * 16, v * 16] as [number, number]);
+    for (const [i, j, k] of [[0, 1, 2], [0, 2, 3]] as const) {
+      rasterTriangle(corners[i]!, corners[j]!, corners[k]!, uvs[i]!, uvs[j]!, uvs[k]!, (x, y, z, u, v) => {
+        const index = y * size + x;
+        if (z < depth[index]!) return;
+        const [r, g, bl, alpha] = sample(texture, u / 16, v / 16);
+        if (alpha === 0) return;
+        if (alpha === 255) depth[index] = z;
+        blend(out, index * 4, r * tr * light, g * tg * light, bl * tb * light, alpha);
+      }, size);
     }
   }
 }
@@ -240,6 +282,7 @@ export function renderIcon(model: IconModel, options: RenderOptions): Icon {
   const draw = (part: IconModel) => {
     if (part.kind === 'flat') renderFlat(part, options, out, missing);
     else if (part.kind === 'block') renderBlock(part, options, out, missing);
+    else if (part.kind === 'mesh') renderMesh(part, options, out, missing);
     else if (part.kind === 'composite') part.parts.forEach(draw);
   };
   draw(model);

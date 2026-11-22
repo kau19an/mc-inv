@@ -14,6 +14,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.Lifecycle;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.JsonOps;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -24,6 +26,9 @@ import java.nio.file.Path;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelPart;
@@ -49,13 +54,7 @@ public final class SpecialModelsDump {
 
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
-    // a api muda entre versões (na 26.3, bootstrap() sem parâmetro; no 26.4, recebe um registro):
-    // chama o que existir sem parâmetro e pega o CODEC por reflexão, pra compilar contra qualquer uma
-    for (Method method : SpecialModelRenderers.class.getMethods()) {
-      if (method.getName().equals("bootstrap") && method.getParameterCount() == 0) method.invoke(null);
-    }
-    @SuppressWarnings("unchecked")
-    Codec<SpecialModelRenderer.Unbaked<?>> codec = (Codec<SpecialModelRenderer.Unbaked<?>>) SpecialModelRenderers.class.getField("CODEC").get(null);
+    Codec<SpecialModelRenderer.Unbaked<?>> codec = specialModelCodec();
 
     EntityModelSet models = EntityModelSet.vanilla();
     SpriteGetter sprites = SpecialModelsDump::fakeSprite;
@@ -88,6 +87,29 @@ public final class SpecialModelsDump {
       }
     }
     Files.writeString(output, new GsonBuilder().disableHtmlEscaping().create().toJson(result));
+  }
+
+  // a api muda entre versões, então tudo por reflexão (compila contra qualquer uma):
+  // - 26.3: bootstrap() sem parâmetro preenche um mapa interno, e o CODEC estático usa esse mapa
+  // - 26.4: bootstrap(registro) preenche um registro do cliente; a gente cria um registro próprio,
+  //   pede pro jogo preencher e monta o mesmo "dispatch" do CODEC em cima dele
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static Codec<SpecialModelRenderer.Unbaked<?>> specialModelCodec() throws ReflectiveOperationException {
+    for (Method method : SpecialModelRenderers.class.getMethods()) {
+      if (!method.getName().equals("bootstrap")) continue;
+      if (method.getParameterCount() == 0) {
+        method.invoke(null);
+        return (Codec<SpecialModelRenderer.Unbaked<?>>) SpecialModelRenderers.class.getField("CODEC").get(null);
+      }
+      if (method.getParameterCount() == 1) {
+        MappedRegistry registry = new MappedRegistry(
+            ResourceKey.createRegistryKey(Identifier.withDefaultNamespace("special_model_renderer_type")), Lifecycle.stable());
+        method.invoke(null, registry);
+        Codec<MapCodec> types = registry.byNameCodec();
+        return (Codec) types.dispatch(unbaked -> ((SpecialModelRenderer.Unbaked) unbaked).type(), type -> (MapCodec) type);
+      }
+    }
+    throw new IllegalStateException("SpecialModelRenderers.bootstrap não encontrado");
   }
 
   private static TextureAtlasSprite fakeSprite(SpriteId id) {

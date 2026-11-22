@@ -1,9 +1,0 @@
-net.minecraft.client.renderer.SubmitNodeCollector
-net.minecraft.client.renderer.OrderedSubmitNodeCollector
-net.minecraft.client.renderer.item.SpecialModelWrapper
-net.minecraft.client.renderer.special.SpecialModelRenderers
-net.minecraft.client.resources.model.sprite.SpriteGetter
-net.minecraft.client.resources.model.sprite.SpriteId
-net.minecraft.client.model.geom.EntityModelSet
-net.minecraft.client.model.Model
-net.minecraft.client.renderer.PlayerSkinRenderCache
