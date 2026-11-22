@@ -26,6 +26,8 @@ interface VersionIndex {
   id: string;
   tabs: { id: string; pt: string; en: string }[];
   items: Record<string, { pt: string; en: string }>;
+  // itens sem ícone e tamanho da malha de cada modelo especial (-1 = erro). lotes antigos não têm
+  health?: { blankIcons: string[]; specials: Record<string, number> };
 }
 
 const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf8')) as {
@@ -80,11 +82,38 @@ const due = retired.filter((entry) => now - Date.parse(entry.retiredAt) >= RETIR
 const keep = retired.filter((entry) => !due.includes(entry) && !live.has(entry.prefix));
 for (const prefix of replaced) if (!keep.some((entry) => entry.prefix === prefix)) keep.push({ prefix, retiredAt: new Date(now).toISOString() });
 
+// saúde dos ícones entre versões: algo que aparece numa versão e some em outra quase sempre é o pipeline que não
+// entendeu a api daquela época (ex.: o vaso decorado da 26.1, desenhado com submitModelPart), não o jogo
+const byId = new Map(indexes.map((index) => [index.id, index]));
+const chronological = [...versions].reverse().map((version) => byId.get(version.id)).filter((index): index is VersionIndex => Boolean(index?.health));
+const problems: string[] = [];
+const specialKeys = new Set(chronological.flatMap((index) => Object.keys(index.health!.specials)));
+for (const key of specialKeys) {
+  const counts = chronological.filter((index) => key in index.health!.specials).map((index) => [index.id, index.health!.specials[key]!] as const);
+  const broken = counts.filter(([, quads]) => quads <= 0).map(([id]) => id);
+  if (broken.length && broken.length < counts.length) problems.push(`- modelo especial ${key}: vazio em ${broken.join(', ')}`);
+}
+const rendered = new Map<string, number>(); // item → em quantas versões ele tem ícone
+for (const index of chronological) {
+  const blank = new Set(index.health!.blankIcons);
+  for (const key of Object.keys(index.items)) if (!blank.has(key)) rendered.set(key, (rendered.get(key) ?? 0) + 1);
+}
+const blankIn = new Map<string, string[]>();
+for (const index of chronological) for (const key of index.health!.blankIcons) if (rendered.get(key)) (blankIn.get(key) ?? blankIn.set(key, []).get(key)!).push(index.id);
+for (const [key, ids] of blankIn) problems.push(`- item ${key}: sem ícone em ${ids.join(', ')} (nas outras versões tem)`);
+
 await mkdir(OUT, { recursive: true });
+await writeFile(
+  join(OUT, 'health.md'),
+  problems.length
+    ? `# ${problems.length} diferença(s) entre versões\n\nCada linha é algo que existe em algumas versões e some em outras.\n\n${problems.join('\n')}\n`
+    : `# Tudo certo\n\n${chronological.length} versões comparadas: nenhum ícone ou modelo especial some de uma versão pra outra.\n`,
+);
+for (const problem of problems.slice(0, 10)) console.log(`::warning title=Ícone diferente entre versões::${problem.slice(2)}`);
 await mkdir(join(ROOT, 'src/data'), { recursive: true });
 await writeFile(join(OUT, 'versions.json'), JSON.stringify(list));
 await writeFile(join(OUT, '_builds.json'), JSON.stringify(builds));
 await writeFile(join(OUT, '_retired.json'), JSON.stringify(keep));
 await writeFile(join(OUT, 'delete.txt'), due.map((entry) => `${entry.prefix}\n`).join(''));
 await writeFile(SITE_INDEX, `${JSON.stringify(siteIndex, null, 2)}\n`);
-console.log(`${versions.length} versões publicadas · ${Object.keys(siteIndex.items).length} itens no índice · ${due.length} lotes antigos apagados agora, ${keep.length} na espera`);
+console.log(`${problems.length} diferenças de ícones entre versões · ${versions.length} versões publicadas · ${Object.keys(siteIndex.items).length} itens no índice · ${due.length} lotes antigos apagados agora, ${keep.length} na espera`);

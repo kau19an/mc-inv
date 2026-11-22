@@ -195,6 +195,20 @@ jobs:
       - name: Montar a lista e o índice
         run: node scripts/data/publish.ts
 
+      # comparação dos ícones entre versões (texto longo, que o claude lê pela api)
+      - name: Relatório de saúde dos ícones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion=success
+          grep -q '^# Tudo certo' .cache/publish/health.md || conclusion=neutral
+          gh api "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name='mc-inv: saúde dos ícones' -f head_sha="$GITHUB_SHA" \
+            -f status=completed -f conclusion=$conclusion \
+            -f "output[title]=$(head -1 .cache/publish/health.md | sed 's/^# //')" \
+            -f 'output[summary]=Ícones e modelos especiais que aparecem numa versão e somem em outra.' \
+            -f "output[text]=$(head -c 65000 .cache/publish/health.md)" > /dev/null
+
       # a lista muda a cada versão nova: cache curto (5 minutos). o controle dos lotes não fica em cache nenhum
       - name: Enviar a lista pro R2
         run: |

@@ -177,7 +177,15 @@ public final class SpecialModelsDump {
         if (name.equals("order")) return proxy;
         if (name.equals("submitModel") && !method.isDefault()) {
           // submitModel(model, state, poseStack, renderType, light, overlay, tintedColor, uvMapping, outlineColor)
-          record(parts, (Model<?>) args[0], args[1], (PoseStack) args[2], args[3], (int) args[6], args[7]);
+          Model model = (Model) args[0];
+          model.setupAnim(args[1]);
+          record(parts, model.root(), (PoseStack) args[2], args[3], (int) args[6], args[7]);
+          return null;
+        }
+        if (name.equals("submitModelPart") && !method.isDefault()) {
+          // uma peça solta, sem modelo (26.1: vaso decorado, conduíte):
+          // submitModelPart(part, poseStack, renderType, light, overlay, sprite, sheeted, foil, tintedColor, crumbling, outlineColor)
+          record(parts, (ModelPart) args[0], (PoseStack) args[1], args[2], (int) args[8], args[5]);
           return null;
         }
         if (method.isDefault()) return InvocationHandler.invokeDefault(proxy, method, args);
@@ -187,11 +195,9 @@ public final class SpecialModelsDump {
     return (SubmitNodeCollector) Proxy.newProxyInstance(SubmitNodeCollector.class.getClassLoader(), new Class<?>[] {SubmitNodeCollector.class}, handler);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static void record(JsonArray parts, Model model, Object state, PoseStack poseStack, Object renderType, int tint, Object uvMapping) {
+  private static void record(JsonArray parts, ModelPart root, PoseStack poseStack, Object renderType, int tint, Object uvMapping) {
     // copia a transformação na hora: o renderizador continua mexendo na pilha depois de entregar
     Matrix4f start = new Matrix4f(poseStack.last().pose());
-    model.setupAnim(state);
     PoseStack stack = new PoseStack();
     stack.last().pose().set(start);
 
@@ -205,7 +211,6 @@ public final class SpecialModelsDump {
     part.addProperty("tint", tint);
 
     JsonArray quads = new JsonArray();
-    ModelPart root = model.root();
     root.visit(stack, (pose, path, index, cube) -> {
       for (ModelPart.Polygon polygon : cube.polygons) {
         JsonArray quad = new JsonArray();

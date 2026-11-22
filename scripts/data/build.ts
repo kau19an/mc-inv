@@ -224,11 +224,11 @@ async function buildVersion(id: string) {
     typeof component === 'string' ? component : typeof component.translate === 'string' ? (lang[locale]![component.translate] ?? lang.en_us![component.translate] ?? component.translate) : String(component.text ?? '');
   const indexItems: Record<string, { pt: string; en: string }> = {};
   for (const item of Object.values(items)) indexItems[item.id] ??= { pt: nameOf('pt_br', item.name), en: nameOf('en_us', item.name) };
-  await writeJson(join(outDir, 'index.json'), {
+  const versionIndex = {
     id,
     tabs: tabs.map((tab) => ({ id: tab.id, pt: nameOf('pt_br', tab.name), en: nameOf('en_us', tab.name) })),
     items: indexItems,
-  });
+  };
   // nomes dos itens nos idiomas das outras wikis (opção "Minecraft Wiki" com idioma fixo). baixado só quando
   // alguém escolhe aquela wiki; os idiomas da interface já têm tudo em lang/
   await mkdir(join(outDir, 'wiki'), { recursive: true });
@@ -286,8 +286,18 @@ async function buildVersion(id: string) {
   const glintFile = join(versionDir, 'assets/minecraft/textures/misc/enchanted_glint_item.png');
   if (existsSync(glintFile)) await writeFile(join(outDir, 'glint.png'), await readFile(glintFile));
 
-  const blank = Object.values(icons.bundle.items).filter(([index]) => ['empty', 'special'].includes(icons.bundle.models[index]!.kind)).length;
-  if (blank) console.log(`::warning title=Ícones sem modelo::${id}: ${blank} itens sem ícone (vazio ou especial sem malha)`);
+  const blankIcons = Object.entries(icons.bundle.items)
+    .filter(([, [index]]) => ['empty', 'special'].includes(icons.bundle.models[index]!.kind))
+    .map(([key]) => key)
+    .sort();
+  if (blankIcons.length) console.log(`::warning title=Ícones sem modelo::${id}: ${blankIcons.length} itens sem ícone (${blankIcons.slice(0, 12).join(', ')})`);
+
+  // index.json + "saúde" da versão: itens sem ícone e o tamanho da malha de cada modelo especial. o publish.ts
+  // compara entre as versões e avisa quando algo some numa versão mas existe nas outras (render que quebrou)
+  const specials = Object.fromEntries(
+    Object.entries(meshes).map(([key, mesh]) => [key, mesh.error ? -1 : (mesh.parts ?? []).reduce((total, part) => total + part.quads.length, 0)]),
+  );
+  await writeJson(join(outDir, 'index.json'), { ...versionIndex, health: { blankIcons, specials } });
 
   // validação: um idioma sem a maior parte das traduções indica arquivo errado ou formato novo
   for (const locale of LOCALES) {
