@@ -11,6 +11,7 @@ export interface Settings {
   operatorItemsTab: boolean; // aba "Blocos de operador" (desligada por padrão, como no jogo)
   wikiLanguage: WikiLanguage; // wiki que os itens abrem: 'auto' segue o idioma da interface
   version: string; // versão do jogo escolhida em "Versões..." ('' = a release mais recente)
+  hiddenVersionKinds: string[]; // tipos escondidos pelo filtro "Tipos..." da tela "Versões..." (snapshot, pre_release…)
 }
 
 const KEY = 'mc-inv:settings';
@@ -19,7 +20,7 @@ const LEGACY_ADVANCED_KEY = 'mc-inv:advanced-tooltips'; // antes das opções, o
 // nome de jogador válido no jogo: letras, números e sublinhado, até 16
 export const PLAYER_NAME = /^[A-Za-z0-9_]{1,16}$/;
 
-export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '', operatorItemsTab: false, wikiLanguage: 'auto', version: '' };
+export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '', operatorItemsTab: false, wikiLanguage: 'auto', version: '', hiddenVersionKinds: [] };
 
 export function loadSettings(): Settings {
   try {
@@ -32,6 +33,9 @@ export function loadSettings(): Settings {
       operatorItemsTab: saved?.operatorItemsTab === true,
       wikiLanguage: isWikiLanguage(saved?.wikiLanguage) ? saved.wikiLanguage : 'auto',
       version: typeof saved?.version === 'string' && saved.version.length <= 64 ? saved.version : '',
+      hiddenVersionKinds: Array.isArray(saved?.hiddenVersionKinds)
+        ? saved.hiddenVersionKinds.filter((kind): kind is string => typeof kind === 'string' && /^[a-z_]{1,32}$/.test(kind)).slice(0, 16)
+        : [],
       playerName: typeof saved?.playerName === 'string' && PLAYER_NAME.test(saved.playerName) ? saved.playerName : '',
     };
   } catch {

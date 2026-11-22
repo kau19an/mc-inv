@@ -41,6 +41,12 @@ const FRAME_SPRITES: Record<string, string> = {
   tooltip_frame: 'tooltip/frame',
   scroller: 'widget/scroller', // barra de rolagem das listas (AbstractScrollArea)
   scroller_background: 'widget/scroller_background',
+  // caixa de seleção (Checkbox) e fundo de janelinha (PopupScreen): filtro de tipos da tela "Versões..."
+  checkbox: 'widget/checkbox',
+  checkbox_highlighted: 'widget/checkbox_highlighted',
+  checkbox_selected: 'widget/checkbox_selected',
+  checkbox_selected_highlighted: 'widget/checkbox_selected_highlighted',
+  popup_background: 'popup/background',
 };
 
 // texturas repetidas (em blocos) das telas de menu com lista: fundo da tela, fundo da lista e as linhas que

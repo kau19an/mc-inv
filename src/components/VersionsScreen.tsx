@@ -4,9 +4,12 @@
 // as versões ficam agrupadas por drop ("Deep Freeze", "Wilderness Bound"…), em grupos recolhidos que abrem no "+",
 // com a linha vertical de árvore à esquerda das versões de dentro.
 // escolher já aplica (não tem "Confirmar"): clicar numa versão, as setas do teclado ou os atalhos "Mais recente" e
-// "Snapshot", que seguem a mais recente de cada tipo (quando sair uma nova, o site passa pra ela)
+// "Snapshot", que seguem a mais recente de cada tipo (quando sair uma nova, o site passa pra ela).
+// o botão "Tipos..." ao lado da busca abre uma janelinha (fundo popup/background do jogo) com uma caixa de seleção
+// por tipo de versão (Lançamento, Snapshot, Pre-Release, Release Candidate…): os desmarcados somem da lista
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { FRAME_CLASS, GuiButton, fitWidth, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
+import GameCheckbox from './gui/GameCheckbox.tsx';
 import GameTextField from './gui/GameTextField.tsx';
 import { useWidgetTooltip } from './gui/useWidgetTooltip.tsx';
 import { LATEST_RELEASE, LATEST_SNAPSHOT, type VersionData, type VersionEntry, type VersionList } from '@/lib/gui/data.ts';
@@ -36,6 +39,10 @@ const LATEST_SNAPSHOT_COLOR = 0xffff55; // §e
 const UPCOMING_COLOR = 0xffaa00; // §6, o "Em breve" dos drops em desenvolvimento
 const OUTLINE_FOCUSED = 0xffffff; // AbstractSelectionList: contorno branco com a lista em foco, cinza sem foco
 const OUTLINE_UNFOCUSED = 0x808080;
+const POPUP_PADDING = 8; // espaço entre a moldura da janelinha (6 px) e as caixas
+const CHECKBOX_GAP = 4;
+// ordem dos tipos no filtro: do mais estável pro mais experimental, e os antigos/especiais por último
+const KIND_ORDER = ['release', 'release_candidate', 'pre_release', 'snapshot', 'april_fools', 'old_beta', 'old_alpha'];
 
 interface Props {
   data: VersionData;
@@ -69,6 +76,9 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   // largura das linhas: 304 ou, em tela estreita, o que couber (sobrando lugar pra barra de rolagem)
   const rowWidth = fitWidth(ROW_WIDTH, unit) - (fitWidth(ROW_WIDTH, unit) < ROW_WIDTH ? (SCROLLBAR_WIDTH + SCROLLBAR_GAP) * 2 : 0);
   const buttonWidth = Math.min(BUTTON_WIDTH, Math.floor((rowWidth - GAP) / 2));
+  // "Tipos..." do tamanho do texto (com a margem do botão), e a busca ocupa o resto da linha
+  const filterWidth = font(strings.versionsFilter) + 16;
+  const searchWidth = rowWidth - filterWidth - GAP;
 
   useEffect(() => {
     dialogRef.current?.showModal();
@@ -78,16 +88,44 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   // tipo da versão: os de desenvolvimento com o nome da Mojang ("Snapshot", "Pre-Release", "Release Candidate")
   const kindName = (entry: VersionEntry) => developmentKindName(entry.kind) ?? strings.versionKinds[entry.kind] ?? entry.kind;
 
+  // filtro "Tipos...": os tipos que existem na lista, com quantas versões cada um tem
+  const hidden = new Set(settings.hiddenVersionKinds);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const kinds = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entry of list.versions) counts.set(entry.kind, (counts.get(entry.kind) ?? 0) + 1);
+    const rank = (kind: string) => (KIND_ORDER.includes(kind) ? KIND_ORDER.indexOf(kind) : KIND_ORDER.length);
+    return [...counts].sort(([a], [b]) => rank(a) - rank(b)).map(([kind, count]) => ({ kind, count }));
+  }, [list]);
+  const kindLabel = (kind: string) => developmentKindName(kind as VersionEntry['kind']) ?? strings.versionKinds[kind] ?? kind;
+  const setKindShown = (kind: string, show: boolean) => {
+    const next = new Set(hidden);
+    if (show) next.delete(kind);
+    else next.add(kind);
+    onChange({ hiddenVersionKinds: [...next] });
+  };
+  // fecha a janelinha clicando fora dela
+  useEffect(() => {
+    if (!filterOpen) return;
+    const close = (event: PointerEvent) => {
+      if (!filterRef.current?.contains(event.target as Node)) setFilterOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [filterOpen]);
+
   // busca: todas as palavras no id, no tipo ou no nome do drop ("snapshot 26.4", "pré", "deep")
   const normalize = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
   const terms = normalize(query).split(/\s+/).filter(Boolean);
   const shown = useMemo(() => {
-    if (!terms.length) return list.versions;
     return list.versions.filter((entry) => {
+      if (hidden.has(entry.kind)) return false;
+      if (!terms.length) return true;
       const haystack = normalize(`${entry.id} ${kindName(entry)} ${dropName(dropOf(entry.id))}`);
       return terms.every((term) => haystack.includes(term));
     });
-  }, [query, list, strings]);
+  }, [query, list, strings, settings.hiddenVersionKinds]);
 
   // drops na ordem da lista (mais novo primeiro), cada um com as suas versões (também mais nova primeiro)
   const drops = useMemo(() => {
@@ -146,7 +184,10 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   const choose = (setting: string, target: string | null) => {
     select(setting);
     if (!target) return;
-    if (!shown.some((entry) => entry.id === target)) setQuery('');
+    // a versão escolhida precisa aparecer: o tipo dela volta pro filtro e a busca que a esconde é limpa
+    const kind = list.versions.find((entry) => entry.id === target)?.kind;
+    if (kind && hidden.has(kind)) setKindShown(kind, true);
+    if (!shown.some((entry) => entry.id === target) && terms.length) setQuery('');
     const drop = dropOf(target);
     setExpanded((previous) => (previous.has(drop) ? previous : new Set(previous).add(drop)));
     setActive(`version-${target}`);
@@ -225,6 +266,12 @@ export default function VersionsScreen({ data, list, settings, current, strings,
       class="m-0 h-dvh max-h-none w-dvw max-w-none bg-transparent p-0 text-white backdrop-blur-[var(--menu-blur)] backdrop:bg-transparent"
       style={{ ...gameText, ...tileStyle(data, 'menu_background', 'rgb(0 0 0 / 0.7)') }}
       onClose={onClose}
+      // Esc com a janelinha do filtro aberta fecha só ela, não a tela
+      onCancel={(event) => {
+        if (!filterOpen) return;
+        event.preventDefault();
+        setFilterOpen(false);
+      }}
     >
       <div class="flex h-full flex-col">
         {/* cabeçalho: título, busca e os dois atalhos */}
@@ -233,7 +280,42 @@ export default function VersionsScreen({ data, list, settings, current, strings,
             {strings.versionsTitle}
           </h2>
           <div class="flex flex-col" style={{ width: u(rowWidth), gap: u(GAP) }}>
-            <GameTextField data={data} value={query} label={strings.versionsSearch} placeholder={strings.versionsSearch} width={rowWidth} maxLength={64} onInput={setQuery} />
+            <div class="flex" style={{ gap: u(GAP) }}>
+              <GameTextField data={data} value={query} label={strings.versionsSearch} placeholder={strings.versionsSearch} width={searchWidth} maxLength={64} onInput={setQuery} />
+              <div ref={filterRef} class="relative">
+                <GuiButton
+                  data={data}
+                  width={filterWidth}
+                  label={strings.versionsFilter}
+                  aria-haspopup="true"
+                  aria-expanded={filterOpen}
+                  aria-controls="versions-filter"
+                  onClick={() => setFilterOpen((open) => !open)}
+                />
+                {filterOpen && (
+                  <div
+                    id="versions-filter"
+                    role="group"
+                    aria-labelledby="versions-filter-title"
+                    class={`${FRAME_CLASS} absolute right-0 z-10 flex flex-col`}
+                    style={{
+                      ...frameStyle(data, 'popup_background'),
+                      ...(data.gui.frames?.popup_background ? {} : { background: 'rgb(0 0 0 / 0.9)' }),
+                      top: `calc(100% + ${u(GAP)})`,
+                      padding: u(POPUP_PADDING - (data.gui.frames?.popup_background?.border ?? 0)),
+                      gap: u(CHECKBOX_GAP),
+                    }}
+                  >
+                    <p id="versions-filter-title" class="whitespace-nowrap" style={{ textShadow: textShadow(0xffffff), marginBottom: u(2) }}>
+                      {strings.versionsFilterTitle}
+                    </p>
+                    {kinds.map(({ kind, count }) => (
+                      <GameCheckbox key={kind} data={data} label={`${kindLabel(kind)} (${count})`} checked={!hidden.has(kind)} onChange={(checked) => setKindShown(kind, checked)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             <div class="flex" style={{ gap: u(GAP) }}>
               <GuiButton data={data} width={buttonWidth} label={strings.versionsLatest} aria-pressed={settings.version === LATEST_RELEASE} onClick={() => choose(LATEST_RELEASE, list.latest.release)} disabled={!list.latest.release} {...tooltip('latest', strings.versionsLatestTooltip)} />
               <GuiButton data={data} width={buttonWidth} label={strings.versionsDevelopment} aria-pressed={settings.version === LATEST_SNAPSHOT} onClick={() => choose(LATEST_SNAPSHOT, list.latest.snapshot)} disabled={!list.latest.snapshot} {...tooltip('development', strings.versionsDevelopmentTooltip)} />
