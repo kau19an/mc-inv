@@ -91,3 +91,6 @@ export function textRuns(component: unknown, translations: Translations, base: T
 }
 
 export const plainText = (runs: TextRun[]) => runs.map((run) => run.text).join('');
+
+// uma chave de tradução do jogo já formatada ("%s: %s" com os argumentos), em texto puro
+export const translate = (translations: Translations, key: string, ...args: string[]) => plainText(textRuns({ translate: key, with: args }, translations));

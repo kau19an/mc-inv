@@ -15,6 +15,7 @@ import type { VersionKind } from './lib/versions.ts';
 import { buildIconBundle, toWebp } from './icons/bundle.ts';
 import { buildGuiBundle } from './gui.ts';
 import { buildItemTags } from './tags.ts';
+import { UI_KEYS } from '../../src/lib/gui/ui-keys.ts';
 import type { SpecialMeshes } from './icons/resolve.ts';
 
 // idiomas expostos na interface por enquanto (a busca multilíngue usa todos, mas isso vem na fase 4)
@@ -155,6 +156,9 @@ async function buildVersion(id: string) {
       items: tab.items.map(register),
     };
   });
+
+  // textos da interface que vêm do jogo (opções, botões)
+  for (const key of Object.values(UI_KEYS)) usedKeys.add(key);
 
   // traduções: só as chaves usadas. se faltar alguma no idioma, o site cai no en_us
   const lang: Record<string, Record<string, string>> = {};

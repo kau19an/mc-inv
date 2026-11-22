@@ -5,7 +5,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import GameTooltip, { lineOf, type TooltipLine } from './gui/GameTooltip.tsx';
 import { FORMAT_COLORS } from '@/lib/gui/colors.ts';
-import { textRuns } from '@/lib/gui/text.ts';
+import { textRuns, translate } from '@/lib/gui/text.ts';
+import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
 import { iconCanvas } from '@/lib/gui/icons.ts';
 import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
 import { wikiUrl } from '@/lib/gui/wiki.ts';
@@ -652,11 +653,9 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
         </div>
       </div>
 
-      <GuiButton data={data} style={{ width: `${OPTIONS_WIDTH * unit}px`, height: `${OPTIONS_HEIGHT * unit}px`, padding: '0' }} onClick={() => setSettingsOpen(true)}>
-        {strings.options}
-      </GuiButton>
+      <GuiButton data={data} width={OPTIONS_WIDTH} height={OPTIONS_HEIGHT} label={translate(data, UI_KEYS.optionsButton)} onClick={() => setSettingsOpen(true)} />
 
-      {settingsOpen && <SettingsScreen data={data} settings={settings} strings={strings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsScreen data={data} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }
