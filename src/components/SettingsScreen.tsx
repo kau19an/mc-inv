@@ -5,12 +5,12 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { FRAME_CLASS, GuiButton, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
 import GameTooltip, { lineOf, wrapText, type TooltipPlacement } from './gui/GameTooltip.tsx';
 import { LOCALES, type VersionData } from '@/lib/gui/data.ts';
-import type { Settings } from '@/lib/gui/settings.ts';
-import type { SkinError } from '@/lib/gui/skin.ts';
+import { PLAYER_NAME, type Settings } from '@/lib/gui/settings.ts';
+import { fetchPlayerSkin, skinFace, type SkinError } from '@/lib/gui/skin.ts';
 import { HTML_LANG, type Strings } from '@/lib/gui/strings.ts';
 import { translate } from '@/lib/gui/text.ts';
 import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
-import { WIKI_CHOICES, resolveWiki, wikiHost, type WikiCode } from '@/lib/gui/wiki.ts';
+import { WIKI_LANGUAGES, resolveWiki, wikiHost, type WikiCode, type WikiLanguage } from '@/lib/gui/wiki.ts';
 
 // medidas do jogo (OptionsScreen): botões de 150×20 em duas colunas, 4 px entre eles (ou uma coluna, se não couber);
 // "Concluído" com 200 de largura
@@ -19,6 +19,8 @@ const DONE_WIDTH = 200;
 const GAP = 4;
 const ROW_WIDTH = BUTTON_WIDTH * 2 + GAP; // largura das duas colunas juntas
 const CONFIRM_WIDTH = 70;
+const PREVIEW_SIZE = 20; // quadrado da prévia do rosto: a altura da caixa de texto
+const PREVIEW_DELAY_MS = 400; // espera a pessoa parar de digitar antes de buscar
 const LABEL_COLOR = 0xa0a0a0; // cor dos rótulos acima das caixas de texto do jogo (ex.: "Nome do mundo")
 const TEXT_COLOR = 0xe0e0e0; // texto dentro do EditBox
 const ERROR_COLOR = 0xff5555; // §c
@@ -134,6 +136,28 @@ function GameTextField({ data, value, label, width, onInput, onEnter }: { data: 
   );
 }
 
+// quadradinho com o rosto da skin, na moldura da caixa de texto do jogo (ou no visual reserva dela).
+// o rosto tem 8×8 pixels da skin, desenhados a 2 pixels da gui cada (16×16), centralizado
+function SkinPreview({ data, face }: { data: VersionData; face: ImageData | null }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const ctx = ref.current?.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, 8, 8);
+    if (face) ctx.putImageData(face, 0, 0);
+  }, [face]);
+  const framed = Boolean(data.gui.frames?.text_field);
+  return (
+    <div
+      class={framed ? `${FRAME_CLASS} relative grid shrink-0 place-items-center` : 'relative grid shrink-0 place-items-center border-solid border-[#a0a0a0] bg-black'}
+      style={{ ...(framed ? frameStyle(data, 'text_field') : { borderWidth: u(1) }), width: u(PREVIEW_SIZE), height: u(PREVIEW_SIZE) }}
+      aria-hidden="true"
+    >
+      <canvas ref={ref} width={8} height={8} class="[image-rendering:pixelated]" style={{ width: u(16), height: u(16) }} />
+    </div>
+  );
+}
+
 export default function SettingsScreen({ data, settings, strings, skinStatus, appliedName, unit, onChange, onPlayerName, onClose }: Props) {
   const [name, setName] = useState(settings.playerName);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -196,10 +220,44 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
     return name.charAt(0).toLocaleUpperCase(htmlLang) + name.slice(1);
   };
   const wikiValue = settings.wikiLanguage === 'auto' ? strings.wikiAuto : wikiLanguageName(settings.wikiLanguage);
+  // ordem do botão: Automático e depois as wikis em ordem alfabética do nome no idioma da interface
+  // ("Alemão, Chinês, Chinês clássico…" em português; "Chinese, Czech, Dutch…" em inglês)
+  const wikiChoices = useMemo<WikiLanguage[]>(() => {
+    const collator = new Intl.Collator(htmlLang);
+    const codes = WIKI_LANGUAGES.map((wiki) => wiki.code).sort((a, b) => collator.compare(wikiLanguageName(a), wikiLanguageName(b)));
+    return ['auto', ...codes];
+  }, [htmlLang]);
   const cycleWiki = (step: number) => {
-    const index = WIKI_CHOICES.indexOf(settings.wikiLanguage);
-    onChange({ wikiLanguage: WIKI_CHOICES[(index + step + WIKI_CHOICES.length) % WIKI_CHOICES.length]! });
+    const index = wikiChoices.indexOf(settings.wikiLanguage);
+    onChange({ wikiLanguage: wikiChoices[(index + step + wikiChoices.length) % wikiChoices.length]! });
   };
+
+  // prévia do rosto do nome digitado: busca quando a pessoa para de digitar (a resposta fica guardada, então o
+  // Confirmar depois é instantâneo). campo vazio = Steve (o que vai ser aplicado); nome inválido ou não
+  // encontrado = quadrado vazio. enquanto busca, fica o rosto anterior
+  const [face, setFace] = useState<ImageData | null>(null);
+  useEffect(() => {
+    const defaultSkin = data.player?.defaultSkin;
+    if (!trimmed) {
+      setFace(defaultSkin ? skinFace(defaultSkin) : null);
+      return;
+    }
+    if (!PLAYER_NAME.test(trimmed)) {
+      setFace(null);
+      return;
+    }
+    let current = true;
+    const timer = setTimeout(async () => {
+      const result = await fetchPlayerSkin(trimmed);
+      if (!current) return;
+      const skin = 'error' in result ? null : (result.skin ?? defaultSkin ?? null);
+      setFace(skin ? skinFace(skin) : null);
+    }, PREVIEW_DELAY_MS);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [trimmed, data]);
 
   return (
     <dialog
@@ -262,7 +320,8 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
               submitName();
             }}
           >
-            <GameTextField data={data} value={name} label={strings.playerName} width={ROW_WIDTH - GAP - CONFIRM_WIDTH} onInput={setName} onEnter={submitName} />
+            <SkinPreview data={data} face={face} />
+            <GameTextField data={data} value={name} label={strings.playerName} width={ROW_WIDTH - PREVIEW_SIZE - GAP - GAP - CONFIRM_WIDTH} onInput={setName} onEnter={submitName} />
             <GuiButton
               data={data}
               type="submit"

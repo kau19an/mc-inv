@@ -12,7 +12,45 @@ export interface PlayerSkin {
 
 export type SkinError = 'invalid_name' | 'not_found' | 'upstream' | 'unavailable';
 
-export async function fetchPlayerSkin(name: string): Promise<PlayerSkin | { error: SkinError }> {
+// cada nome é buscado uma vez por visita: a prévia do rosto (enquanto digita) e o Confirmar usam a mesma resposta.
+// erro passageiro (Mojang fora, função indisponível) não fica guardado, pra dar pra tentar de novo
+type SkinResult = PlayerSkin | { error: SkinError };
+const cache = new Map<string, Promise<SkinResult>>();
+
+export function fetchPlayerSkin(name: string): Promise<SkinResult> {
+  const key = name.toLowerCase(); // nomes do jogo não diferenciam maiúsculas
+  let request = cache.get(key);
+  if (!request) {
+    request = requestPlayerSkin(name).catch(() => ({ error: 'upstream' as const }));
+    cache.set(key, request);
+    request.then((result) => {
+      if ('error' in result && (result.error === 'upstream' || result.error === 'unavailable')) cache.delete(key);
+    });
+  }
+  return request;
+}
+
+// rosto da skin, como o jogo desenha nas listas de jogadores (PlayerFaceExtractor): frente da cabeça (8, 8) e,
+// por cima, a frente do "chapéu" (40, 8), 8×8 cada
+export function skinFace(skin: Skin): ImageData {
+  const face = new ImageData(8, 8);
+  for (const [left, top] of [[8, 8], [40, 8]] as const) {
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        const from = ((top + y) * skin.width + left + x) * 4;
+        const alpha = skin.data[from + 3]!;
+        if (!alpha) continue;
+        const to = (y * 8 + x) * 4;
+        const a = alpha / 255;
+        for (let c = 0; c < 3; c++) face.data[to + c] = Math.round(skin.data[from + c]! * a + face.data[to + c]! * (1 - a));
+        face.data[to + 3] = 255;
+      }
+    }
+  }
+  return face;
+}
+
+async function requestPlayerSkin(name: string): Promise<SkinResult> {
   let response: Response;
   try {
     response = await fetch(`/api/skin?nick=${encodeURIComponent(name)}`);
