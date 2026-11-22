@@ -29,6 +29,7 @@
     "@types/pngjs": "^6.0.5",
     "fflate": "^0.8.3",
     "pngjs": "^7.0.0",
+    "sharp": "^0.35.5",
     "typescript": "^5.9.3"
   }
 }

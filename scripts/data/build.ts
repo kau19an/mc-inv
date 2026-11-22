@@ -11,6 +11,8 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { CACHE_DIR } from './lib/files.ts';
 import type { VersionKind } from './lib/versions.ts';
+import { buildIconBundle, toWebp } from './icons/bundle.ts';
+import type { SpecialMeshes } from './icons/resolve.ts';
 
 // idiomas expostos na interface por enquanto (a busca multilíngue usa todos, mas isso vem na fase 4)
 const LOCALES = ['en_us', 'pt_br'];
@@ -121,9 +123,16 @@ async function buildVersion(id: string) {
   await writeJson(join(outDir, 'tabs.json'), { version: id, gameVersion: dump.version, tabs });
   await writeJson(join(outDir, 'items.json'), items);
   for (const locale of LOCALES) await writeJson(join(outDir, 'lang', `${locale}.json`), lang[locale]);
-  // geometria dos modelos especiais (baú, estandarte…), exportada pelo próprio jogo. vira parte dos ícones na fase 3
-  const specials = join(versionDir, 'specials.json');
-  if (existsSync(specials)) await writeFile(join(outDir, 'specials.json'), await readFile(specials));
+  // pacote de ícones (modelos resolvidos + atlas de texturas em webp sem perdas). a geometria dos modelos
+  // especiais (baú, estandarte…), exportada pelo jogo no dump, entra aqui dentro
+  const specialsFile = join(versionDir, 'specials.json');
+  const meshes = existsSync(specialsFile) ? await readJson<SpecialMeshes>(specialsFile) : {};
+  const icons = buildIconBundle(versionDir, Object.values(items).map((item) => item.id), meshes);
+  await writeFile(join(outDir, 'icons.json'), JSON.stringify(icons.bundle));
+  await writeFile(join(outDir, 'textures.webp'), await toWebp(icons.atlas));
+  if (icons.programmerAtlas) await writeFile(join(outDir, 'textures-programmer.webp'), await toWebp(icons.programmerAtlas));
+  const blank = Object.values(icons.bundle.items).filter(([index]) => ['empty', 'special'].includes(icons.bundle.models[index]!.kind)).length;
+  if (blank) console.log(`::warning title=Ícones sem modelo::${id}: ${blank} itens sem ícone (vazio ou especial sem malha)`);
 
   // validação: um idioma sem a maior parte das traduções indica arquivo errado ou formato novo
   for (const locale of LOCALES) {
