@@ -221,20 +221,24 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     };
   }, []);
 
-  const tab: TabInfo | undefined = data?.tabs[tabIndex];
-
-  // ligar/desligar a aba de operador muda a lista de abas: continua na mesma aba (pelo id), ou volta pra primeira
-  // se a aba aberta era a que sumiu
-  const currentTabId = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (!data) return;
-    const index = data.tabs.findIndex((candidate) => candidate.id === currentTabId.current);
-    if (index !== tabIndex) {
-      setTabIndex(Math.max(index, 0));
-      if (index < 0) setScroll(0);
+  // a lista de abas pode mudar (ligar/desligar a aba de operador). a aba aberta é guardada pela posição, então,
+  // quando a lista muda, reencontra a mesma aba pelo id NA HORA (antes de desenhar), pra não piscar nem pular de aba;
+  // se a aba aberta sumiu, volta pra primeira
+  const previousTabs = useRef<TabInfo[] | undefined>(undefined);
+  let currentIndex = tabIndex;
+  if (data && previousTabs.current && previousTabs.current !== data.tabs) {
+    const openId = previousTabs.current[tabIndex]?.id;
+    currentIndex = Math.max(
+      data.tabs.findIndex((candidate) => candidate.id === openId),
+      0,
+    );
+    if (currentIndex !== tabIndex) {
+      setTabIndex(currentIndex);
+      if (data.tabs[currentIndex]?.id !== openId) setScroll(0);
     }
-  }, [settings.operatorItemsTab]);
-  currentTabId.current = tab?.id;
+  }
+  previousTabs.current = data?.tabs;
+  const tab: TabInfo | undefined = data?.tabs[currentIndex];
 
   // índice da pesquisa: nome no idioma da interface + em inglês + id do jogo (sem acentos, sem maiúsculas)
   const searchIndex = useMemo(() => {
@@ -381,7 +385,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
         if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_front', slot.x - 4, y - 4);
       });
     }
-    if (hovered >= visible.length && hovered < PAGE) {
+    if (tab.type !== 'inventory' && hovered >= visible.length && hovered < PAGE) {
       const [x, y] = slotPosition(hovered);
       sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
       sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
@@ -799,58 +803,61 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
             />
           )}
 
-          <div
-            ref={gridRef}
-            role="group"
-            aria-label={`${strings.items}: ${tabName}`}
-            class="absolute"
-            style={box(CREATIVE.gridX - 1, TOP + CREATIVE.gridY - 1, CREATIVE.columns * CREATIVE.slot, CREATIVE.rows * CREATIVE.slot)}
-            onKeyDown={onGridKeyDown}
-            onPointerDown={onGridPointerDown}
-            onPointerMove={onGridPointerMove}
-            onPointerUp={onGridPointerUp}
-            onPointerCancel={() => (drag.current = null)}
-            onClickCapture={onGridClickCapture}
-            onPointerLeave={(event) => event.pointerType === 'mouse' && setHovered(-1)}
-          >
-            {visible.map((key, index) =>
-              !key ? null : isHotbarPlaceholder(key) ? (
-                // o papel de dica não é item de verdade: não abre a wiki, só mostra a dica
-                <div
-                  key={`${first}-${index}`}
-                  role="note"
-                  tabIndex={index === slotIndex ? 0 : -1}
-                  aria-label={itemName(key)}
-                  class="absolute outline-none"
-                  style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
-                  onFocus={(event) => {
-                    setFocusedSlot(index);
-                    setHovered(index);
-                    focusTooltip(event.currentTarget);
-                  }}
-                  onBlur={() => setHovered(-1)}
-                />
-              ) : (
-                <a
-                  key={`${first}-${index}`}
-                  href={wikiUrl(itemName(key), data.locale)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  tabIndex={index === slotIndex ? 0 : -1}
-                  aria-label={`${itemName(key)} (${strings.opensWiki})`}
-                  class="absolute cursor-pointer outline-none"
-                  style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
-                  draggable={false}
-                  onFocus={(event) => {
-                    setFocusedSlot(index);
-                    setHovered(index);
-                    focusTooltip(event.currentTarget);
-                  }}
-                  onBlur={() => setHovered(-1)}
-                />
-              ),
-            )}
-          </div>
+          {/* grade de itens (todas as abas menos a "Inventário", que tem os slots dela) */}
+          {tab.type !== 'inventory' && (
+            <div
+              ref={gridRef}
+              role="group"
+              aria-label={`${strings.items}: ${tabName}`}
+              class="absolute"
+              style={box(CREATIVE.gridX - 1, TOP + CREATIVE.gridY - 1, CREATIVE.columns * CREATIVE.slot, CREATIVE.rows * CREATIVE.slot)}
+              onKeyDown={onGridKeyDown}
+              onPointerDown={onGridPointerDown}
+              onPointerMove={onGridPointerMove}
+              onPointerUp={onGridPointerUp}
+              onPointerCancel={() => (drag.current = null)}
+              onClickCapture={onGridClickCapture}
+              onPointerLeave={(event) => event.pointerType === 'mouse' && setHovered(-1)}
+            >
+              {visible.map((key, index) =>
+                !key ? null : isHotbarPlaceholder(key) ? (
+                  // o papel de dica não é item de verdade: não abre a wiki, só mostra a dica
+                  <div
+                    key={`${first}-${index}`}
+                    role="note"
+                    tabIndex={index === slotIndex ? 0 : -1}
+                    aria-label={itemName(key)}
+                    class="absolute outline-none"
+                    style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
+                    onFocus={(event) => {
+                      setFocusedSlot(index);
+                      setHovered(index);
+                      focusTooltip(event.currentTarget);
+                    }}
+                    onBlur={() => setHovered(-1)}
+                  />
+                ) : (
+                  <a
+                    key={`${first}-${index}`}
+                    href={wikiUrl(itemName(key), data.locale)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    tabIndex={index === slotIndex ? 0 : -1}
+                    aria-label={`${itemName(key)} (${strings.opensWiki})`}
+                    class="absolute cursor-pointer outline-none"
+                    style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
+                    draggable={false}
+                    onFocus={(event) => {
+                      setFocusedSlot(index);
+                      setHovered(index);
+                      focusTooltip(event.currentTarget);
+                    }}
+                    onBlur={() => setHovered(-1)}
+                  />
+                ),
+              )}
+            </div>
+          )}
 
           {/* aba "Inventário": o jogador seguindo o cursor e os slots (vazios — o site não tem inventário de verdade) */}
           {tab.type === 'inventory' && (

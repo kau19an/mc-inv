@@ -19,7 +19,8 @@ const ROW_WIDTH = BUTTON_WIDTH * 2 + GAP; // largura das duas colunas juntas
 const CONFIRM_WIDTH = 70;
 const LABEL_COLOR = 0xa0a0a0; // cor dos rótulos acima das caixas de texto do jogo (ex.: "Nome do mundo")
 const TEXT_COLOR = 0xe0e0e0; // texto dentro do EditBox
-const ERROR_COLOR = 0xff5555;
+const ERROR_COLOR = 0xff5555; // §c
+const SUCCESS_COLOR = 0x55ff55; // §a
 
 // situação da busca da skin (mostrada embaixo do campo)
 export type SkinStatus =
@@ -40,23 +41,11 @@ interface Props {
   onClose: () => void;
 }
 
-function statusText(strings: Strings, status: SkinStatus): { text: string; error: boolean } | null {
-  switch (status.kind) {
-    case 'idle':
-      return null;
-    case 'loading':
-      return { text: strings.skinLoading, error: false };
-    case 'found':
-      return { text: strings.skinFound(status.name), error: false };
-    case 'default':
-      return { text: strings.skinDefault(status.name), error: false };
-    case 'reset':
-      return { text: strings.skinReset, error: false };
-    case 'error': {
-      const messages: Record<SkinError, string> = { invalid_name: strings.skinInvalid, not_found: strings.skinNotFound, upstream: strings.skinUpstream, unavailable: strings.skinUnavailable };
-      return { text: messages[status.error], error: true };
-    }
-  }
+// só duas mensagens (decisão do Kauan): deu certo (verde) ou não achou (vermelho). buscando e campo vazio: nada
+function statusText(strings: Strings, status: SkinStatus): { text: string; color: number } | null {
+  if (status.kind === 'found' || status.kind === 'default') return { text: strings.skinSuccess, color: SUCCESS_COLOR };
+  if (status.kind === 'error') return { text: strings.skinNotFound, color: ERROR_COLOR };
+  return null;
 }
 
 // caixa de texto do jogo (EditBox com moldura): moldura widget/text_field (clara com foco), texto a 4 px da borda.
@@ -180,7 +169,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, on
             <GuiButton data={data} type="submit" width={CONFIRM_WIDTH} label={strings.confirm} />
           </form>
           {status && (
-            <p role="status" class="self-start" style={{ color: hex(status.error ? ERROR_COLOR : LABEL_COLOR), textShadow: textShadow(status.error ? ERROR_COLOR : LABEL_COLOR) }}>
+            <p role="status" class="self-start" style={{ color: hex(status.color), textShadow: textShadow(status.color) }}>
               {status.text}
             </p>
           )}

@@ -1,7 +1,7 @@
 // peças de interface em html com a cara do jogo: molduras "nine slice" (painel, slot, botão, tooltip) e texto
 // com a fonte do jogo. tudo medido em pixels da gui: `--u` (px de css por pixel da gui) vem do inventário
 import type { ButtonHTMLAttributes } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { VersionData } from '@/lib/gui/data.ts';
 
 // n pixels da gui em css
@@ -43,7 +43,8 @@ export function ScrollingText({ data, text, width }: { data: VersionData; text: 
   const ref = useRef<HTMLSpanElement>(null);
   // o avanço da última letra inclui 1 px de espaço depois dela, que não conta como texto
   const overflow = data.font.width(text) - 1 - width;
-  useEffect(() => {
+  // useLayoutEffect: roda antes da tela ser pintada, então o texto novo nunca aparece com o deslocamento do antigo
+  useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
     // sem animação (cabe, ou "reduzir movimento"): limpa o deslocamento que uma animação anterior deixou
