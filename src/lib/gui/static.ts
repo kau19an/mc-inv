@@ -18,13 +18,24 @@ export interface StaticVersion {
 
 let cached: StaticVersion | null = null;
 
+// a release mais recente (abas e nomes) + os itens que só existem nas outras versões publicadas (ex.: os blocos
+// novos de uma snapshot), pra todo item ter a sua página /inv/je/<id>, seja qual for a versão escolhida no site
 export function latestStaticVersion(): StaticVersion {
   if (cached) return cached;
-  const id = read<{ latest: { release: string } }>('versions.json').latest.release;
+  const list = read<{ latest: { release: string }; versions: { id: string }[] }>('versions.json');
+  const id = list.latest.release;
   const tabs = read<{ tabs: TabInfo[] }>(`${id}/tabs.json`).tabs;
-  const items = read<Record<string, ItemInfo>>(`${id}/items.json`);
-  const ptBr = read<Record<string, string>>(`${id}/lang/pt_br.json`);
-  const enUs = read<Record<string, string>>(`${id}/lang/en_us.json`);
+  const items: Record<string, ItemInfo> = {};
+  const ptBr: Record<string, string> = {};
+  const enUs: Record<string, string> = {};
+  for (const version of [id, ...list.versions.map((entry) => entry.id).filter((other) => other !== id)]) {
+    const fill = <T,>(target: Record<string, T>, source: Record<string, T>) => {
+      for (const [key, value] of Object.entries(source)) if (!(key in target)) target[key] = value;
+    };
+    fill(items, read<Record<string, ItemInfo>>(`${version}/items.json`));
+    fill(ptBr, read<Record<string, string>>(`${version}/lang/pt_br.json`));
+    fill(enUs, read<Record<string, string>>(`${version}/lang/en_us.json`));
+  }
   const text = (lang: Record<string, string>) => (component: TextComponent) =>
     typeof component === 'string' ? component : 'text' in component ? component.text : (lang[component.translate] ?? enUs[component.translate] ?? component.translate);
 

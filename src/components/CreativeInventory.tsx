@@ -282,11 +282,14 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   previousTabs.current = data?.tabs;
   const tab: TabInfo | undefined = data?.tabs[currentIndex];
 
-  // índice da pesquisa: nome no idioma da interface + em inglês + id do jogo (sem acentos, sem maiúsculas)
+  // índice da pesquisa: nome no idioma da interface + em inglês + id do jogo (sem acentos, sem maiúsculas).
+  // inclui, no fim, os itens "só na busca" (existem no jogo, mas fora das abas do criativo): eles aparecem só
+  // quando há algo digitado, nunca na lista completa da aba nem nas outras abas
+  const searchOnlyKeys = useMemo(() => (data ? Object.keys(data.items).filter((key) => data.items[key]!.searchOnly) : []), [baseData]);
   const searchIndex = useMemo(() => {
     if (!data) return [];
     const searchTab = data.tabs.find((candidate) => candidate.type === 'search');
-    return (searchTab?.items ?? []).map((key) => {
+    return [...(searchTab?.items ?? []), ...searchOnlyKeys].map((key) => {
       const item = data.items[key];
       const names = item ? Object.values(data.langs).map((lang) => textOf(data, item.name, lang)) : [];
       return { key, text: normalize([...names, key.split('~')[0]!.replace(/_/g, ' ')].join('\n')) };
@@ -300,7 +303,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       const trimmed = query.trim().toLowerCase();
       if (trimmed.startsWith('#') && data) {
         const wanted = trimmed.slice(1).replace(/^minecraft:/, '');
-        return tab.items.filter((key) => (data.itemTags[baseId(key)] ?? []).some((tag) => tag.includes(wanted)));
+        return [...tab.items, ...searchOnlyKeys].filter((key) => (data.itemTags[baseId(key)] ?? []).some((tag) => tag.includes(wanted)));
       }
       const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
       return terms.length ? searchIndex.filter(({ text }) => terms.every((term) => text.includes(term))).map(({ key }) => key) : tab.items;
@@ -573,6 +576,16 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
         setTabIndex(home.tabIndex);
         setScroll(scrollToShow(data.tabs[home.tabIndex]!.items.length, home.position));
         setSelectedKey(home.key);
+        return;
+      }
+      // item "só na busca": abre a aba de pesquisa já com o nome dele digitado
+      const searchOnly = Object.keys(data.items).find((key) => baseId(key) === route.id && data.items[key]!.searchOnly);
+      const searchTab = data.tabs.findIndex((candidate) => candidate.type === 'search');
+      if (searchOnly && searchTab >= 0) {
+        setTabIndex(searchTab);
+        setScroll(0);
+        setQuery(itemName(searchOnly));
+        setSelectedKey(searchOnly);
         return;
       }
     }

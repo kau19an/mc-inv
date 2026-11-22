@@ -15,6 +15,7 @@ export interface ItemInfo {
   advancedExtra?: unknown[]; // o que a tooltip avançada (F3+H) acrescenta no fim
   advanced?: unknown[]; // a avançada inteira, quando ela muda algo no meio
   foil?: boolean; // brilho de encantamento (glint.ts)
+  searchOnly?: boolean; // existe no jogo, mas não está em nenhuma aba do criativo: só aparece pesquisando
 }
 
 // idiomas publicados (a interface troca entre eles nas opções)
@@ -57,6 +58,7 @@ export interface VersionEntry {
 export interface VersionList {
   latest: { release: string | null; snapshot: string | null };
   versions: VersionEntry[];
+  releasedDrops?: string[]; // drops ("26.3") que já têm release, pela lista completa da Mojang
 }
 
 const BASE = '/data/je';

@@ -30,12 +30,13 @@ const STRINGS = {
     versionsTitle: 'Opções de versões',
     versionsSearch: 'Buscar...',
     versionsLatest: 'Mais recente',
-    versionsSnapshot: 'Snapshot',
+    versionsDevelopment: 'Desenvolvimento',
     versionsList: 'Versões',
     versionsEmpty: 'Nenhuma versão encontrada.',
     latestReleaseTag: 'Mais recente',
-    latestSnapshotTag: 'Snapshot mais recente',
-    versionKinds: { release: 'Lançamento', snapshot: 'Snapshot', pre_release: 'Pré-lançamento', release_candidate: 'Candidato a lançamento', april_fools: 'Primeiro de abril', old_beta: 'Beta', old_alpha: 'Alfa' } as Record<string, string>,
+    upcomingTag: 'Em breve', // drop ainda sem release
+    // tipos que não são de desenvolvimento (esses vão com o nome da Mojang: drops.ts, developmentKindName)
+    versionKinds: { release: 'Lançamento', april_fools: 'Primeiro de abril', old_beta: 'Beta', old_alpha: 'Alfa' } as Record<string, string>,
   },
   en_us: {
     loading: 'Loading…',
@@ -61,12 +62,12 @@ const STRINGS = {
     versionsTitle: 'Version Options',
     versionsSearch: 'Search...',
     versionsLatest: 'Latest',
-    versionsSnapshot: 'Snapshot',
+    versionsDevelopment: 'Development',
     versionsList: 'Versions',
     versionsEmpty: 'No versions found.',
     latestReleaseTag: 'Latest',
-    latestSnapshotTag: 'Latest snapshot',
-    versionKinds: { release: 'Release', snapshot: 'Snapshot', pre_release: 'Pre-release', release_candidate: 'Release Candidate', april_fools: 'April Fools', old_beta: 'Beta', old_alpha: 'Alpha' } as Record<string, string>,
+    upcomingTag: 'Coming soon',
+    versionKinds: { release: 'Release', april_fools: 'April Fools', old_beta: 'Beta', old_alpha: 'Alpha' } as Record<string, string>,
   },
 } satisfies Record<Locale, Record<string, unknown>>;
 

@@ -13,7 +13,7 @@ import { HTML_LANG, type Strings } from '@/lib/gui/strings.ts';
 import type { Settings } from '@/lib/gui/settings.ts';
 import { translate } from '@/lib/gui/text.ts';
 import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
-import { dropName, dropOf } from '@/lib/gui/drops.ts';
+import { developmentKindName, dropName, dropOf, isUpcoming } from '@/lib/gui/drops.ts';
 
 const ROW_WIDTH = 304; // a largura das duas colunas de opções (cabe a busca e os dois atalhos alinhados)
 const ROW_HEIGHT = 24; // duas linhas de texto: versão e, embaixo, tipo (ou destaque) · data
@@ -32,6 +32,7 @@ const MIN_SCROLLER = 32;
 const GRAY = 0xa0a0a0;
 const LATEST_RELEASE_COLOR = 0x55ff55; // §a
 const LATEST_SNAPSHOT_COLOR = 0xffff55; // §e
+const UPCOMING_COLOR = 0xffaa00; // §6, o "Em breve" dos drops em desenvolvimento
 const OUTLINE_FOCUSED = 0xffffff; // AbstractSelectionList: contorno branco com a lista em foco, cinza sem foco
 const OUTLINE_UNFOCUSED = 0x808080;
 
@@ -62,6 +63,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   const [scroll, setScroll] = useState({ top: 0, height: 0, content: 0 });
   const t = (key: string) => translate(data, key);
   const htmlLang = HTML_LANG[settings.locale];
+  const font = (text: string) => data.font.width(text); // largura do texto em pixels da gui
   // largura das linhas: 304 ou, em tela estreita, o que couber (sobrando lugar pra barra de rolagem)
   const rowWidth = fitWidth(ROW_WIDTH, unit) - (fitWidth(ROW_WIDTH, unit) < ROW_WIDTH ? (SCROLLBAR_WIDTH + SCROLLBAR_GAP) * 2 : 0);
   const buttonWidth = Math.min(BUTTON_WIDTH, Math.floor((rowWidth - GAP) / 2));
@@ -71,7 +73,8 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   }, []);
 
   const dateFormat = useMemo(() => new Intl.DateTimeFormat(htmlLang, { dateStyle: 'medium' }), [htmlLang]);
-  const kindName = (entry: VersionEntry) => strings.versionKinds[entry.kind] ?? entry.kind;
+  // tipo da versão: os de desenvolvimento com o nome da Mojang ("Snapshot", "Pre-Release", "Release Candidate")
+  const kindName = (entry: VersionEntry) => developmentKindName(entry.kind) ?? strings.versionKinds[entry.kind] ?? entry.kind;
 
   // busca: todas as palavras no id, no tipo ou no nome do drop ("snapshot 26.4", "pré", "deep")
   const normalize = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -106,9 +109,9 @@ export default function VersionsScreen({ data, list, settings, current, strings,
     });
 
   // linhas visíveis, em ordem: drop, as versões dele (se aberto), próximo drop…
-  type Row = { kind: 'drop'; drop: string; count: number; hasCurrent: boolean } | { kind: 'version'; drop: string; entry: VersionEntry };
+  type Row = { kind: 'drop'; drop: string; count: number; hasCurrent: boolean; upcoming: boolean } | { kind: 'version'; drop: string; entry: VersionEntry };
   const rows: Row[] = drops.flatMap(({ drop, versions }) => [
-    { kind: 'drop' as const, drop, count: versions.length, hasCurrent: versions.some((entry) => entry.id === current) },
+    { kind: 'drop' as const, drop, count: versions.length, hasCurrent: versions.some((entry) => entry.id === current), upcoming: isUpcoming(drop, list.versions, list.releasedDrops) },
     ...(isOpen(drop) ? versions.map((entry) => ({ kind: 'version' as const, drop, entry })) : []),
   ]);
   const rowKey = (row: Row) => (row.kind === 'drop' ? `drop-${row.drop}` : `version-${row.entry.id}`);
@@ -134,6 +137,24 @@ export default function VersionsScreen({ data, list, settings, current, strings,
   };
   useLayoutEffect(() => scrollToRow(isOpen(dropOf(current)) ? `version-${current}` : `drop-${dropOf(current)}`, true), []);
   useLayoutEffect(() => scrollToRow(active, false), [active]);
+
+  // atalhos "Mais recente" e "Desenvolvimento": escolhem, abrem o drop da versão e rolam até ela, pra mostrar o que
+  // foi escolhido (se a busca esconder a versão, a busca é limpa)
+  const pendingScroll = useRef<string | null>(null);
+  const choose = (setting: string, target: string | null) => {
+    select(setting);
+    if (!target) return;
+    if (!shown.some((entry) => entry.id === target)) setQuery('');
+    const drop = dropOf(target);
+    setExpanded((previous) => (previous.has(drop) ? previous : new Set(previous).add(drop)));
+    setActive(`version-${target}`);
+    pendingScroll.current = `version-${target}`;
+  };
+  useLayoutEffect(() => {
+    if (!pendingScroll.current) return;
+    scrollToRow(pendingScroll.current, true);
+    pendingScroll.current = null;
+  });
 
   // barra de rolagem desenhada como a do jogo (widget/scroller sobre widget/scroller_background); a rolagem em si
   // é a do navegador (roda do mouse, toque, teclado), com a barra nativa escondida
@@ -212,8 +233,8 @@ export default function VersionsScreen({ data, list, settings, current, strings,
           <div class="flex flex-col" style={{ width: u(rowWidth), gap: u(GAP) }}>
             <GameTextField data={data} value={query} label={strings.versionsSearch} placeholder={strings.versionsSearch} width={rowWidth} maxLength={64} onInput={setQuery} />
             <div class="flex" style={{ gap: u(GAP) }}>
-              <GuiButton data={data} width={buttonWidth} label={strings.versionsLatest} aria-pressed={settings.version === LATEST_RELEASE} onClick={() => select(LATEST_RELEASE)} disabled={!list.latest.release} />
-              <GuiButton data={data} width={buttonWidth} label={strings.versionsSnapshot} aria-pressed={settings.version === LATEST_SNAPSHOT} onClick={() => select(LATEST_SNAPSHOT)} disabled={!list.latest.snapshot} />
+              <GuiButton data={data} width={buttonWidth} label={strings.versionsLatest} aria-pressed={settings.version === LATEST_RELEASE} onClick={() => choose(LATEST_RELEASE, list.latest.release)} disabled={!list.latest.release} />
+              <GuiButton data={data} width={buttonWidth} label={strings.versionsDevelopment} aria-pressed={settings.version === LATEST_SNAPSHOT} onClick={() => choose(LATEST_SNAPSHOT, list.latest.snapshot)} disabled={!list.latest.snapshot} />
             </div>
           </div>
         </header>
@@ -256,7 +277,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
                     role="treeitem"
                     aria-expanded={open}
                     aria-level={1}
-                    aria-label={`${dropName(row.drop)} (${row.drop})`}
+                    aria-label={`${dropName(row.drop)} (${row.drop})${row.upcoming ? `, ${strings.upcomingTag}` : ''}`}
                     class="relative mx-auto cursor-pointer select-none"
                     style={{ width: u(rowWidth), height: u(DROP_HEIGHT), ...(marked ? outlined(cursor ? OUTLINE_FOCUSED : OUTLINE_UNFOCUSED) : {}) }}
                     onClick={() => {
@@ -265,10 +286,16 @@ export default function VersionsScreen({ data, list, settings, current, strings,
                       listRef.current?.focus({ preventScroll: true });
                     }}
                   >
-                    <span class="absolute truncate" style={{ left: u(4), right: u(16), top: u(6), textShadow: textShadow(0xffffff) }}>
+                    <span class="absolute truncate" style={{ left: u(4), right: u(row.upcoming ? 16 + font(strings.upcomingTag) + 6 : 16), top: u(6), textShadow: textShadow(0xffffff) }}>
                       {dropName(row.drop)}
                       {dropName(row.drop) !== row.drop && <span style={{ color: hex(GRAY), textShadow: textShadow(GRAY) }}> {row.drop}</span>}
                     </span>
+                    {/* drop em desenvolvimento (sem nenhuma release ainda) */}
+                    {row.upcoming && (
+                      <span aria-hidden="true" class="absolute" style={{ right: u(16), top: u(6), color: hex(UPCOMING_COLOR), textShadow: textShadow(UPCOMING_COLOR) }}>
+                        {strings.upcomingTag}
+                      </span>
+                    )}
                     <span aria-hidden="true" class="absolute" style={{ right: u(4), top: u(6), textShadow: textShadow(0xffffff) }}>
                       {open ? '-' : '+'}
                     </span>
@@ -278,7 +305,9 @@ export default function VersionsScreen({ data, list, settings, current, strings,
 
               const { entry } = row;
               const selected = entry.id === current;
-              const latest = entry.id === list.latest.release ? { text: strings.latestReleaseTag, color: LATEST_RELEASE_COLOR } : entry.id === list.latest.snapshot ? { text: strings.latestSnapshotTag, color: LATEST_SNAPSHOT_COLOR } : null;
+              // destaque: a release mais recente vira "Mais recente" em verde; a de desenvolvimento mais recente mantém o
+              // nome do tipo, só que em amarelo
+              const latest = entry.id === list.latest.release ? { text: strings.latestReleaseTag, color: LATEST_RELEASE_COLOR } : entry.id === list.latest.snapshot ? { text: kindName(entry), color: LATEST_SNAPSHOT_COLOR } : null;
               return (
                 <div key={key} class="relative mx-auto" style={{ width: u(rowWidth), height: u(ROW_HEIGHT) }}>
                   {/* linha vertical da árvore, ligando as versões do drop */}
@@ -299,7 +328,7 @@ export default function VersionsScreen({ data, list, settings, current, strings,
                     <span class="absolute" style={{ left: u(4), top: u(3), textShadow: textShadow(0xffffff) }}>
                       {entry.id}
                     </span>
-                    {/* segunda linha: o tipo em cinza (ou, nas mais recentes, o destaque colorido no lugar dele) · a data */}
+                    {/* segunda linha: o tipo em cinza (ou o destaque colorido das mais recentes) · a data */}
                     <span class="absolute truncate" style={{ left: u(4), right: u(4), top: u(13), color: hex(GRAY), textShadow: textShadow(GRAY) }}>
                       {latest ? <span style={{ color: hex(latest.color), textShadow: textShadow(latest.color) }}>{latest.text}</span> : kindName(entry)} ·{' '}
                       {dateFormat.format(new Date(entry.releaseTime))}

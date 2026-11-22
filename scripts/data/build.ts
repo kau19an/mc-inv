@@ -21,6 +21,7 @@ import { buildGuiBundle } from './gui.ts';
 import { buildItemTags } from './tags.ts';
 import { UI_KEYS } from '../../src/lib/gui/ui-keys.ts';
 import { WIKI_LANGUAGES } from '../../src/lib/gui/wiki.ts';
+import { dropOf } from '../../src/lib/gui/drops.ts';
 import type { SpecialMeshes } from './icons/resolve.ts';
 
 // idiomas expostos na interface por enquanto (a busca multilíngue usa todos, mas isso vem na fase 4)
@@ -305,7 +306,11 @@ const versions = catalog.versions
   .filter((version) => available.includes(version.id))
   .map(({ id, kind, releaseTime }) => ({ id, kind, releaseTime }));
 const pick = (wanted: string) => (available.includes(wanted) ? wanted : null);
+// drops que já têm uma release (pela lista completa da Mojang, não só as publicadas): os outros estão em
+// desenvolvimento e ganham "Em breve" na tela "Versões..."
+const releasedDrops = [...new Set(catalog.versions.filter((version) => version.kind === 'release').map((version) => dropOf(version.id)))];
 await writeJson(join(OUT_DIR, 'versions.json'), {
   latest: { release: pick(catalog.latest.release), snapshot: pick(catalog.latest.snapshot) },
   versions,
+  releasedDrops,
 });
