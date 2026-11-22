@@ -18,7 +18,9 @@ const SPRITES = 'textures/gui/sprites/';
 // o que a tela do criativo desenha (conferido em CreativeModeInventoryScreen, 26.3)
 function wantedImages(backgrounds: string[]): string[] {
   const tabs = ['top', 'bottom'].flatMap((row) => ['selected', 'unselected'].flatMap((state) => [1, 2, 3, 4, 5, 6, 7].map((n) => `container/creative_inventory/tab_${row}_${state}_${n}`)));
-  const sprites = [...tabs, 'container/creative_inventory/scroller', 'container/creative_inventory/scroller_disabled', 'container/slot_highlight_back', 'container/slot_highlight_front'];
+  // aba "Inventário": ícones dos slots vazios de armadura e da segunda mão (InventoryMenu)
+  const emptySlots = ['helmet', 'chestplate', 'leggings', 'boots', 'shield'].map((slot) => `container/slot/${slot}`);
+  const sprites = [...tabs, 'container/creative_inventory/scroller', 'container/creative_inventory/scroller_disabled', 'container/slot_highlight_back', 'container/slot_highlight_front', ...emptySlots];
   // fundos vêm como "minecraft:textures/gui/container/creative_inventory/tab_items.png"
   const backgroundPaths = backgrounds.map((id) => id.replace(/^minecraft:/, '').replace(/\.png$/, ''));
   return [...new Set([...backgroundPaths, ...sprites.map((sprite) => `${SPRITES}${sprite}`)])];

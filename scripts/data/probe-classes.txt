@@ -1,5 +1,0 @@
-com.mojang.blaze3d.platform.Lighting
-GuiEntityRenderer
-PictureInPictureRenderer
-AnimationUtils
-net.minecraft.client.model.geom.ModelPart

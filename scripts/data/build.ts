@@ -5,6 +5,7 @@
 //   public/data/je/<id>/items.json           cada item uma vez só: id, nome (componente de texto) e componentes
 //   public/data/je/<id>/lang/<locale>.json   só as traduções usadas pelo inventário
 //   public/data/je/<id>/tags.json            marcações de item já resolvidas (tag → itens)
+//   public/data/je/<id>/player.json          modelo do jogador (peças separadas) + player/steve.png e player/alex.png
 //   public/data/je/versions.json             versões disponíveis no site
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -190,6 +191,16 @@ async function buildVersion(id: string) {
   for (const [name, data] of Object.entries(gui.fontFiles)) await writeFile(join(outDir, 'font', name), data);
   await mkdir(join(outDir, 'frames'), { recursive: true });
   for (const [name, data] of Object.entries(gui.frameFiles)) await writeFile(join(outDir, 'frames', name), data);
+
+  // modelo do jogador (aba "Inventário") + skins padrão: Steve (braços largos) e Alex (braços finos)
+  const playerFile = join(versionDir, 'player.json');
+  if (existsSync(playerFile)) {
+    await writeFile(join(outDir, 'player.json'), JSON.stringify(await readJson(playerFile)));
+    await mkdir(join(outDir, 'player'), { recursive: true });
+    for (const [model, skin] of [['wide', 'steve'], ['slim', 'alex']]) {
+      await writeFile(join(outDir, 'player', `${skin}.png`), await readFile(join(versionDir, 'assets/minecraft/textures/entity/player', model!, `${skin}.png`)));
+    }
+  }
 
   const blank = Object.values(icons.bundle.items).filter(([index]) => ['empty', 'special'].includes(icons.bundle.models[index]!.kind)).length;
   if (blank) console.log(`::warning title=Ícones sem modelo::${id}: ${blank} itens sem ícone (vazio ou especial sem malha)`);
