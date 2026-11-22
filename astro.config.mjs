@@ -32,10 +32,12 @@ function devFunctions() {
   };
 }
 
-// domínio dos dados do jogo (cloudflare r2, ex.: https://mc-data.faariaz.com). vazio = public/data/je do próprio site.
+// domínio dos dados do jogo (cloudflare r2). padrão: os publicados, em todo lugar (site, npm run dev, codespaces).
+// PUBLIC_DATA_URL=local usa public/data/je do próprio site (dados gerados no computador com npm run build-data).
 // entra na csp abaixo: jsons, imagens e a fonte do jogo vêm de lá
-const { PUBLIC_DATA_URL = '' } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), 'PUBLIC_');
-const dataOrigin = PUBLIC_DATA_URL ? new URL(PUBLIC_DATA_URL).origin : '';
+const DEFAULT_DATA_URL = 'https://mc-data.faariaz.com';
+const { PUBLIC_DATA_URL = DEFAULT_DATA_URL } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), 'PUBLIC_');
+const dataOrigin = PUBLIC_DATA_URL === 'local' ? '' : new URL(PUBLIC_DATA_URL).origin;
 /** @template {string} T @param {T} directive @returns {T} (só acrescenta a origem no fim: o tipo da diretiva continua o mesmo) */
 const withData = (directive) => /** @type {T} */ (dataOrigin ? `${directive} ${dataOrigin}` : directive);
 
@@ -73,7 +75,7 @@ export default defineConfig({
   // variáveis de ambiente com tipo (import de 'astro:env/client')
   env: {
     schema: {
-      PUBLIC_DATA_URL: envField.string({ context: 'client', access: 'public', optional: true, url: true }),
+      PUBLIC_DATA_URL: envField.string({ context: 'client', access: 'public', default: DEFAULT_DATA_URL }),
     },
   },
 

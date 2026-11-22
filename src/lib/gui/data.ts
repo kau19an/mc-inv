@@ -63,9 +63,9 @@ export interface VersionList {
   releasedDrops?: string[]; // drops ("26.3") que já têm release, pela lista completa da Mojang
 }
 
-// de onde vêm os dados: o R2 (PUBLIC_DATA_URL, ex.: https://mc-data.faariaz.com) ou, sem a variável, a pasta
-// public/data/je do próprio site (dados gerados no computador com npm run build-data)
-const DATA_URL = (PUBLIC_DATA_URL ?? '').replace(/\/+$/, '');
+// de onde vêm os dados: o R2 (PUBLIC_DATA_URL, padrão https://mc-data.faariaz.com) ou, com PUBLIC_DATA_URL=local,
+// a pasta public/data/je do próprio site (dados gerados no computador com npm run build-data)
+const DATA_URL = PUBLIC_DATA_URL === 'local' ? '' : PUBLIC_DATA_URL.replace(/\/+$/, '');
 const LIST_URL = DATA_URL ? `${DATA_URL}/je/versions.json` : '/data/je/versions.json';
 
 // endereço da pasta de uma versão
