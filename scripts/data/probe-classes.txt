@@ -1,6 +1,5 @@
-net.minecraft.client.gui.screens.inventory.InventoryScreen
-PlayerModel
-AvatarRenderer
-LivingEntityRenderer
-HumanoidModel
-Lighting
+com.mojang.blaze3d.platform.Lighting
+GuiEntityRenderer
+PictureInPictureRenderer
+AnimationUtils
+net.minecraft.client.model.geom.ModelPart
