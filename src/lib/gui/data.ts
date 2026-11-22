@@ -64,7 +64,7 @@ export interface VersionList {
 }
 
 // de onde vêm os dados: o R2 (PUBLIC_DATA_URL, ex.: https://mc-data.faariaz.com) ou, sem a variável, a pasta
-// public/data/je do próprio site (desenvolvimento e transição)
+// public/data/je do próprio site (dados gerados no computador com npm run build-data)
 const DATA_URL = (PUBLIC_DATA_URL ?? '').replace(/\/+$/, '');
 const LIST_URL = DATA_URL ? `${DATA_URL}/je/versions.json` : '/data/je/versions.json';
 

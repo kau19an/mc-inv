@@ -27,3 +27,6 @@ pnpm-debug.log*
 
 # jar, assets e arquivos baixados da mojang pelo pipeline (fase 2). o que vai pro site sai gerado do build
 .cache/
+
+# dados do jogo: saída local do npm run build-data. os publicados ficam no cloudflare r2 (mc-data.faariaz.com)
+public/data/je/
