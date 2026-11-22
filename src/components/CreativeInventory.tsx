@@ -33,11 +33,13 @@ import {
   tabY,
   type TabInfo,
 } from '@/lib/gui/creative.ts';
-import { latestRelease, loadProgrammerAtlas, loadVersion, loadWikiNames, textOf, viewFor, withoutOperatorTab, type VersionData } from '@/lib/gui/data.ts';
+import { loadProgrammerAtlas, loadVersion, loadVersionList, loadWikiNames, textOf, versionToLoad, viewFor, withoutOperatorTab, type VersionData, type VersionList } from '@/lib/gui/data.ts';
 import type { AtlasPixels } from '@/lib/icons/bundle.ts';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from '@/lib/gui/settings.ts';
 import { HTML_LANG, stringsFor } from '@/lib/gui/strings.ts';
 import SettingsScreen, { type SkinStatus } from './SettingsScreen.tsx';
+import VersionsScreen from './VersionsScreen.tsx';
+import Panorama from './Panorama.tsx';
 import { fetchPlayerSkin, type PlayerSkin } from '@/lib/gui/skin.ts';
 import { PLAYER_NAME } from '@/lib/gui/settings.ts';
 import { GuiButton } from './gui/GuiParts.tsx';
@@ -47,6 +49,8 @@ import { CREATIVE } from '@/lib/gui/types.ts';
 const OPTIONS_GAP = 4;
 const OPTIONS_WIDTH = 98;
 const OPTIONS_HEIGHT = 20;
+// desfoque dos menus do jogo (box_blur de raio 5 em 3 idas e voltas ≈ gaussiano de 5,5 px reais da tela)
+const MENU_BLUR_PX = 5.5;
 const PAGE = CREATIVE.columns * CREATIVE.rows;
 const SEARCH_MAX_LENGTH = 50; // o mesmo limite da caixa de pesquisa do jogo
 const CARET_BLINK_MS = 300;
@@ -77,6 +81,8 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [baseData, setBaseData] = useState<VersionData | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versionList, setVersionList] = useState<VersionList | null>(null);
   const [programmerAtlas, setProgrammerAtlas] = useState<AtlasPixels | null>(null);
   // skin do jogador escolhido nas opções (null = Steve)
   const [playerSkin, setPlayerSkin] = useState<PlayerSkin | null>(null);
@@ -222,13 +228,21 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const drag = useRef<Drag | null>(null);
   const focusAfterRender = useRef<'slot' | 'tab' | null>(null);
 
-  // carrega a versão mais recente
+  // carrega a lista de versões e a versão escolhida em "Versões..." (padrão: a release mais recente). ao trocar,
+  // a versão anterior continua na tela até a nova chegar
+  const failed = (reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason));
   useEffect(() => {
-    latestRelease()
-      .then((id) => loadVersion(id, loadSettings().locale))
-      .then(setBaseData)
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)));
+    loadVersionList().then(setVersionList, failed);
   }, []);
+  const versionId = versionList ? versionToLoad(versionList, settings.version) : null;
+  useEffect(() => {
+    if (!versionId) return;
+    let current = true;
+    loadVersion(versionId, loadSettings().locale).then((loaded) => current && setBaseData(loaded), failed);
+    return () => {
+      current = false;
+    };
+  }, [versionId]);
 
   // escala inteira que cabe na tela, recalculada ao girar o celular, redimensionar ou mudar de monitor
   useEffect(() => {
@@ -808,7 +822,8 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const inventoryHeight = `${CANVAS_HEIGHT * unit}px`;
 
   return (
-    <div class="flex w-full flex-col items-center" style={{ '--u': `${unit}px`, '--u-raw': String(unit), gap: `${OPTIONS_GAP * unit}px` }}>
+    <div class="flex w-full flex-col items-center" style={{ '--u': `${unit}px`, '--u-raw': String(unit), '--menu-blur': `${MENU_BLUR_PX / metrics.dpr}px`, gap: `${OPTIONS_GAP * unit}px` }}>
+      <Panorama baseUrl={data.baseUrl} />
       <div
         class="relative shrink-0 touch-none select-none"
         style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }}
@@ -989,10 +1004,17 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
         </div>
       </div>
 
-      <GuiButton data={data} width={OPTIONS_WIDTH} height={OPTIONS_HEIGHT} label={translate(data, UI_KEYS.optionsButton)} onClick={() => setSettingsOpen(true)} />
+      {/* "Opções..." e "Versões..." lado a lado, 4 px entre eles (como os pares de botões do menu de pausa) */}
+      <div class="flex" style={{ gap: `${OPTIONS_GAP * unit}px` }}>
+        <GuiButton data={data} width={OPTIONS_WIDTH} height={OPTIONS_HEIGHT} label={translate(data, UI_KEYS.optionsButton)} onClick={() => setSettingsOpen(true)} />
+        <GuiButton data={data} width={OPTIONS_WIDTH} height={OPTIONS_HEIGHT} label={strings.versionsButton} onClick={() => setVersionsOpen(true)} disabled={!versionList} />
+      </div>
 
       {settingsOpen && (
         <SettingsScreen data={data} settings={settings} strings={strings} skinStatus={skinStatus} appliedName={appliedName} unit={unit} onChange={updateSettings} onPlayerName={applyPlayerName} onClose={() => setSettingsOpen(false)} />
+      )}
+      {versionsOpen && versionList && versionId && (
+        <VersionsScreen data={data} list={versionList} settings={settings} current={versionId} strings={strings} unit={unit} onChange={updateSettings} onClose={() => setVersionsOpen(false)} />
       )}
     </div>
   );

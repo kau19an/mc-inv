@@ -40,7 +40,7 @@ const { route, heading, title, description } = Astro.props;
 ---
 
 <Base title={title} description={description} noindex>
-  <main class="min-h-dvh bg-neutral-950 p-2 lg:grid lg:place-items-center">
+  <main class="min-h-dvh p-2 lg:grid lg:place-items-center">
     <h1 class="sr-only">{heading}: Inventário do Minecraft, Edição Java</h1>
     <CreativeInventory client:only="preact" initial={route} />
   </main>

@@ -129,3 +129,9 @@ export function CrossButton({ data, label, onClick, style }: { data: VersionData
     />
   );
 }
+
+// largura (em pixels da gui) que cabe na tela: a desejada ou, em tela estreita (celular com escala grande), a
+// largura da janela menos 8 px de cada lado — como as telas do jogo, que encolhem as linhas na janela pequena
+export function fitWidth(wanted: number, unit: number): number {
+  return Math.max(Math.min(wanted, Math.floor(window.innerWidth / unit) - 16), 100);
+}

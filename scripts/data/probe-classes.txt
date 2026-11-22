@@ -1,4 +1,0 @@
-PanoramaRenderer
-CubeMapTexture
-assets/minecraft/shaders/core/panorama.fsh
-assets/minecraft/shaders/core/panorama.vsh

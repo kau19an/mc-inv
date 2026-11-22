@@ -10,6 +10,7 @@ export interface Settings {
   playerName: string; // nick da Edição Java pra skin na aba "Inventário" ('' = Steve)
   operatorItemsTab: boolean; // aba "Blocos de operador" (desligada por padrão, como no jogo)
   wikiLanguage: WikiLanguage; // wiki que os itens abrem: 'auto' segue o idioma da interface
+  version: string; // versão do jogo escolhida em "Versões..." ('' = a release mais recente)
 }
 
 const KEY = 'mc-inv:settings';
@@ -18,7 +19,7 @@ const LEGACY_ADVANCED_KEY = 'mc-inv:advanced-tooltips'; // antes das opções, o
 // nome de jogador válido no jogo: letras, números e sublinhado, até 16
 export const PLAYER_NAME = /^[A-Za-z0-9_]{1,16}$/;
 
-export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '', operatorItemsTab: false, wikiLanguage: 'auto' };
+export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '', operatorItemsTab: false, wikiLanguage: 'auto', version: '' };
 
 export function loadSettings(): Settings {
   try {
@@ -30,6 +31,7 @@ export function loadSettings(): Settings {
       advancedTooltips: saved?.advancedTooltips ?? legacyAdvanced,
       operatorItemsTab: saved?.operatorItemsTab === true,
       wikiLanguage: isWikiLanguage(saved?.wikiLanguage) ? saved.wikiLanguage : 'auto',
+      version: typeof saved?.version === 'string' && saved.version.length <= 64 ? saved.version : '',
       playerName: typeof saved?.playerName === 'string' && PLAYER_NAME.test(saved.playerName) ? saved.playerName : '',
     };
   } catch {

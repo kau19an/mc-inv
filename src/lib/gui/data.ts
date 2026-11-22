@@ -47,8 +47,16 @@ export interface PlayerData {
   defaultSkin: Skin; // Steve (braços largos): o jogo sem conta usa uma das skins padrão
 }
 
-interface VersionList {
-  latest: { release: string; snapshot: string };
+// versions.json: as versões publicadas (mais nova primeiro) e as mais recentes de cada tipo
+export type VersionKind = 'release' | 'snapshot' | 'pre_release' | 'release_candidate' | 'april_fools' | 'old_beta' | 'old_alpha';
+export interface VersionEntry {
+  id: string;
+  kind: VersionKind;
+  releaseTime: string; // iso
+}
+export interface VersionList {
+  latest: { release: string | null; snapshot: string | null };
+  versions: VersionEntry[];
 }
 
 const BASE = '/data/je';
@@ -91,8 +99,20 @@ async function loadFontFace(base: string): Promise<void> {
   }
 }
 
-export async function latestRelease(): Promise<string> {
-  return (await json<VersionList>(`${BASE}/versions.json`)).latest.release;
+export function loadVersionList(): Promise<VersionList> {
+  return json<VersionList>(`${BASE}/versions.json`);
+}
+
+// valores especiais da opção "version" (tela "Versões..."): seguir a mais recente de cada tipo
+export const LATEST_RELEASE = '';
+export const LATEST_SNAPSHOT = '@snapshot';
+
+// versão a carregar pra escolha das opções. uma versão fixa que saiu do site cai na release mais recente
+export function versionToLoad(list: VersionList, chosen: string): string {
+  const latest = list.latest.release ?? list.versions[0]!.id;
+  if (chosen === LATEST_SNAPSHOT) return list.latest.snapshot ?? latest;
+  if (chosen && list.versions.some((version) => version.id === chosen)) return chosen;
+  return latest;
 }
 
 export async function loadVersion(id: string, locale: Locale): Promise<VersionData> {

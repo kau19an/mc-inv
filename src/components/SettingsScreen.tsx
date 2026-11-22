@@ -2,7 +2,8 @@
 // e "Concluído" embaixo. os textos são os do próprio jogo (ui-keys.ts), então saem como no jogo em cada idioma.
 // é um <dialog> nativo: prende o foco do teclado lá dentro e fecha com Esc, como o jogo
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { FRAME_CLASS, GuiButton, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
+import { FRAME_CLASS, GuiButton, fitWidth, frameStyle, gameText, hex, textShadow, u } from './gui/GuiParts.tsx';
+import GameTextField from './gui/GameTextField.tsx';
 import GameTooltip, { lineOf, wrapText, type TooltipPlacement } from './gui/GameTooltip.tsx';
 import { LOCALES, type VersionData } from '@/lib/gui/data.ts';
 import { PLAYER_NAME, type Settings } from '@/lib/gui/settings.ts';
@@ -22,7 +23,6 @@ const CONFIRM_WIDTH = 70;
 const PREVIEW_SIZE = 20; // quadrado da prévia do rosto: a altura da caixa de texto
 const PREVIEW_DELAY_MS = 400; // espera a pessoa parar de digitar antes de buscar
 const LABEL_COLOR = 0xa0a0a0; // cor dos rótulos acima das caixas de texto do jogo (ex.: "Nome do mundo")
-const TEXT_COLOR = 0xe0e0e0; // texto dentro do EditBox
 const ERROR_COLOR = 0xff5555; // §c
 const SUCCESS_COLOR = 0x55ff55; // §a
 
@@ -93,47 +93,12 @@ function statusText(strings: Strings, status: SkinStatus): { text: string; color
   return null;
 }
 
-// caixa de texto do jogo (EditBox com moldura): moldura widget/text_field (clara com foco), texto a 4 px da borda.
-// fonte de 16 px encolhida por escala até o tamanho da gui (abaixo de 16 px, o iphone dá zoom ao focar)
-function GameTextField({ data, value, label, width, onInput, onEnter }: { data: VersionData; value: string; label: string; width: number; onInput: (value: string) => void; onEnter: () => void }) {
-  return (
-    <div
-      class={
-        data.gui.frames?.text_field
-          ? `${FRAME_CLASS} relative shrink-0 focus-within:[border-image-source:var(--frame-hover)]`
-          : // reserva (versão publicada sem a moldura): o EditBox do jogo é fundo preto com borda cinza, branca com foco
-            'relative shrink-0 border-solid border-[#a0a0a0] bg-black focus-within:border-white'
-      }
-      style={{ ...(data.gui.frames?.text_field ? frameStyle(data, 'text_field', 'text_field_highlighted') : { borderWidth: u(1) }), width: u(width), height: u(20) }}
-    >
-      <input
-        type="text"
-        value={value}
-        maxLength={16}
-        autoComplete="off"
-        autoCapitalize="none"
-        spellcheck={false}
-        enterKeyHint="done"
-        aria-label={label}
-        class="absolute top-0 left-0 origin-top-left cursor-text border-0 bg-transparent p-0 outline-none selection:bg-[#0000ff] selection:text-white"
-        style={{
-          fontFamily: "'Minecraft GUI', monospace",
-          fontSize: '16px',
-          color: hex(TEXT_COLOR),
-          textShadow: `2px 2px 0 ${hex((TEXT_COLOR & 0xfcfcfc) >> 2)}`,
-          caretColor: hex(TEXT_COLOR),
-          letterSpacing: '0',
-          // 16 px = 2× a fonte da gui (8 px): medidas em dobro, e a caixa é encolhida pra metade de --u
-          width: `${(width - 8) * 2}px`,
-          height: '36px',
-          paddingLeft: '6px',
-          transform: 'scale(calc(var(--u-raw) / 2))',
-        }}
-        onInput={(event) => onInput(event.currentTarget.value)}
-        onKeyDown={(event) => event.key === 'Enter' && onEnter()}
-      />
-    </div>
-  );
+// fundo das telas de menu do jogo: o que está atrás desfocado (--menu-blur) e, por cima, a textura
+// menu_background repetida (preto a 25%). versão publicada sem ela: preto a 70%
+export function menuBackground(data: VersionData) {
+  const tile = data.gui.tiles?.menu_background;
+  if (!tile) return { background: 'rgb(0 0 0 / 0.7)' };
+  return { backgroundImage: `url("${tile.src}")`, backgroundSize: `${u(tile.width)} ${u(tile.height)}` };
 }
 
 // quadradinho com o rosto da skin, na moldura da caixa de texto do jogo (ou no visual reserva dela).
@@ -198,6 +163,8 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
   };
 
   const t = (key: string, ...args: string[]) => translate(data, key, ...args);
+  // linha da skin: as duas colunas (304) ou, em tela estreita, o que couber
+  const rowWidth = fitWidth(ROW_WIDTH, unit);
   const option = (label: string, value: string) => t(UI_KEYS.genericValue, label, value);
   // nome do idioma no próprio idioma, como na tela de idiomas do jogo: "Português (Brasil)"
   const languageName = `${data.lang[UI_KEYS.languageName] ?? settings.locale} (${data.lang[UI_KEYS.languageRegion] ?? ''})`;
@@ -278,8 +245,8 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
       ref={dialogRef}
       aria-labelledby="settings-title"
       lang={HTML_LANG[settings.locale]}
-      class="m-0 h-dvh max-h-none w-dvw max-w-none bg-black/70 p-0 text-white backdrop-blur-sm backdrop:bg-transparent"
-      style={gameText}
+      class="m-0 h-dvh max-h-none w-dvw max-w-none bg-transparent p-0 text-white backdrop-blur-[var(--menu-blur)] backdrop:bg-transparent"
+      style={{ ...gameText, ...menuBackground(data) }}
       onClose={onClose}
     >
       <div class="flex h-full flex-col items-center overflow-y-auto" style={{ padding: `${u(15)} ${u(8)}`, gap: u(20) }}>
@@ -319,7 +286,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
         </div>
 
         {/* skin do jogador na aba "Inventário" */}
-        <section class="flex w-full flex-col items-center" style={{ maxWidth: u(ROW_WIDTH), gap: u(4) }} aria-labelledby="settings-skins">
+        <section class="flex w-full flex-col items-center" style={{ maxWidth: u(rowWidth), gap: u(4) }} aria-labelledby="settings-skins">
           <h3 id="settings-skins" style={{ textShadow: textShadow(0xffffff) }}>
             {strings.skins}
           </h3>
@@ -335,7 +302,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
             }}
           >
             <SkinPreview data={data} face={notFound ? null : preview.face} unknown={notFound} />
-            <GameTextField data={data} value={name} label={strings.playerName} width={ROW_WIDTH - PREVIEW_SIZE - GAP - GAP - CONFIRM_WIDTH} onInput={setName} onEnter={submitName} />
+            <GameTextField data={data} value={name} maxLength={16} label={strings.playerName} width={rowWidth - PREVIEW_SIZE - GAP - GAP - CONFIRM_WIDTH} onInput={setName} onEnter={submitName} />
             <GuiButton
               data={data}
               type="submit"
@@ -353,7 +320,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
         </section>
 
         {/* idioma da Minecraft Wiki que os itens abrem */}
-        <section class="flex w-full flex-col items-center" style={{ maxWidth: u(ROW_WIDTH), gap: u(4) }} aria-labelledby="settings-wiki">
+        <section class="flex w-full flex-col items-center" style={{ maxWidth: u(rowWidth), gap: u(4) }} aria-labelledby="settings-wiki">
           <h3 id="settings-wiki" style={{ textShadow: textShadow(0xffffff) }}>
             Minecraft Wiki
           </h3>
