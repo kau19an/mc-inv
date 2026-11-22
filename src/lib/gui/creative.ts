@@ -65,7 +65,6 @@ export function clamp01(value: number): number {
 }
 
 // maior escala inteira que cabe, contada em pixels reais da tela (assim cada pixel da gui vira um quadrado exato)
-// (contentWidth: largura total em pixels da gui — o inventário, ou inventário + painel lado a lado)
-export function guiScale(availableWidth: number, availableHeight: number, devicePixelRatio: number, contentWidth: number = CANVAS_WIDTH): number {
-  return Math.max(1, Math.floor(Math.min((availableWidth * devicePixelRatio) / contentWidth, (availableHeight * devicePixelRatio) / CANVAS_HEIGHT)));
+export function guiScale(availableWidth: number, availableHeight: number, devicePixelRatio: number): number {
+  return Math.max(1, Math.floor(Math.min((availableWidth * devicePixelRatio) / CANVAS_WIDTH, (availableHeight * devicePixelRatio) / CANVAS_HEIGHT)));
 }

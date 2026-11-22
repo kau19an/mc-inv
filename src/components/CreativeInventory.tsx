@@ -1,13 +1,14 @@
 // inventário do modo criativo: a tela é desenhada num canvas (pixel a pixel, em escala inteira) e, por cima,
 // ficam botões transparentes nas mesmas posições — eles cuidam do mouse, do toque, do teclado e dos leitores de tela.
-// ao lado (computador) ou abaixo (celular) fica o painel do item; a url acompanha a aba ou o item escolhido
+// clicar num item abre a página dele na minecraft wiki em outra aba; a url acompanha a aba escolhida, e
+// /inv/je/<item> abre a aba do item já rolada até ele, com o slot destacado
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import ItemPanel from './ItemPanel.tsx';
 import GameTooltip, { lineOf, type TooltipLine } from './gui/GameTooltip.tsx';
 import { FORMAT_COLORS } from '@/lib/gui/colors.ts';
 import { textRuns } from '@/lib/gui/text.ts';
 import { iconCanvas } from '@/lib/gui/icons.ts';
 import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
+import { wikiUrl } from '@/lib/gui/wiki.ts';
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
@@ -33,10 +34,6 @@ const PAGE = CREATIVE.columns * CREATIVE.rows;
 const SEARCH_MAX_LENGTH = 50; // o mesmo limite da caixa de pesquisa do jogo
 const CARET_BLINK_MS = 300;
 const WHEEL_STEP = 40; // quanto de rolagem (em px) vira uma linha; mouse comum manda ~100 por clique
-const WIDE_MIN_WIDTH = 1024; // a partir daqui o painel fica ao lado do inventário
-// medidas do painel em pixels da gui: ao lado, ele tem a altura do fundo do inventário (136) e fica alinhado a ele
-const PANEL_WIDTH = 176;
-const LAYOUT_GAP = 8;
 
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
@@ -132,8 +129,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     const update = () => {
       const dpr = window.devicePixelRatio || 1;
       const margin = 16;
-      const contentWidth = window.innerWidth >= WIDE_MIN_WIDTH ? CANVAS_WIDTH + LAYOUT_GAP + PANEL_WIDTH : CANVAS_WIDTH;
-      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin, window.innerHeight - margin, dpr, contentWidth) });
+      setMetrics({ dpr, scale: guiScale(window.innerWidth - margin, window.innerHeight - margin, dpr) });
       media?.removeEventListener('change', update);
       media = window.matchMedia(`(resolution: ${dpr}dppx)`);
       media.addEventListener('change', update);
@@ -162,11 +158,17 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const items = useMemo(() => {
     if (!tab) return [];
     if (tab.type === 'search') {
+      // "#" pesquisa por marcação, como no jogo: "#logs" acha tudo que está em alguma tag com "logs" no id
+      const trimmed = query.trim().toLowerCase();
+      if (trimmed.startsWith('#') && data) {
+        const wanted = trimmed.slice(1).replace(/^minecraft:/, '');
+        return tab.items.filter((key) => (data.itemTags[baseId(key)] ?? []).some((tag) => tag.includes(wanted)));
+      }
       const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
       return terms.length ? searchIndex.filter(({ text }) => terms.every((term) => text.includes(term))).map(({ key }) => key) : tab.items;
     }
     return tab.type === 'category' ? tab.items : [];
-  }, [tab, query, searchIndex]);
+  }, [tab, query, searchIndex, data]);
 
   const rows = tab?.canScroll ? hiddenRows(items.length) : 0;
   const first = firstRow(scroll, rows);
@@ -340,40 +342,12 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     if (data.tabs[index]?.type === 'search' && window.matchMedia('(pointer: fine)').matches) requestAnimationFrame(() => searchRef.current?.focus());
   };
 
-  const selectItem = (key: string) => {
-    setSelectedKey(key);
-    navigate({ kind: 'item', id: baseId(key) });
-  };
-
-  const closePanel = () => {
-    if (!data) return;
-    setSelectedKey(null);
-    navigate(tabIndex === 0 ? { kind: 'home' } : { kind: 'tab', id: data.tabs[tabIndex]!.id });
-  };
-
-  // "onde fica": abre a aba escolhida já rolada até o item
-  const showInTab = (index: number, key: string) => {
-    if (!data) return;
-    const position = data.tabs[index]!.items.findIndex((candidate) => baseId(candidate) === baseId(key));
-    setTabIndex(index);
-    setScroll(scrollToShow(data.tabs[index]!.items.length, Math.max(position, 0)));
-    setHovered(-1);
-    if (position >= 0) setSelectedKey(data.tabs[index]!.items[position]!);
-  };
-
-  // esc fecha o painel
-  useEffect(() => {
-    if (!selectedKey) return;
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && !(event.target instanceof HTMLInputElement) && closePanel();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selectedKey, tabIndex, data]);
-
   const scrollByRows = (delta: number) => {
     if (rows > 0) setScroll((value) => clamp01(value + delta / rows));
   };
 
-  // digitar em outra aba pula pra pesquisa, como no jogo
+  // digitar em qualquer lugar pula pra pesquisa, como no jogo — e a letra digitada já entra na caixa
+  // (em outra aba, a pesquisa começa do zero com ela; na própria pesquisa, ela vai pro fim do texto)
   useEffect(() => {
     if (!data) return;
     const onKey = (event: KeyboardEvent) => {
@@ -381,11 +355,17 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       const searchIndexInTabs = data.tabs.findIndex((candidate) => candidate.type === 'search');
       if (searchIndexInTabs < 0) return;
-      if (tabIndex !== searchIndexInTabs) {
+      event.preventDefault();
+      const switching = tabIndex !== searchIndexInTabs;
+      if (switching) {
         setTabIndex(searchIndexInTabs);
-        setScroll(0);
         setHovered(-1);
+        setSelectedKey(null);
+        navigate({ kind: 'tab', id: data.tabs[searchIndexInTabs]!.id });
       }
+      setQuery((previous) => ((switching ? '' : previous) + event.key).slice(0, SEARCH_MAX_LENGTH));
+      setScroll(0);
+      setFocusedSlot(0);
       requestAnimationFrame(() => searchRef.current?.focus());
     };
     window.addEventListener('keydown', onKey);
@@ -522,7 +502,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const inventoryHeight = `${CANVAS_HEIGHT * unit}px`;
 
   return (
-    <div class="flex w-full flex-col items-center lg:flex-row lg:items-start lg:justify-center" style={{ '--u': `${unit}px`, gap: `${LAYOUT_GAP * unit}px` }}>
+    <div class="flex w-full justify-center" style={{ '--u': `${unit}px` }}>
       <div
         class="relative shrink-0 touch-none select-none"
         style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }}
@@ -595,15 +575,16 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
             onPointerLeave={(event) => event.pointerType === 'mouse' && setHovered(-1)}
           >
             {visible.map((key, index) => (
-              <button
+              <a
                 key={`${first}-${index}`}
-                type="button"
+                href={wikiUrl(itemName(key))}
+                target="_blank"
+                rel="noopener noreferrer"
                 tabIndex={index === slotIndex ? 0 : -1}
-                aria-label={itemName(key)}
+                aria-label={`${itemName(key)} (abre a Minecraft Wiki em outra aba)`}
                 class="absolute cursor-pointer outline-none"
                 style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
-                aria-pressed={key === selectedKey}
-                onClick={() => selectItem(key)}
+                draggable={false}
                 onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
                 onFocus={(event) => {
                   setFocusedSlot(index);
@@ -635,14 +616,6 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
             {tab.type === 'search' && query ? `${items.length} ${items.length === 1 ? 'item encontrado' : 'itens encontrados'}` : ''}
           </p>
         </div>
-      </div>
-
-      {/* celular: embaixo, na largura do inventário. computador: ao lado, alinhado ao fundo (sem as abas) */}
-      <div
-        class="w-(--panel-narrow) lg:mt-(--panel-top) lg:h-(--panel-height) lg:w-(--panel-wide)"
-        style={{ '--panel-narrow': `${CANVAS_WIDTH * unit}px`, '--panel-wide': `${PANEL_WIDTH * unit}px`, '--panel-top': `${TOP * unit}px`, '--panel-height': `${CREATIVE.height * unit}px` }}
-      >
-        <ItemPanel data={data} scale={metrics.scale} itemKey={selectedKey} onClose={closePanel} onShowInTab={showInTab} />
       </div>
     </div>
   );
