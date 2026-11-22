@@ -15,13 +15,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import net.minecraft.SharedConstants;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.commands.Commands;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.server.Bootstrap;
-import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.server.WorldLoader;
+import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.server.packs.repository.ServerPacksSource;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
+import net.minecraft.util.Util;
+import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
@@ -33,13 +38,27 @@ public final class CreativeTabsDump {
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
 
-    // os mesmos registros que um mundo novo teria (encantamentos, pinturas, músicas de disco…)
-    HolderLookup.Provider registries = VanillaRegistries.createWorldLookup();
-    // desde a 26.x, os componentes padrão dos itens (nome, raridade, tamanho da pilha…) só são ligados
-    // quando um mundo carrega. sem mundo, a gente faz o mesmo passo na mão
-    for (var pending : BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(registries)) pending.apply();
-    // flags padrão (sem experimentos) e com permissão de operador, pra aba "Utilidades de operador" vir junto
-    CreativeModeTabs.tryRebuildTabContents(FeatureFlags.DEFAULT_FLAGS, true, registries);
+    // carrega o pacote de dados vanilla do mesmo jeito que um mundo novo carrega (WorldLoader):
+    // registros (encantamentos, pinturas, chifres…), tags e componentes padrão dos itens, tudo ligado.
+    // sem experimentos: é o inventário que um mundo normal mostra
+    WorldDataConfiguration dataConfig = WorldDataConfiguration.DEFAULT;
+    PackRepository packs = ServerPacksSource.createVanillaTrustedRepository();
+    WorldLoader.InitConfig init = new WorldLoader.InitConfig(
+        new WorldLoader.PackConfig(packs, dataConfig, false, true),
+        Commands.CommandSelection.DEDICATED,
+        LevelBasedPermissionSet.GAMEMASTER);
+    RegistryAccess.Frozen registries = WorldLoader.<Void, RegistryAccess.Frozen>load(
+        init,
+        context -> new WorldLoader.DataLoadOutput<>(null, context.datapackDimensions()),
+        (resources, reloadable, layers, cookie) -> {
+          reloadable.updateComponentsAndStaticRegistryTags();
+          return layers.compositeAccess();
+        },
+        Util.backgroundExecutor(),
+        Util.backgroundExecutor()).join();
+
+    // com permissão de operador, pra aba "Utilidades de operador" vir junto
+    CreativeModeTabs.tryRebuildTabContents(dataConfig.enabledFeatures(), true, registries);
     DynamicOps<JsonElement> ops = registries.createSerializationContext(JsonOps.INSTANCE);
 
     JsonArray tabs = new JsonArray();
