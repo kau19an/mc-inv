@@ -35,6 +35,9 @@ public final class CreativeTabsDump {
 
     // os mesmos registros que um mundo novo teria (encantamentos, pinturas, músicas de disco…)
     HolderLookup.Provider registries = VanillaRegistries.createWorldLookup();
+    // desde a 26.x, os componentes padrão dos itens (nome, raridade, tamanho da pilha…) só são ligados
+    // quando um mundo carrega. sem mundo, a gente faz o mesmo passo na mão
+    for (var pending : BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(registries)) pending.apply();
     // flags padrão (sem experimentos) e com permissão de operador, pra aba "Utilidades de operador" vir junto
     CreativeModeTabs.tryRebuildTabContents(FeatureFlags.DEFAULT_FLAGS, true, registries);
     DynamicOps<JsonElement> ops = registries.createSerializationContext(JsonOps.INSTANCE);
