@@ -23,6 +23,7 @@ const STRINGS = {
     // tooltips das opções (como as de algumas opções do jogo)
     languageTooltip: 'Define o idioma dos recursos do jogo e interface do site.',
     confirmDisabledTooltip: 'Altere o nome de jogador para confirmar uma nova skin.',
+    playerNotFoundTooltip: 'Este nome de jogador não foi encontrado.',
     wikiTooltip: 'Define o idioma da Minecraft Wiki ao redirecionar para o recurso clicado. Por padrão, "Automático" corresponde ao idioma definido na opção acima.',
   },
   en_us: {
@@ -39,11 +40,12 @@ const STRINGS = {
     confirm: 'Confirm',
     skinSuccess: 'Skin successfully applied.',
     skinNotFound: 'Player not found.',
-    wikiAuto: 'Automatic',
+    wikiAuto: 'Auto',
     wikiLanguageNames: { lzh: 'Literary Chinese' } as Record<string, string>,
     languageTooltip: 'Sets the language of the game resources and the site interface.',
     confirmDisabledTooltip: 'Change the player name to confirm a new skin.',
-    wikiTooltip: 'Sets the Minecraft Wiki language when redirecting to the clicked resource. By default, "Automatic" matches the language set in the option above.',
+    playerNotFoundTooltip: 'This player name was not found.',
+    wikiTooltip: 'Sets the Minecraft Wiki language when redirecting to the clicked resource. By default, "Auto" matches the language set in the option above.',
   },
 } satisfies Record<Locale, Record<string, unknown>>;
 

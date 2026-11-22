@@ -138,7 +138,8 @@ function GameTextField({ data, value, label, width, onInput, onEnter }: { data: 
 
 // quadradinho com o rosto da skin, na moldura da caixa de texto do jogo (ou no visual reserva dela).
 // o rosto tem 8×8 pixels da skin, desenhados a 2 pixels da gui cada (16×16), centralizado
-function SkinPreview({ data, face }: { data: VersionData; face: ImageData | null }) {
+// jogador não encontrado: um "?" no lugar do rosto
+function SkinPreview({ data, face, unknown }: { data: VersionData; face: ImageData | null; unknown: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
@@ -154,6 +155,11 @@ function SkinPreview({ data, face }: { data: VersionData; face: ImageData | null
       aria-hidden="true"
     >
       <canvas ref={ref} width={8} height={8} class="[image-rendering:pixelated]" style={{ width: u(16), height: u(16) }} />
+      {unknown && (
+        <span class="absolute inset-0 grid place-items-center text-white" style={{ ...gameText, textShadow: textShadow(0xffffff) }}>
+          ?
+        </span>
+      )}
     </div>
   );
 }
@@ -204,7 +210,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
   // confirmar o nome que já está aplicado (ou enquanto busca) não faz nada: o botão fica desativado.
   // nomes do jogo não diferenciam maiúsculas ("kauan" e "Kauan" são o mesmo jogador)
   const trimmed = name.trim();
-  const confirmDisabled = skinStatus.kind === 'loading' || trimmed.toLowerCase() === appliedName.toLowerCase();
+  const alreadyApplied = trimmed.toLowerCase() === appliedName.toLowerCase();
   const submitName = () => {
     if (confirmDisabled) return;
     setName(trimmed);
@@ -233,31 +239,39 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
   };
 
   // prévia do rosto do nome digitado: busca quando a pessoa para de digitar (a resposta fica guardada, então o
-  // Confirmar depois é instantâneo). campo vazio = Steve (o que vai ser aplicado); nome inválido ou não
-  // encontrado = quadrado vazio. enquanto busca, fica o rosto anterior
-  const [face, setFace] = useState<ImageData | null>(null);
+  // Confirmar depois é instantâneo). campo vazio = Steve (o que vai ser aplicado); enquanto busca, fica o rosto
+  // anterior. nome inválido ou que não existe = "?" e Confirmar travado; Mojang fora = quadrado vazio (dá pra tentar)
+  const [preview, setPreview] = useState<{ name: string; face: ImageData | null; notFound: boolean }>({ name: '', face: null, notFound: false });
   useEffect(() => {
     const defaultSkin = data.player?.defaultSkin;
     if (!trimmed) {
-      setFace(defaultSkin ? skinFace(defaultSkin) : null);
+      setPreview({ name: '', face: defaultSkin ? skinFace(defaultSkin) : null, notFound: false });
       return;
     }
     if (!PLAYER_NAME.test(trimmed)) {
-      setFace(null);
+      setPreview({ name: trimmed, face: null, notFound: true });
       return;
     }
     let current = true;
     const timer = setTimeout(async () => {
       const result = await fetchPlayerSkin(trimmed);
       if (!current) return;
-      const skin = 'error' in result ? null : (result.skin ?? defaultSkin ?? null);
-      setFace(skin ? skinFace(skin) : null);
+      if ('error' in result) {
+        setPreview({ name: trimmed, face: null, notFound: result.error === 'not_found' || result.error === 'invalid_name' });
+        return;
+      }
+      const skin = result.skin ?? defaultSkin ?? null;
+      setPreview({ name: trimmed, face: skin ? skinFace(skin) : null, notFound: false });
     }, PREVIEW_DELAY_MS);
     return () => {
       current = false;
       clearTimeout(timer);
     };
   }, [trimmed, data]);
+  // só vale pro nome que está no campo agora (enquanto a busca do nome novo não volta, não trava)
+  const notFound = preview.notFound && preview.name === trimmed;
+  // Confirmar travado: buscando, nome já aplicado ou jogador que não existe (submitName também confere)
+  const confirmDisabled = skinStatus.kind === 'loading' || alreadyApplied || notFound;
 
   return (
     <dialog
@@ -320,7 +334,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
               submitName();
             }}
           >
-            <SkinPreview data={data} face={face} />
+            <SkinPreview data={data} face={notFound ? null : preview.face} unknown={notFound} />
             <GameTextField data={data} value={name} label={strings.playerName} width={ROW_WIDTH - PREVIEW_SIZE - GAP - GAP - CONFIRM_WIDTH} onInput={setName} onEnter={submitName} />
             <GuiButton
               data={data}
@@ -328,7 +342,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
               width={CONFIRM_WIDTH}
               label={strings.confirm}
               disabled={confirmDisabled}
-              {...tooltip('confirm', confirmDisabled ? strings.confirmDisabledTooltip : undefined)}
+              {...tooltip('confirm', notFound ? strings.playerNotFoundTooltip : alreadyApplied ? strings.confirmDisabledTooltip : undefined)}
             />
           </form>
           {status && (
