@@ -139,9 +139,17 @@ public final class SpecialModelsDump {
             try {
               Object atlas = fakeAtlas(atlasClass, key);
               if (finalEntryClass == null) return atlas;
-              Object entry = allocate(finalEntryClass);
-              setField(finalEntryClass, entry, atlasClass, atlas, false);
-              return entry;
+              // AtlasEntry é um record: campos finais não aceitam reflexão, então vai pelo construtor
+              java.lang.reflect.Constructor<?> constructor = finalEntryClass.getDeclaredConstructors()[0];
+              constructor.setAccessible(true);
+              Class<?>[] types = constructor.getParameterTypes();
+              Object[] values = new Object[types.length];
+              for (int index = 0; index < types.length; index++) {
+                if (types[index] == atlasClass) values[index] = atlas;
+                else if (key != null && types[index].isInstance(key)) values[index] = key;
+                else values[index] = defaultValue(types[index]);
+              }
+              return constructor.newInstance(values);
             } catch (ReflectiveOperationException error) {
               throw new IllegalStateException(error);
             }
