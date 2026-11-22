@@ -155,7 +155,9 @@
   "bookshelf_books": [
     "book",
     "enchanted_book",
-    "writable_book"
+    "knowledge_book",
+    "writable_book",
+    "written_book"
   ],
   "breaks_decorated_pots": [
     "copper_axe",
@@ -339,6 +341,25 @@
     "pumpkin_seeds",
     "torchflower_seeds",
     "wheat_seeds"
+  ],
+  "clonable_maps": [
+    "abandoned_camp_map",
+    "buried_ancient_city_map",
+    "buried_mineshaft_map",
+    "buried_treasure_map",
+    "buried_trial_chambers_map",
+    "desert_pyramid_map",
+    "desert_village_map",
+    "filled_map",
+    "jungle_pyramid_map",
+    "ocean_monument_map",
+    "plains_village_map",
+    "savanna_village_map",
+    "snowy_village_map",
+    "swamp_hut_map",
+    "taiga_village_map",
+    "warm_ocean_ruins_map",
+    "woodland_mansion_map"
   ],
   "cluster_max_harvestables": [
     "copper_pickaxe",
@@ -1243,6 +1264,9 @@
     "wooden_spear",
     "wooden_sword"
   ],
+  "extendable_maps": [
+    "filled_map"
+  ],
   "fence_gates": [
     "acacia_fence_gate",
     "bamboo_fence_gate",
@@ -1524,7 +1548,8 @@
     "yellow_poplar_leaves"
   ],
   "lectern_books": [
-    "writable_book"
+    "writable_book",
+    "written_book"
   ],
   "leg_armor": [
     "chainmail_leggings",
@@ -2101,6 +2126,7 @@
     "orange_wool_slab",
     "oxidized_cut_copper_slab",
     "pale_oak_slab",
+    "petrified_oak_slab",
     "pink_concrete_slab",
     "pink_wool_slab",
     "polished_andesite_slab",

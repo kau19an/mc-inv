@@ -72730,5 +72730,719 @@
         "color": "dark_gray"
       }
     ]
+  },
+  "petrified_oak_slab": {
+    "id": "petrified_oak_slab",
+    "name": {
+      "translate": "block.minecraft.petrified_oak_slab"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "block.minecraft.petrified_oak_slab"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:petrified_oak_slab",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          14
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "chiseled_soulshale": {
+    "id": "chiseled_soulshale",
+    "name": {
+      "translate": "block.minecraft.chiseled_soulshale"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "block.minecraft.chiseled_soulshale"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:chiseled_soulshale",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          14
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "filled_map": {
+    "id": "filled_map",
+    "name": {
+      "translate": "item.minecraft.filled_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.filled_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:filled_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "ocean_monument_map": {
+    "id": "ocean_monument_map",
+    "name": {
+      "translate": "item.minecraft.ocean_monument_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.ocean_monument_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:ocean_monument_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "woodland_mansion_map": {
+    "id": "woodland_mansion_map",
+    "name": {
+      "translate": "item.minecraft.woodland_mansion_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.woodland_mansion_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:woodland_mansion_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "buried_trial_chambers_map": {
+    "id": "buried_trial_chambers_map",
+    "name": {
+      "translate": "item.minecraft.buried_trial_chambers_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.buried_trial_chambers_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:buried_trial_chambers_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "jungle_pyramid_map": {
+    "id": "jungle_pyramid_map",
+    "name": {
+      "translate": "item.minecraft.jungle_pyramid_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.jungle_pyramid_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:jungle_pyramid_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "swamp_hut_map": {
+    "id": "swamp_hut_map",
+    "name": {
+      "translate": "item.minecraft.swamp_hut_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.swamp_hut_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:swamp_hut_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "desert_village_map": {
+    "id": "desert_village_map",
+    "name": {
+      "translate": "item.minecraft.desert_village_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.desert_village_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:desert_village_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "plains_village_map": {
+    "id": "plains_village_map",
+    "name": {
+      "translate": "item.minecraft.plains_village_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.plains_village_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:plains_village_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "savanna_village_map": {
+    "id": "savanna_village_map",
+    "name": {
+      "translate": "item.minecraft.savanna_village_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.savanna_village_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:savanna_village_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "snowy_village_map": {
+    "id": "snowy_village_map",
+    "name": {
+      "translate": "item.minecraft.snowy_village_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.snowy_village_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:snowy_village_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "taiga_village_map": {
+    "id": "taiga_village_map",
+    "name": {
+      "translate": "item.minecraft.taiga_village_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.taiga_village_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:taiga_village_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "buried_treasure_map": {
+    "id": "buried_treasure_map",
+    "name": {
+      "translate": "item.minecraft.buried_treasure_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.buried_treasure_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:buried_treasure_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "buried_ancient_city_map": {
+    "id": "buried_ancient_city_map",
+    "name": {
+      "translate": "item.minecraft.buried_ancient_city_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.buried_ancient_city_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:buried_ancient_city_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "buried_mineshaft_map": {
+    "id": "buried_mineshaft_map",
+    "name": {
+      "translate": "item.minecraft.buried_mineshaft_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.buried_mineshaft_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:buried_mineshaft_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "desert_pyramid_map": {
+    "id": "desert_pyramid_map",
+    "name": {
+      "translate": "item.minecraft.desert_pyramid_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.desert_pyramid_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:desert_pyramid_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "abandoned_camp_map": {
+    "id": "abandoned_camp_map",
+    "name": {
+      "translate": "item.minecraft.abandoned_camp_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.abandoned_camp_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:abandoned_camp_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "warm_ocean_ruins_map": {
+    "id": "warm_ocean_ruins_map",
+    "name": {
+      "translate": "item.minecraft.warm_ocean_ruins_map"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.warm_ocean_ruins_map"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:warm_ocean_ruins_map",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "wither_spawn_egg": {
+    "id": "wither_spawn_egg",
+    "name": {
+      "translate": "item.minecraft.wither_spawn_egg"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.wither_spawn_egg"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:wither_spawn_egg",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "ender_dragon_spawn_egg": {
+    "id": "ender_dragon_spawn_egg",
+    "name": {
+      "translate": "item.minecraft.ender_dragon_spawn_egg"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.ender_dragon_spawn_egg"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:ender_dragon_spawn_egg",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "written_book": {
+    "id": "written_book",
+    "foil": true,
+    "name": {
+      "translate": "item.minecraft.written_book"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.written_book"
+          }
+        ],
+        "color": "white"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:written_book",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
+  },
+  "knowledge_book": {
+    "id": "knowledge_book",
+    "name": {
+      "translate": "item.minecraft.knowledge_book"
+    },
+    "tooltip": [
+      {
+        "text": "",
+        "extra": [
+          {
+            "translate": "item.minecraft.knowledge_book"
+          }
+        ],
+        "color": "light_purple"
+      }
+    ],
+    "advancedExtra": [
+      {
+        "text": "minecraft:knowledge_book",
+        "color": "dark_gray"
+      },
+      {
+        "translate": "item.components",
+        "with": [
+          15
+        ],
+        "color": "dark_gray"
+      }
+    ],
+    "searchOnly": true
   }
 }
