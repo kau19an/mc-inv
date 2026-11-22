@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import type { Element, Face, FaceName, GuiTransform, IconModel, LocalTransform, MeshQuad, SpecialModel, Texture, Tint, Vec3 } from '../../../src/lib/icons/types.ts';
 import { applyLocalChain } from '../../../src/lib/icons/transform.ts';
+import legacyTints from './legacy-tints.json' with { type: 'json' };
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -260,9 +261,18 @@ export class IconResolver {
     return { kind: 'mesh', quads, gui, light };
   }
 
+  // versões sem as definições de item (antes da 24w45a): o modelo era sempre models/item/<id>.json, e as cores
+  // (grama, folhas, couro, poção…) vinham do código do jogo. as cores saem de legacy-tints.json, copiadas das
+  // definições de uma versão nova (as regras não mudaram pra esses itens)
+  private legacyDefinition(itemId: string): Json | null {
+    if (existsSync(join(this.root, 'assets/minecraft/items'))) return null;
+    const id = path(itemId);
+    return { model: { type: 'minecraft:model', model: `minecraft:item/${id}`, tints: (legacyTints as Record<string, Json[]>)[id] } };
+  }
+
   resolve(itemId: string, context: StackContext = {}): ResolvedIcon {
     this.context = context;
-    const definition = this.readJson(join(this.root, 'assets/minecraft/items', `${path(itemId)}.json`));
+    const definition = this.readJson(join(this.root, 'assets/minecraft/items', `${path(itemId)}.json`)) ?? this.legacyDefinition(itemId);
     const tints: Tint[] = [];
     if (!definition?.model) return { model: { kind: 'empty' }, tints };
     const toMeshes = (model: IconModel): IconModel =>

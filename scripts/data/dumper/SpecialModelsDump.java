@@ -74,6 +74,7 @@ public final class SpecialModelsDump {
     }
     Codec<?> codec = specialModelCodec(renderers);
     EntityModelSet models = DumpUtil.entityModels();
+    if (bufferEra()) installFakeAtlases();
 
     for (Map.Entry<String, JsonElement> entry : entries.entrySet()) {
       try {
@@ -97,6 +98,95 @@ public final class SpecialModelsDump {
   }
 
   private static final String SPECIAL = "net.minecraft.client.renderer.special.";
+
+  // id de um sprite pedido pelo caminho antigo (atlas + textura), com os mesmos nomes do SpriteId/Material
+  record SpriteKey(Object atlasLocation, Object texture) {}
+
+  // época do MultiBufferSource: o renderizador desenha com render(..., MultiBufferSource, ...)
+  private static boolean bufferEra() throws ClassNotFoundException {
+    for (Method method : Class.forName(SPECIAL + "SpecialModelRenderer").getMethods()) if (method.getName().equals("render")) return true;
+    return false;
+  }
+
+  // na época do MultiBufferSource, Material.sprite() pede o sprite pro jogo aberto:
+  // Minecraft.getInstance().getTextureAtlas(atlas) → ModelManager.getAtlas → AtlasSet → TextureAtlas.getSprite.
+  // sem jogo aberto, monta essa corrente com objetos vazios (achados pelo tipo de cada campo) e um mapa que devolve
+  // um sprite falso pra qualquer textura pedida — e lembra qual foi, como no caminho novo
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static void installFakeAtlases() {
+    try {
+      Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
+      Class<?> modelManagerClass = Class.forName("net.minecraft.client.resources.model.ModelManager");
+      Class<?> atlasSetClass = Class.forName("net.minecraft.client.resources.model.AtlasSet");
+      Class<?> atlasClass = Class.forName("net.minecraft.client.renderer.texture.TextureAtlas");
+      Object minecraft = allocate(minecraftClass);
+      setField(minecraftClass, null, minecraftClass, minecraft, true); // Minecraft.instance
+      Object modelManager = allocate(modelManagerClass);
+      setField(minecraftClass, minecraft, modelManagerClass, modelManager, false);
+      Object atlasSet = allocate(atlasSetClass);
+      setField(modelManagerClass, modelManager, atlasSetClass, atlasSet, false);
+      Class<?> entryClass = null;
+      for (Class<?> nested : atlasSetClass.getDeclaredClasses()) {
+        for (Field field : nested.getDeclaredFields()) if (field.getType() == atlasClass) entryClass = nested;
+      }
+      Class<?> finalEntryClass = entryClass;
+      Map<Object, Object> entries = new java.util.HashMap<>() {
+        @Override public Object get(Object location) {
+          return computeIfAbsent(location, key -> {
+            try {
+              Object atlas = fakeAtlas(atlasClass, key);
+              if (finalEntryClass == null) return atlas;
+              Object entry = allocate(finalEntryClass);
+              setField(finalEntryClass, entry, atlasClass, atlas, false);
+              return entry;
+            } catch (ReflectiveOperationException error) {
+              throw new IllegalStateException(error);
+            }
+          });
+        }
+        @Override public Object getOrDefault(Object key, Object fallback) { return get(key); }
+      };
+      setField(atlasSetClass, atlasSet, Map.class, entries, false);
+    } catch (ReflectiveOperationException | RuntimeException error) {
+      System.err.println("atlas falso não montado: " + error);
+    }
+  }
+
+  private static Object fakeAtlas(Class<?> atlasClass, Object location) throws ReflectiveOperationException {
+    Object atlas = allocate(atlasClass);
+    Map<Object, Object> sprites = new java.util.HashMap<>() {
+      @Override public Object get(Object name) { return fakeSprite(new SpriteKey(location, name)); }
+      @Override public Object getOrDefault(Object name, Object fallback) { return get(name); }
+    };
+    for (Class<?> type = atlasClass; type != null; type = type.getSuperclass()) {
+      for (Field field : type.getDeclaredFields()) {
+        if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+        field.setAccessible(true);
+        if (Map.class.isAssignableFrom(field.getType())) field.set(atlas, sprites);
+        else if (location != null && field.getType().isInstance(location)) field.set(atlas, location);
+        else if (field.getType() == TextureAtlasSprite.class) field.set(atlas, fakeSprite(new SpriteKey(location, "missingno")));
+      }
+    }
+    return atlas;
+  }
+
+  private static Object allocate(Class<?> type) throws ReflectiveOperationException {
+    Field field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
+    field.setAccessible(true);
+    Object unsafe = field.get(null);
+    return unsafe.getClass().getMethod("allocateInstance", Class.class).invoke(unsafe, type);
+  }
+
+  // primeiro campo de owner (estático ou não) cujo tipo aceita value
+  private static void setField(Class<?> owner, Object target, Class<?> type, Object value, boolean isStatic) throws ReflectiveOperationException {
+    for (Field field : owner.getDeclaredFields()) {
+      if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) != isStatic || !field.getType().isAssignableFrom(type)) continue;
+      field.setAccessible(true);
+      field.set(target, value);
+      return;
+    }
+    throw new NoSuchFieldException(owner.getName() + ": campo do tipo " + type.getName());
+  }
 
   // Unbaked.bake(contexto): 1.21.9 em diante recebe um BakingContext (modelos, sprites, skins);
   // antes, só o EntityModelSet

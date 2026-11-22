@@ -27,6 +27,13 @@ function wantedImages(backgrounds: string[]): string[] {
   return [...new Set([...backgroundPaths, ...sprites.map((sprite) => `${SPRITES}${sprite}`)])];
 }
 
+// nomes antigos de imagens que mudaram de lugar (até a 1.21.3)
+const LEGACY_IMAGES: Record<string, string> = Object.fromEntries(
+  ['helmet', 'chestplate', 'leggings', 'boots', 'shield'].map((slot) => [`${SPRITES}container/slot/${slot}`, `textures/item/empty_armor_slot_${slot}`]),
+);
+// imagens que versões antigas não têm e o site sabe desenhar sem elas
+const OPTIONAL_IMAGES = new Set([`${SPRITES}container/slot_highlight_back`, `${SPRITES}container/slot_highlight_front`]);
+
 // sprites de moldura do jogo (o "nine slice" vem do .mcmeta de cada um)
 const FRAME_SPRITES: Record<string, string> = {
   slot: 'container/slot',
@@ -87,8 +94,16 @@ export async function buildGuiBundle(versionDir: string, backgrounds: string[]):
   const assets = join(versionDir, 'assets/minecraft');
   const images = new Map<string, PNG>();
   for (const path of wantedImages(backgrounds)) {
-    const file = join(assets, `${path}.png`);
-    if (!existsSync(file)) throw new Error(`imagem da interface não encontrada: ${path}`);
+    let file = join(assets, `${path}.png`);
+    // versões antigas: o ícone do slot vazio era uma textura de item (empty_armor_slot_*), guardada aqui com o nome
+    // novo pro site não precisar saber a diferença
+    const legacy = LEGACY_IMAGES[path];
+    if (!existsSync(file) && legacy && existsSync(join(assets, `${legacy}.png`))) file = join(assets, `${legacy}.png`);
+    if (!existsSync(file)) {
+      // destaque do slot (sprites só desde a 24w39a: antes o jogo pintava um branco a 50%, e o site faz o mesmo)
+      if (OPTIONAL_IMAGES.has(path)) continue;
+      throw new Error(`imagem da interface não encontrada: ${path}`);
+    }
     const png = PNG.sync.read(readFileSync(file));
     // animadas (ex.: destaque do slot tem .mcmeta de "nine slice", não de animação): só o primeiro quadro quadrado
     images.set(path.replace(SPRITES, 'sprites/').replace('textures/gui/', ''), png);

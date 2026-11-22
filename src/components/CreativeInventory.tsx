@@ -402,6 +402,15 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       ctx.drawImage(data.guiAtlas, rect[0], rect[1], w, h, x * scale, y * scale, w * scale, h * scale);
     };
 
+    // destaque do slot sob o mouse: os sprites slot_highlight_back/front (24w39a em diante) ou, antes deles, o
+    // branco a 50% que o jogo pintava por cima do item (AbstractContainerScreen.renderSlotHighlight)
+    const highlightBack = (x: number, y: number) => sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
+    const highlightFront = (x: number, y: number) => {
+      if (data.gui.images['sprites/container/slot_highlight_front']) return sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
+      ctx.fillStyle = 'rgb(255 255 255 / 0.5)';
+      ctx.fillRect(x * scale, y * scale, 16 * scale, 16 * scale);
+    };
+
     const icon = (key: string, x: number, y: number) => {
       const canvas = iconCanvas(data, key, 16 * scale);
       if (canvas) ctx.drawImage(canvas, x * scale, y * scale);
@@ -462,9 +471,9 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     visible.forEach((key, index) => {
       const [x, y] = slotPosition(index);
       const lit = index === hovered || (key !== '' && key === selectedKey);
-      if (lit) sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
+      if (lit) highlightBack(x, y);
       if (key) icon(isHotbarPlaceholder(key) ? 'paper' : key, x, y);
-      if (lit) sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
+      if (lit) highlightFront(x, y);
     });
 
     // slots do jogador (todos na aba "Inventário", só a barra rápida nas outras): ícones dos slots vazios
@@ -472,14 +481,14 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     INVENTORY_SLOTS.forEach((slot, index) => {
       if (!playerSlotShown(slot, tab.type === 'inventory')) return;
       const y = TOP + slot.y;
-      if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_back', slot.x - 4, y - 4);
+      if (index === hoveredInventorySlot) highlightBack(slot.x, y);
       if (slot.empty) sprite(`sprites/container/slot/${slot.empty}`, slot.x, y);
-      if (index === hoveredInventorySlot) sprite('sprites/container/slot_highlight_front', slot.x - 4, y - 4);
+      if (index === hoveredInventorySlot) highlightFront(slot.x, y);
     });
     if (tab.type !== 'inventory' && hovered >= visible.length && hovered < PAGE) {
       const [x, y] = slotPosition(hovered);
-      sprite('sprites/container/slot_highlight_back', x - 4, y - 4);
-      sprite('sprites/container/slot_highlight_front', x - 4, y - 4);
+      highlightBack(x, y);
+      highlightFront(x, y);
     }
 
     tabSprite(tab, true);
