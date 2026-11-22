@@ -17,6 +17,20 @@ const { values: args } = parseArgs({ options: { versions: { type: 'string', defa
 
 const DUMPER = join(import.meta.dirname, 'dumper/CreativeTabsDump.java');
 
+// roda um comando; se falhar, publica o fim da saída de erro como anotação do github actions
+// (é o único jeito do claude ler o erro, já que ele não acessa os logs)
+function run(command: string, commandArgs: string[], cwd?: string) {
+  try {
+    execFileSync(command, commandArgs, { cwd, stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
+  } catch (error) {
+    const output = String((error as { stderr?: Buffer }).stderr ?? '') + String((error as { stdout?: Buffer }).stdout ?? '');
+    const tail = output.trim().split('\n').slice(-40).join('\n');
+    console.error(tail);
+    if (process.env.GITHUB_ACTIONS) console.log(`::error title=${command} falhou::${tail.replaceAll('%', '%25').replaceAll('\r', '').replaceAll('\n', '%0A')}`);
+    throw new Error(`${command} falhou`);
+  }
+}
+
 // bibliotecas que o jogo usa (gson, datafixerupper, log4j…): só as que valem pra linux e não são nativas
 function wantedLibrary(library: Library): boolean {
   if (!library.downloads?.artifact) return false;
@@ -56,15 +70,13 @@ async function dump(version: Version) {
   const classes = join(CACHE_DIR, 'dumper', version.id);
   await rm(classes, { recursive: true, force: true });
   await mkdir(classes, { recursive: true });
-  execFileSync('javac', ['-nowarn', '-cp', classpath.join(delimiter), '-d', classes, DUMPER], { stdio: 'inherit' });
+  run('javac', ['-nowarn', '-cp', classpath.join(delimiter), '-d', classes, DUMPER]);
 
   const out = join(CACHE_DIR, 'versions', version.id, 'creative_tabs.json');
   await mkdir(join(CACHE_DIR, 'versions', version.id), { recursive: true });
-  // o jogo escreve bastante log ao iniciar: só mostra se der erro
-  execFileSync('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'CreativeTabsDump', out], {
-    stdio: ['ignore', 'pipe', 'inherit'],
-    cwd: classes, // o jogo pode criar arquivos/pastas onde roda
-  });
+  // o jogo escreve bastante log ao iniciar: só aparece se der erro.
+  // roda dentro da pasta das classes porque o jogo pode criar arquivos onde é executado
+  run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'CreativeTabsDump', out], classes);
 
   return JSON.parse(await readFile(out, 'utf8')) as { version: string; tabs: DumpedTab[] };
 }
