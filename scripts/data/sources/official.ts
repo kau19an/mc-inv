@@ -15,18 +15,33 @@ interface Manifest {
   versions: { id: string; type: VersionEntry['type']; url: string; releaseTime: string; sha1: string }[];
 }
 
-interface VersionPackage {
+export interface Library {
+  name: string;
+  downloads?: { artifact?: { path: string; url: string; sha1: string } };
+  rules?: { action: 'allow' | 'disallow'; os?: { name?: string } }[];
+}
+
+export interface VersionPackage {
   downloads: { client: { url: string; sha1: string } };
   assetIndex: { url: string; sha1: string };
+  libraries: Library[];
+  javaVersion?: { majorVersion: number };
 }
+
+export const versionPackage = (version: Version) => {
+  if (!version.url) throw new Error(`versão sem url no manifesto: ${version.id}`);
+  return fetchJson<VersionPackage>(version.url, version.sha1);
+};
+
+export const jarPath = (id: string) => join(CACHE_DIR, 'jars', `${id}.jar`);
 
 interface AssetIndex {
   objects: Record<string, { hash: string; size: number }>;
 }
 
 // o jar fica guardado no cache: rodar de novo não baixa ~30 MB outra vez
-async function clientJar(version: Version, pkg: VersionPackage): Promise<Uint8Array> {
-  const path = join(CACHE_DIR, 'jars', `${version.id}.jar`);
+export async function clientJar(version: Version, pkg: VersionPackage): Promise<Uint8Array> {
+  const path = jarPath(version.id);
   try {
     const cached = new Uint8Array(await readFile(path));
     if (sha1(cached) === pkg.downloads.client.sha1) return cached;
@@ -50,8 +65,7 @@ export const official: Source = {
   },
 
   async extract(version, outDir, locales) {
-    if (!version.url) throw new Error(`versão sem url no manifesto: ${version.id}`);
-    const pkg = await fetchJson<VersionPackage>(version.url, version.sha1);
+    const pkg = await versionPackage(version);
 
     // 1. jar: só o que está em KEEP_PREFIXES (o en_us vem daqui) + o zip do programmer art
     let programmerArt: Uint8Array | null = null;

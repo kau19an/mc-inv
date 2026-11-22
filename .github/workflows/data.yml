@@ -73,39 +73,25 @@ jobs:
             echo "::notice title=$(jq -r '.id + " (" + .kind + ")"' "$meta")::$(jq -c '.counts' "$meta")"
           done
 
-      # temporário (fase 2.2): inspeciona as classes do jogo que o dump das abas vai usar.
-      # sai daqui assim que o dump estiver pronto
+      # dump das abas: precisa de java (o jar da 26.x pede java 25)
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
 
-      - name: Sondar classes do jogo
+      - name: Montar as abas do inventário criativo
+        run: npm run dump -- --versions=${{ inputs.versions || 'tracked' }}
+
+      # relatório das abas como check run (texto longo, que o claude lê pela api)
+      - name: Relatório das abas
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          jar=".cache/jars/$(jq -r '.latest.release' .cache/versions.json).jar"
-          {
-            echo "# jar: $jar"
-            echo "# classes com 'CreativeModeTab' no nome:"
-            unzip -l "$jar" | grep -o 'net/minecraft/[^ ]*CreativeModeTab[^ ]*\.class' | head -20
-            for class in \
-              net.minecraft.world.item.CreativeModeTabs \
-              net.minecraft.world.item.CreativeModeTab \
-              'net.minecraft.world.item.CreativeModeTab$ItemDisplayParameters' \
-              net.minecraft.server.Bootstrap \
-              net.minecraft.SharedConstants \
-              net.minecraft.data.registries.VanillaRegistries \
-              net.minecraft.world.flag.FeatureFlags \
-              net.minecraft.core.registries.BuiltInRegistries; do
-              echo
-              echo "## $class"
-              javap -cp "$jar" -public "$class" 2>&1 | head -80
-            done
-          } > probe.txt
+          [ -f .cache/dump-report.md ] || exit 0
           gh api "repos/$GITHUB_REPOSITORY/check-runs" \
-            -f name='mc-inv: sondagem' -f head_sha="$GITHUB_SHA" \
+            -f name='mc-inv: abas' -f head_sha="$GITHUB_SHA" \
             -f status=completed -f conclusion=neutral \
-            -f 'output[title]=Sondagem das classes do jogo' \
-            -f 'output[summary]=Assinaturas públicas (javap) das classes usadas pelo dump das abas.' \
-            -f "output[text]=$(head -c 65000 probe.txt)" > /dev/null
+            -f 'output[title]=Abas do inventário criativo' \
+            -f 'output[summary]=Abas montadas pelo próprio jogo (primeiros itens de cada uma).' \
+            -f "output[text]=$(head -c 65000 .cache/dump-report.md)" > /dev/null

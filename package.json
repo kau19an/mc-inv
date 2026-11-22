@@ -12,7 +12,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "astro": "astro",
-    "data": "node scripts/data/index.ts"
+    "data": "node scripts/data/index.ts",
+    "dump": "node scripts/data/dump.ts"
   },
   "dependencies": {
     "@astrojs/preact": "^6.1.6",
