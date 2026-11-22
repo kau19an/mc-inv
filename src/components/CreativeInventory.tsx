@@ -35,7 +35,9 @@ import { latestRelease, loadProgrammerAtlas, loadVersion, textOf, viewFor, type 
 import type { AtlasPixels } from '@/lib/icons/bundle.ts';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from '@/lib/gui/settings.ts';
 import { HTML_LANG, stringsFor } from '@/lib/gui/strings.ts';
-import SettingsScreen from './SettingsScreen.tsx';
+import SettingsScreen, { type SkinStatus } from './SettingsScreen.tsx';
+import { fetchPlayerSkin, type PlayerSkin } from '@/lib/gui/skin.ts';
+import { PLAYER_NAME } from '@/lib/gui/settings.ts';
 import { GuiButton } from './gui/GuiParts.tsx';
 import { CREATIVE } from '@/lib/gui/types.ts';
 
@@ -71,6 +73,9 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [programmerAtlas, setProgrammerAtlas] = useState<AtlasPixels | null>(null);
+  // skin do jogador escolhido nas opções (null = Steve)
+  const [playerSkin, setPlayerSkin] = useState<PlayerSkin | null>(null);
+  const [skinStatus, setSkinStatus] = useState<SkinStatus>({ kind: 'idle' });
   // os dados vistos no idioma escolhido e com/sem Programmer Art (ícones e nomes se ajustam sozinhos)
   const data = useMemo(
     () => (baseData ? viewFor(baseData, settings.locale, settings.programmerArt ? programmerAtlas : null) : null),
@@ -99,6 +104,40 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       saveSettings(next);
       return next;
     });
+
+  // busca a skin do nome salvo nas opções (ao abrir o site e a cada nome confirmado)
+  const loadPlayerSkin = async (name: string) => {
+    if (!name) {
+      setPlayerSkin(null);
+      return;
+    }
+    setSkinStatus({ kind: 'loading' });
+    const result = await fetchPlayerSkin(name).catch(() => ({ error: 'upstream' as const }));
+    if ('error' in result) {
+      setSkinStatus({ kind: 'error', error: result.error });
+      return;
+    }
+    setPlayerSkin(result.skin ? result : null);
+    setSkinStatus(result.skin ? { kind: 'found', name: result.name } : { kind: 'default', name: result.name });
+  };
+  useEffect(() => {
+    const saved = loadSettings().playerName;
+    if (saved) loadPlayerSkin(saved);
+  }, []);
+
+  const applyPlayerName = (name: string) => {
+    if (name && !PLAYER_NAME.test(name)) {
+      setSkinStatus({ kind: 'error', error: 'invalid_name' });
+      return;
+    }
+    updateSettings({ playerName: name });
+    if (!name) {
+      setPlayerSkin(null);
+      setSkinStatus({ kind: 'reset' });
+      return;
+    }
+    loadPlayerSkin(name);
+  };
 
   // Programmer Art: as texturas antigas só são baixadas na primeira vez que alguém liga
   useEffect(() => {
@@ -355,7 +394,12 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     const draw = () => {
       const canvas = playerRef.current;
       if (canvas) {
-        const image = renderPlayer(player.models.wide, player.defaultSkin, { scale, mouseX: lookAt.current.x, mouseY: lookAt.current.y, ageInTicks: still ? 0 : performance.now() / 50 });
+        const image = renderPlayer(player.models[playerSkin?.model ?? 'wide'], playerSkin?.skin ?? player.defaultSkin, {
+          scale,
+          mouseX: lookAt.current.x,
+          mouseY: lookAt.current.y,
+          ageInTicks: still ? 0 : performance.now() / 50,
+        });
         if (canvas.width !== image.width || canvas.height !== image.height) {
           canvas.width = image.width;
           canvas.height = image.height;
@@ -370,7 +414,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       window.removeEventListener('pointermove', onPointer);
       window.removeEventListener('pointerdown', onPointer);
     };
-  }, [tab?.type, data, metrics, unit]);
+  }, [tab?.type, data, metrics, unit, playerSkin]);
 
   // move o foco do teclado depois que a tela redesenha
   useEffect(() => {
@@ -666,7 +710,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const inventoryHeight = `${CANVAS_HEIGHT * unit}px`;
 
   return (
-    <div class="flex w-full flex-col items-center" style={{ '--u': `${unit}px`, gap: `${OPTIONS_GAP * unit}px` }}>
+    <div class="flex w-full flex-col items-center" style={{ '--u': `${unit}px`, '--u-raw': String(unit), gap: `${OPTIONS_GAP * unit}px` }}>
       <div
         class="relative shrink-0 touch-none select-none"
         style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }}
@@ -843,7 +887,9 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
 
       <GuiButton data={data} width={OPTIONS_WIDTH} height={OPTIONS_HEIGHT} label={translate(data, UI_KEYS.optionsButton)} onClick={() => setSettingsOpen(true)} />
 
-      {settingsOpen && <SettingsScreen data={data} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <SettingsScreen data={data} settings={settings} strings={strings} skinStatus={skinStatus} onChange={updateSettings} onPlayerName={applyPlayerName} onClose={() => setSettingsOpen(false)} />
+      )}
     </div>
   );
 }

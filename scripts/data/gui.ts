@@ -35,6 +35,8 @@ const FRAME_SPRITES: Record<string, string> = {
   button_disabled: 'widget/button_disabled',
   cross_button: 'widget/cross_button',
   cross_button_highlighted: 'widget/cross_button_highlighted',
+  text_field: 'widget/text_field',
+  text_field_highlighted: 'widget/text_field_highlighted',
   tooltip_background: 'tooltip/background',
   tooltip_frame: 'tooltip/frame',
 };

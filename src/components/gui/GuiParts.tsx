@@ -45,7 +45,11 @@ export function ScrollingText({ data, text, width }: { data: VersionData; text: 
   const overflow = data.font.width(text) - 1 - width;
   useEffect(() => {
     const element = ref.current;
-    if (!element || overflow <= 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!element) return;
+    // sem animação (cabe, ou "reduzir movimento"): limpa o deslocamento que uma animação anterior deixou
+    // (ex.: trocou de idioma e o texto novo passou a caber)
+    element.style.transform = '';
+    if (overflow <= 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const period = Math.max(overflow * 0.5, 3);
     let frame = 0;
     const tick = () => {
@@ -55,7 +59,10 @@ export function ScrollingText({ data, text, width }: { data: VersionData; text: 
       frame = requestAnimationFrame(tick);
     };
     tick();
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      element.style.transform = '';
+    };
   }, [overflow, text]);
   return (
     <span class={`block overflow-hidden text-center whitespace-pre motion-reduce:text-ellipsis ${overflow > 0 ? 'motion-safe:text-left' : ''}`} style={{ width: u(width) }}>
