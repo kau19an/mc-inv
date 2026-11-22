@@ -77,12 +77,38 @@ function collectKeys(component: TextComponent, keys: Set<string>): void {
   for (const child of [...(component.with ?? []), ...(component.extra ?? [])]) collectKeys(child, keys);
 }
 
+// o dump monta a tooltip sem jogador (não dá pra criar um sem um mundo). com jogador, o jogo soma os atributos
+// base dele aos modificadores base da arma na mão principal e mostra o total em verde-escuro, com um espaço na
+// frente: "+6 Dano de ataque" (azul) vira " 7 Dano de ataque". valores base do jogador: dano 1, velocidade 4
+// (Player.createAttributes); formato dos números: "#.##" com ponto (ItemAttributeModifiers)
+const PLAYER_BASE: Record<string, number> = { 'attribute.name.attack_damage': 1, 'attribute.name.attack_speed': 4 };
+const formatAmount = (value: number) => String(Math.round(value * 100) / 100);
+
+function withPlayerBase(lines: TextComponent[]): TextComponent[] {
+  let inMainHand = false;
+  const done = new Set<string>();
+  return lines.map((line) => {
+    if (typeof line !== 'object' || !line) return line;
+    if (typeof line.translate === 'string' && line.translate.startsWith('item.modifiers.')) {
+      inMainHand = line.translate === 'item.modifiers.mainhand';
+      return line;
+    }
+    const match = typeof line.translate === 'string' ? /^attribute\.modifier\.(plus|take)\.0$/.exec(line.translate) : null;
+    const [amount, attribute] = (line.with ?? []) as [TextComponent, TextComponent];
+    const attributeKey = typeof attribute === 'object' && attribute ? attribute.translate : undefined;
+    if (!inMainHand || !match || !attributeKey || !(attributeKey in PLAYER_BASE) || done.has(attributeKey)) return line;
+    done.add(attributeKey);
+    const value = (match[1] === 'take' ? -1 : 1) * Number(amount) + PLAYER_BASE[attributeKey]!;
+    return { text: ' ', color: 'dark_green', extra: [{ translate: 'attribute.modifier.equals.0', with: [formatAmount(value), attribute] }] };
+  });
+}
+
 // tooltip publicada: a normal inteira; da avançada, normalmente só as linhas que ela acrescenta no fim
 // ("advancedExtra"). se ela mudar algo no meio, vai inteira ("advanced")
 function tooltipFields(stack: DumpedStack): { tooltip?: TextComponent[]; advanced?: TextComponent[]; advancedExtra?: TextComponent[] } {
   if (!stack.tooltip) return {};
-  const normal = stack.tooltip;
-  const advanced = stack.tooltipAdvanced ?? normal;
+  const normal = withPlayerBase(stack.tooltip);
+  const advanced = withPlayerBase(stack.tooltipAdvanced ?? stack.tooltip);
   const same = (a: TextComponent, b: TextComponent) => stableStringify(a) === stableStringify(b);
   const isPrefix = normal.length <= advanced.length && normal.every((line, index) => same(line, advanced[index]!));
   if (isPrefix) return advanced.length > normal.length ? { tooltip: normal, advancedExtra: advanced.slice(normal.length) } : { tooltip: normal };
@@ -108,6 +134,7 @@ async function buildVersion(id: string) {
       items[key] = { id: stripNamespace(stack.id), ...(stack.count ? { count: stack.count } : {}), name: stack.name, ...(stack.components ? { components: stack.components } : {}), ...tooltipFields(stack) };
       collectKeys(stack.name, usedKeys);
       for (const line of [...(stack.tooltip ?? []), ...(stack.tooltipAdvanced ?? [])]) collectKeys(line, usedKeys);
+      usedKeys.add('attribute.modifier.equals.0');
     }
     return key;
   };

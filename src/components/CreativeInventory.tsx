@@ -3,7 +3,9 @@
 // ao lado (computador) ou abaixo (celular) fica o painel do item; a url acompanha a aba ou o item escolhido
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import ItemPanel from './ItemPanel.tsx';
-import GameTooltip, { FORMAT, type TooltipLine } from './gui/GameTooltip.tsx';
+import GameTooltip, { lineOf, type TooltipLine } from './gui/GameTooltip.tsx';
+import { FORMAT_COLORS } from '@/lib/gui/colors.ts';
+import { textRuns } from '@/lib/gui/text.ts';
 import { iconCanvas } from '@/lib/gui/icons.ts';
 import { SITE_SECTION, baseId, documentTitle, parseRoute, pathOf, type Route } from '@/lib/gui/routes.ts';
 import {
@@ -26,6 +28,7 @@ import { latestRelease, loadVersion, textOf, type VersionData } from '@/lib/gui/
 import { CREATIVE } from '@/lib/gui/types.ts';
 
 const LOCALE = 'pt_br';
+const ADVANCED_TOOLTIPS_KEY = 'mc-inv:advanced-tooltips';
 const PAGE = CREATIVE.columns * CREATIVE.rows;
 const SEARCH_MAX_LENGTH = 50; // o mesmo limite da caixa de pesquisa do jogo
 const CARET_BLINK_MS = 300;
@@ -63,6 +66,44 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [hoveredTab, setHoveredTab] = useState(-1);
   // onde a tooltip se ancora: o ponteiro do mouse, ou o centro do slot/aba focado pelo teclado
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
+  const [advancedTooltips, setAdvancedTooltips] = useState(false);
+
+  // tooltips avançadas: F3+H, como no jogo (fica salvo neste navegador)
+  useEffect(() => {
+    try {
+      setAdvancedTooltips(localStorage.getItem(ADVANCED_TOOLTIPS_KEY) === '1');
+    } catch {
+      // armazenamento bloqueado: começa desligado
+    }
+    let f3Held = false;
+    const onDown = (event: KeyboardEvent) => {
+      if (event.key === 'F3') {
+        f3Held = true;
+        event.preventDefault(); // F3 é "localizar próximo" em alguns navegadores
+      } else if (f3Held && event.key.toLowerCase() === 'h') {
+        event.preventDefault();
+        event.stopImmediatePropagation(); // não deixa o "h" pular pra pesquisa
+        setAdvancedTooltips((value) => {
+          try {
+            localStorage.setItem(ADVANCED_TOOLTIPS_KEY, value ? '0' : '1');
+          } catch {
+            // sem armazenamento: vale só nesta visita
+          }
+          return !value;
+        });
+      }
+    };
+    const onUp = (event: KeyboardEvent) => event.key === 'F3' && (f3Held = false);
+    const onBlur = () => (f3Held = false);
+    window.addEventListener('keydown', onDown, { capture: true });
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onDown, { capture: true });
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
   const [focusedSlot, setFocusedSlot] = useState(0);
   const [searchFocused, setSearchFocused] = useState(false);
   const [caretVisible, setCaretVisible] = useState(true);
@@ -462,13 +503,18 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const slotIndex = Math.min(focusedSlot, Math.max(visible.length - 1, 0));
 
   // tooltip: nome da aba ao passar na aba; no item, o nome — e, na aba de pesquisa, as abas onde ele fica (em azul)
+  // as linhas vêm prontas do jogo (exportadas no dump); versões publicadas antes disso mostram só o nome
   const tooltipLines: TooltipLine[] = (() => {
-    if (hoveredTab >= 0) return [{ text: textOf(data, data.tabs[hoveredTab]!.name), color: FORMAT.white }];
+    if (hoveredTab >= 0) return [lineOf(textOf(data, data.tabs[hoveredTab]!.name), FORMAT_COLORS.white)];
     const key = hovered >= 0 ? visible[hovered] : undefined;
     if (!key) return [];
-    const lines: TooltipLine[] = [{ text: itemName(key), color: FORMAT.white }];
+    const item = data.items[key];
+    const source = item?.tooltip ? (advancedTooltips ? (item.advanced ?? [...item.tooltip, ...(item.advancedExtra ?? [])]) : item.tooltip) : null;
+    const lines: TooltipLine[] = source ? source.map((line) => textRuns(line, data)) : [lineOf(itemName(key), FORMAT_COLORS.white)];
+    // na pesquisa, o jogo põe as abas do item logo abaixo do nome, em azul
     if (tab.type === 'search') {
-      for (const candidate of data.tabs) if (candidate.type === 'category' && candidate.items.includes(key)) lines.push({ text: textOf(data, candidate.name), color: FORMAT.blue });
+      const tabNames = data.tabs.filter((candidate) => candidate.type === 'category' && candidate.items.includes(key)).map((candidate) => lineOf(textOf(data, candidate.name), FORMAT_COLORS.blue));
+      lines.splice(1, 0, ...tabNames);
     }
     return lines;
   })();

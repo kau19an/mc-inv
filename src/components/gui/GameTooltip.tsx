@@ -3,16 +3,42 @@
 //   (3 px de folga + 9 px de margem transparente do próprio sprite)
 // - aparece 12 px à direita e 12 px acima do ponteiro; se não couber à direita, vai pra esquerda
 // - linhas de 10 px; a primeira ganha 2 px a mais quando há outras embaixo (é o "título")
-import { FRAME_CLASS, frameStyle, gameText, hex, textShadow, u } from './GuiParts.tsx';
+// - texto sem cor sai branco; negrito é o jogo "redesenhando" a letra 1 px pro lado (e avançando 1 px a mais)
+import { FRAME_CLASS, frameStyle, gameText, hex, u } from './GuiParts.tsx';
 import type { VersionData } from '@/lib/gui/data.ts';
+import type { TextRun } from '@/lib/gui/text.ts';
 
-export interface TooltipLine {
-  text: string;
-  color: number;
+export type TooltipLine = TextRun[];
+
+const DEFAULT_COLOR = 0xffffff;
+const shadowOf = (color: number) => hex((color & 0xfcfcfc) >> 2);
+
+export const lineOf = (text: string, color: number): TooltipLine => [{ text, style: { color } }];
+
+function lineWidth(data: VersionData, line: TooltipLine): number {
+  return line.reduce((sum, run) => sum + data.font.width(run.text) + (run.style.bold ? [...run.text].filter((char) => char !== ' ').length : 0), 0);
 }
 
-// cores de formatação do jogo (§) usadas nas tooltips
-export const FORMAT = { white: 0xffffff, blue: 0x5555ff, darkGray: 0x555555, darkPurple: 0xaa00aa, gray: 0xaaaaaa, yellow: 0xffff55, aqua: 0x55ffff, lightPurple: 0xff55ff } as const;
+function Run({ run }: { run: TextRun }) {
+  const color = run.style.color ?? DEFAULT_COLOR;
+  const shadows = [`${u(1)} ${u(1)} 0 ${shadowOf(color)}`];
+  if (run.style.bold) shadows.unshift(`${u(1)} 0 0 ${hex(color)}`, `${u(2)} ${u(1)} 0 ${shadowOf(color)}`);
+  const decoration = [run.style.underlined && 'underline', run.style.strikethrough && 'line-through'].filter(Boolean).join(' ');
+  return (
+    <span
+      style={{
+        color: hex(color),
+        textShadow: shadows.join(', '),
+        fontStyle: run.style.italic ? 'italic' : 'normal',
+        letterSpacing: run.style.bold ? u(1) : '0',
+        textDecoration: decoration || 'none',
+        textDecorationThickness: u(1),
+      }}
+    >
+      {run.text}
+    </span>
+  );
+}
 
 interface Props {
   data: VersionData;
@@ -24,7 +50,7 @@ interface Props {
 
 export default function GameTooltip({ data, lines, pointerX, pointerY, unit }: Props) {
   if (!lines.length) return null;
-  const width = Math.max(...lines.map((line) => data.font.width(line.text))) - 1; // o último avanço inclui 1 px de espaço
+  const width = Math.max(...lines.map((line) => lineWidth(data, line))) - 1; // o último avanço inclui 1 px de espaço
   const height = lines.length === 1 ? 8 : lines.length * 10;
   const screenWidth = window.innerWidth / unit;
   const screenHeight = window.innerHeight / unit;
@@ -45,8 +71,10 @@ export default function GameTooltip({ data, lines, pointerX, pointerY, unit }: P
       {/* a caixa da linha começa 1 px acima do topo das letras (ver fontface.ts) */}
       <div class="absolute whitespace-pre" style={{ ...gameText, left: u(12), top: u(11) }}>
         {lines.map((line, index) => (
-          <div key={index} style={{ color: hex(line.color), textShadow: textShadow(line.color), height: u(10), marginBottom: index === 0 && lines.length > 1 ? u(2) : '0' }}>
-            {line.text}
+          <div key={index} style={{ height: u(10), marginBottom: index === 0 && lines.length > 1 ? u(2) : '0' }}>
+            {line.map((run, runIndex) => (
+              <Run key={runIndex} run={run} />
+            ))}
           </div>
         ))}
       </div>

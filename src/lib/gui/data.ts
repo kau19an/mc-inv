@@ -9,6 +9,9 @@ export interface ItemInfo {
   id: string;
   name: TextComponent;
   components?: Record<string, unknown>;
+  tooltip?: unknown[]; // linhas da tooltip montadas pelo jogo (componentes de texto)
+  advancedExtra?: unknown[]; // o que a tooltip avançada (F3+H) acrescenta no fim
+  advanced?: unknown[]; // a avançada inteira, quando ela muda algo no meio
 }
 
 export interface VersionData {
