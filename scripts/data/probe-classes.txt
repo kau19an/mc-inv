@@ -1,0 +1,6 @@
+net.minecraft.client.gui.screens.inventory.InventoryScreen
+PlayerModel
+AvatarRenderer
+LivingEntityRenderer
+HumanoidModel
+Lighting

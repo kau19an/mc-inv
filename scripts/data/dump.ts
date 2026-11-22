@@ -17,7 +17,7 @@ import type { IconModel, SpecialModel } from '../../src/lib/icons/types.ts';
 
 const { values: args } = parseArgs({ options: { versions: { type: 'string', default: 'tracked' } } });
 
-const DUMPERS = ['CreativeTabsDump.java', 'SpecialModelsDump.java'].map((file) => join(import.meta.dirname, 'dumper', file));
+const DUMPERS = ['CreativeTabsDump.java', 'SpecialModelsDump.java', 'PlayerModelDump.java'].map((file) => join(import.meta.dirname, 'dumper', file));
 
 // roda um comando; se falhar, publica o fim da saída de erro como anotação do github actions
 // (é o único jeito do claude ler o erro, já que ele não acessa os logs)
@@ -97,7 +97,24 @@ async function dump(version: Version) {
   run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'SpecialModelsDump', specialsIn, specialsOut], classes);
   const meshes = JSON.parse(await readFile(specialsOut, 'utf8')) as Record<string, { error?: string; parts?: { texture?: string; renderType: string; tint: number; quads: unknown[] }[] }>;
 
-  return { ...result, meshes };
+  // modelo do jogador (aba "Inventário"): peças separadas, na pose de descanso
+  const playerOut = join(CACHE_DIR, 'versions', version.id, 'player.json');
+  run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'PlayerModelDump', playerOut], classes);
+  const player = JSON.parse(await readFile(playerOut, 'utf8')) as Record<string, PlayerPart>;
+
+  return { ...result, meshes, player };
+}
+
+interface PlayerPart {
+  pose: number[];
+  quads: unknown[];
+  children: Record<string, PlayerPart>;
+}
+
+// "head(6) > hat(6)" — resumo da árvore de peças pro relatório
+function describePart(name: string, part: PlayerPart): string {
+  const children = Object.entries(part.children).map(([childName, child]) => describePart(childName, child));
+  return `${name}(${part.quads.length})${children.length ? ` > [${children.join(', ')}]` : ''}`;
 }
 
 const list = await official.listVersions();
@@ -129,6 +146,9 @@ for (const id of wanted) {
     const first = parts[0];
     report.push(`- ✓ ${key}: ${parts.length} partes, ${quads} quadrados · ${first ? `${first.texture ?? first.renderType.slice(0, 160)} · tint ${first.tint}` : 'vazio'}`);
   }
+  report.push('\n## modelo do jogador');
+  for (const [model, root] of Object.entries(result.player)) report.push(`- ${model}: ${describePart('root', root)}`);
+  report.push(`- head pose: ${JSON.stringify(result.player.wide?.children.head?.pose)} · primeiro quadrado: ${JSON.stringify(result.player.wide?.children.head?.quads[0])}`);
   report.push('');
 }
 await writeFile(join(CACHE_DIR, 'dump-report.md'), report.join('\n'));

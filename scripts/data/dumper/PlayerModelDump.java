@@ -1,0 +1,94 @@
+// dump do modelo do jogador (braços largos = Steve, braços finos = Alex), pra desenhar o personagem na aba
+// "Inventário". diferente dos modelos especiais, aqui as peças saem SEPARADAS e na posição de descanso (cada uma
+// com o seu "pivô" e rotação), porque a cabeça e o corpo giram pra seguir o cursor, como no jogo.
+//
+// saída: { "wide": peça, "slim": peça }, onde peça = { pose: [x, y, z, rotX, rotY, rotZ], scale: [x, y, z],
+//          quads: [[[x, y, z, u, v] × 4], …] (no espaço da própria peça), children: { nome: peça } }
+//
+// uso: java -cp <classes>:<jar>:<libs> PlayerModelDump <saida.json>
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import net.minecraft.SharedConstants;
+import net.minecraft.client.model.geom.EntityModelSet;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.server.Bootstrap;
+
+public final class PlayerModelDump {
+  public static void main(String[] args) throws Exception {
+    Path output = Path.of(args[0]);
+    SharedConstants.tryDetectVersion();
+    Bootstrap.bootStrap();
+
+    EntityModelSet models = EntityModelSet.vanilla();
+    JsonObject result = new JsonObject();
+    result.add("wide", part(models.bakeLayer(layer("PLAYER"))));
+    result.add("slim", part(models.bakeLayer(layer("PLAYER_SLIM"))));
+    Files.writeString(output, new GsonBuilder().disableHtmlEscaping().create().toJson(result));
+  }
+
+  // as constantes de ModelLayers por nome (por reflexão: o nome da classe que guarda pode mudar entre versões,
+  // mas os campos PLAYER e PLAYER_SLIM existem há muito tempo)
+  private static ModelLayerLocation layer(String name) throws ReflectiveOperationException {
+    Field field = ModelLayers.class.getField(name);
+    return (ModelLayerLocation) field.get(null);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static JsonObject part(ModelPart part) throws ReflectiveOperationException {
+    JsonObject json = new JsonObject();
+    JsonArray pose = new JsonArray();
+    for (float value : new float[] {part.x, part.y, part.z, part.xRot, part.yRot, part.zRot}) pose.add(round(value));
+    json.add("pose", pose);
+    JsonArray scale = new JsonArray();
+    for (float value : new float[] {part.xScale, part.yScale, part.zScale}) scale.add(round(value));
+    json.add("scale", scale);
+
+    JsonArray quads = new JsonArray();
+    for (ModelPart.Cube cube : (List<ModelPart.Cube>) privateField(part, "cubes")) {
+      for (ModelPart.Polygon polygon : cube.polygons) {
+        JsonArray quad = new JsonArray();
+        for (ModelPart.Vertex vertex : polygon.vertices()) {
+          JsonArray point = new JsonArray();
+          point.add(round(vertex.worldX()));
+          point.add(round(vertex.worldY()));
+          point.add(round(vertex.worldZ()));
+          point.add(round(vertex.u()));
+          point.add(round(vertex.v()));
+          quad.add(point);
+        }
+        quads.add(quad);
+      }
+    }
+    json.add("quads", quads);
+
+    JsonObject children = new JsonObject();
+    for (Map.Entry<String, ModelPart> child : ((Map<String, ModelPart>) privateField(part, "children")).entrySet()) {
+      children.add(child.getKey(), part(child.getValue()));
+    }
+    json.add("children", children);
+    return json;
+  }
+
+  private static Object privateField(Object owner, String name) throws ReflectiveOperationException {
+    for (Field field : owner.getClass().getDeclaredFields()) {
+      if (field.getName().equals(name) && !Modifier.isStatic(field.getModifiers())) {
+        field.setAccessible(true);
+        return field.get(owner);
+      }
+    }
+    throw new NoSuchFieldException(owner.getClass().getName() + "." + name);
+  }
+
+  private static double round(float value) {
+    return Math.round(value * 100000.0) / 100000.0;
+  }
+}
