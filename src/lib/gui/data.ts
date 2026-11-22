@@ -128,27 +128,37 @@ export function versionToLoad(list: VersionList, chosen: string): string {
   return latest;
 }
 
-export async function loadVersion(list: VersionList, id: string, locale: Locale): Promise<VersionData> {
+// arquivos que uma versão baixa (as 9 do primeiro lote + fonte, fonte web, jogador e brilho), pro progresso
+const VERSION_FILES = 13;
+
+// onProgress: fração (0 a 1) dos arquivos já baixados, pro toast de carregamento ao trocar de versão
+export async function loadVersion(list: VersionList, id: string, locale: Locale, onProgress?: (fraction: number) => void): Promise<VersionData> {
   const base = versionBase(list, id);
+  let done = 0;
+  const track = <T,>(promise: Promise<T>): Promise<T> =>
+    promise.finally(() => {
+      done++;
+      onProgress?.(Math.min(done / VERSION_FILES, 1));
+    });
   const [tabs, items, ptBr, enUs, icons, gui, atlas, guiAtlas, tags] = await Promise.all([
-    json<{ tabs: TabInfo[] }>(`${base}/tabs.json`),
-    json<Record<string, ItemInfo>>(`${base}/items.json`),
-    json<Record<string, string>>(`${base}/lang/pt_br.json`),
-    json<Record<string, string>>(`${base}/lang/en_us.json`),
-    json<IconBundle>(`${base}/icons.json`),
-    json<GuiBundle>(`${base}/gui.json`),
-    image(`${base}/textures.webp`),
-    image(`${base}/gui.webp`),
-    optionalJson<Record<string, string[]>>(`${base}/tags.json`, {}),
+    track(json<{ tabs: TabInfo[] }>(`${base}/tabs.json`)),
+    track(json<Record<string, ItemInfo>>(`${base}/items.json`)),
+    track(json<Record<string, string>>(`${base}/lang/pt_br.json`)),
+    track(json<Record<string, string>>(`${base}/lang/en_us.json`)),
+    track(json<IconBundle>(`${base}/icons.json`)),
+    track(json<GuiBundle>(`${base}/gui.json`)),
+    track(image(`${base}/textures.webp`)),
+    track(image(`${base}/gui.webp`)),
+    track(optionalJson<Record<string, string[]>>(`${base}/tags.json`, {})),
   ]);
   // tags.json vem como tag → itens; a pesquisa com "#" precisa do contrário
   const itemTags: Record<string, string[]> = {};
   for (const [tag, members] of Object.entries(tags)) for (const item of members) (itemTags[item] ??= []).push(tag);
   const [font, , player, glint] = await Promise.all([
-    loadFont(gui.font, base),
-    loadFontFace(base),
-    loadPlayer(base),
-    image(`${base}/glint.png`).then((bitmap) => glintOf(pixelsOf(bitmap)), () => null),
+    track(loadFont(gui.font, base)),
+    track(loadFontFace(base)),
+    track(loadPlayer(base)),
+    track(image(`${base}/glint.png`).then((bitmap) => glintOf(pixelsOf(bitmap)), () => null)),
   ]);
   const langs = { pt_br: ptBr, en_us: enUs };
   const atlasPixels = pixelsOf(atlas);

@@ -47,6 +47,8 @@ const FRAME_SPRITES: Record<string, string> = {
   checkbox_selected: 'widget/checkbox_selected',
   checkbox_selected_highlighted: 'widget/checkbox_selected_highlighted',
   popup_background: 'popup/background',
+  // toast de dica com barra de progresso (TutorialToast): carregamento ao trocar de versão
+  toast_tutorial: 'toast/tutorial',
 };
 
 // texturas repetidas (em blocos) das telas de menu com lista: fundo da tela, fundo da lista e as linhas que

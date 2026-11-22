@@ -39,12 +39,14 @@ import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from '@/l
 import { HTML_LANG, stringsFor } from '@/lib/gui/strings.ts';
 import SettingsScreen, { type SkinStatus } from './SettingsScreen.tsx';
 import VersionsScreen from './VersionsScreen.tsx';
+import GameToast from './gui/GameToast.tsx';
 import Panorama from './Panorama.tsx';
 import { fetchPlayerSkin, type PlayerSkin } from '@/lib/gui/skin.ts';
 import { PLAYER_NAME } from '@/lib/gui/settings.ts';
 import { GuiButton } from './gui/GuiParts.tsx';
 import { CREATIVE } from '@/lib/gui/types.ts';
 
+const VERSION_TOAST_HOLD_MS = 1500; // quanto o toast de versão fica depois de carregar
 // botão "Opções..." embaixo do inventário: 4 px de espaço + 20 px de botão (altura dos botões do jogo)
 const OPTIONS_GAP = 4;
 const OPTIONS_WIDTH = 98;
@@ -235,14 +237,50 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     loadVersionList().then(setVersionList, failed);
   }, []);
   const versionId = versionList ? versionToLoad(versionList, settings.version) : null;
+  // toast de carregamento ao trocar de versão (no primeiro carregamento, o "Carregando…" já cumpre esse papel):
+  // aparece com a barra enchendo conforme os arquivos chegam e sai 1,5 s depois de terminar
+  const [versionToast, setVersionToast] = useState<{ id: string; progress: number; visible: boolean } | null>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
+  const hasData = useRef(false);
+  hasData.current = Boolean(baseData);
   useEffect(() => {
     if (!versionList || !versionId) return;
     let current = true;
-    loadVersion(versionList, versionId, loadSettings().locale).then((loaded) => current && setBaseData(loaded), failed);
+    const switching = hasData.current;
+    window.clearTimeout(toastTimer.current);
+    if (switching) setVersionToast({ id: versionId, progress: 0, visible: true });
+    const onProgress = (progress: number) => current && switching && setVersionToast((toast) => toast && { ...toast, progress: Math.max(toast.progress, progress) });
+    loadVersion(versionList, versionId, loadSettings().locale, onProgress).then((loaded) => {
+      if (!current) return;
+      setBaseData(loaded);
+      if (!switching) return;
+      setVersionToast((toast) => toast && { ...toast, progress: 1 });
+      toastTimer.current = window.setTimeout(() => setVersionToast((toast) => toast && { ...toast, visible: false }), VERSION_TOAST_HOLD_MS);
+    }, failed);
     return () => {
       current = false;
     };
   }, [versionList, versionId]);
+
+  // [ e ]: versão anterior (mais antiga) e próxima (mais nova), entre as que o filtro da tela "Versões..." mostra.
+  // na fase de captura, antes do "digitar pula pra pesquisa"; dentro de caixas de texto, o colchete é só texto
+  useEffect(() => {
+    if (!versionList || !versionId) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== '[' && event.key !== ']') return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return;
+      const visible = versionList.versions.filter((entry) => !settings.hiddenVersionKinds.includes(entry.kind) || entry.id === versionId);
+      const index = visible.findIndex((entry) => entry.id === versionId);
+      const next = visible[index + (event.key === ']' ? -1 : 1)]; // a lista vem da mais nova pra mais antiga
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (next) updateSettings({ version: next.id });
+    };
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
+  }, [versionList, versionId, settings.hiddenVersionKinds]);
 
   // escala inteira que cabe na tela, recalculada ao girar o celular, redimensionar ou mudar de monitor
   useEffect(() => {
@@ -1025,6 +1063,17 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
 
       {settingsOpen && (
         <SettingsScreen data={data} settings={settings} strings={strings} skinStatus={skinStatus} appliedName={appliedName} unit={unit} onChange={updateSettings} onPlayerName={applyPlayerName} onClose={() => setSettingsOpen(false)} />
+      )}
+      {versionToast && (
+        <GameToast
+          data={data}
+          icon="grass_block"
+          title={versionToast.progress < 1 ? strings.versionToastLoading : strings.versionToastDone}
+          message={versionToast.id}
+          progress={versionToast.progress}
+          visible={versionToast.visible}
+          unit={unit}
+        />
       )}
       {versionsOpen && versionList && versionId && (
         <VersionsScreen data={data} list={versionList} settings={settings} current={versionId} strings={strings} unit={unit} onChange={updateSettings} onClose={() => setVersionsOpen(false)} />
