@@ -169,3 +169,16 @@ export function textOf(data: Pick<VersionData, 'lang' | 'fallbackLang'>, compone
   if ('text' in component) return component.text;
   return lang[component.translate] ?? data.fallbackLang[component.translate] ?? component.fallback ?? component.translate;
 }
+
+// sem a opção "Inventário de operador" (como no jogo, sem permissão): some a aba de operador e, da pesquisa,
+// os itens que só existem nela (ex.: as variantes de quadro). as outras abas ficam onde estão (posição fixa)
+export function withoutOperatorTab(data: VersionData): VersionData {
+  const operator = data.tabs.find((tab) => tab.id === 'op_blocks');
+  if (!operator) return data;
+  const elsewhere = new Set(data.tabs.filter((tab) => tab.type === 'category' && tab !== operator).flatMap((tab) => tab.items));
+  const operatorOnly = new Set(operator.items.filter((key) => !elsewhere.has(key)));
+  return {
+    ...data,
+    tabs: data.tabs.filter((tab) => tab !== operator).map((tab) => (tab.type === 'search' ? { ...tab, items: tab.items.filter((key) => !operatorOnly.has(key)) } : tab)),
+  };
+}

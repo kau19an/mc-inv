@@ -3,12 +3,40 @@ import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
 
+// no `npm run dev` (Codespaces, PC), roda as funções da pasta api/ do mesmo jeito que a Vercel: o pedido em
+// /api/<nome> vai pro `fetch` exportado por api/<nome>.ts. só existe em desenvolvimento; no site publicado,
+// quem responde é a própria Vercel
+/** @returns {import('vite').Plugin} */
+function devFunctions() {
+  return {
+    name: 'mc-inv:dev-functions',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const match = /^\/api\/([a-z0-9-]+)(?:\?|$)/.exec(req.url ?? '');
+        if (!match) return next();
+        try {
+          const module = await server.ssrLoadModule(`/api/${match[1]}.ts`);
+          const request = new Request(`http://${req.headers.host ?? 'localhost'}${req.url}`, { method: req.method });
+          const response = await module.default.fetch(request);
+          res.statusCode = response.status;
+          response.headers.forEach((/** @type {string} */ value, /** @type {string} */ key) => res.setHeader(key, value));
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch (error) {
+          server.config.logger.error(`[api/${match[1]}] ${error}`);
+          next();
+        }
+      });
+    },
+  };
+}
+
 // https://astro.build/config
 export default defineConfig({
   // domínio oficial (canonical, og). a raiz fica reservada pro hub; o inventário mora em /inv
   site: 'https://mc.faariaz.com',
 
-  // site 100% estático: os dados saem do jar no build, então não precisa de servidor nem banco
+  // site estático: os dados saem do jar no build. a única parte de servidor é a função api/skin.ts (Vercel Function)
   output: 'static',
 
   // urls sem barra no final (/inv/je, não /inv/je/). o vercel.json segue a mesma regra
@@ -38,6 +66,6 @@ export default defineConfig({
   integrations: [preact()],
 
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), devFunctions()],
   },
 });

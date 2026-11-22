@@ -64,8 +64,13 @@ function statusText(strings: Strings, status: SkinStatus): { text: string; error
 function GameTextField({ data, value, label, width, onInput, onEnter }: { data: VersionData; value: string; label: string; width: number; onInput: (value: string) => void; onEnter: () => void }) {
   return (
     <div
-      class={`${FRAME_CLASS} relative shrink-0 focus-within:[border-image-source:var(--frame-hover)]`}
-      style={{ ...frameStyle(data, 'text_field', 'text_field_highlighted'), width: u(width), height: u(20) }}
+      class={
+        data.gui.frames?.text_field
+          ? `${FRAME_CLASS} relative shrink-0 focus-within:[border-image-source:var(--frame-hover)]`
+          : // reserva (versão publicada sem a moldura): o EditBox do jogo é fundo preto com borda cinza, branca com foco
+            'relative shrink-0 border-solid border-[#a0a0a0] bg-black focus-within:border-white'
+      }
+      style={{ ...(data.gui.frames?.text_field ? frameStyle(data, 'text_field', 'text_field_highlighted') : { borderWidth: u(1) }), width: u(width), height: u(20) }}
     >
       <input
         type="text"
@@ -145,6 +150,13 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, on
             aria-pressed={settings.advancedTooltips}
             label={t(settings.advancedTooltips ? UI_KEYS.advancedTooltipsOn : UI_KEYS.advancedTooltipsOff)}
             onClick={() => onChange({ advancedTooltips: !settings.advancedTooltips })}
+          />
+          <GuiButton
+            data={data}
+            width={BUTTON_WIDTH}
+            aria-pressed={settings.operatorItemsTab}
+            label={option(t(UI_KEYS.operatorItemsTab), t(settings.operatorItemsTab ? UI_KEYS.on : UI_KEYS.off))}
+            onClick={() => onChange({ operatorItemsTab: !settings.operatorItemsTab })}
           />
         </div>
 

@@ -7,6 +7,7 @@ export interface Settings {
   programmerArt: boolean;
   advancedTooltips: boolean; // também liga/desliga com F3+H
   playerName: string; // nick da Edição Java pra skin na aba "Inventário" ('' = Steve)
+  operatorItemsTab: boolean; // aba "Blocos de operador" (desligada por padrão, como no jogo)
 }
 
 const KEY = 'mc-inv:settings';
@@ -15,7 +16,7 @@ const LEGACY_ADVANCED_KEY = 'mc-inv:advanced-tooltips'; // antes das opções, o
 // nome de jogador válido no jogo: letras, números e sublinhado, até 16
 export const PLAYER_NAME = /^[A-Za-z0-9_]{1,16}$/;
 
-export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '' };
+export const DEFAULT_SETTINGS: Settings = { locale: 'pt_br', programmerArt: false, advancedTooltips: false, playerName: '', operatorItemsTab: false };
 
 export function loadSettings(): Settings {
   try {
@@ -25,6 +26,7 @@ export function loadSettings(): Settings {
       locale: saved?.locale === 'en_us' ? 'en_us' : 'pt_br',
       programmerArt: saved?.programmerArt === true,
       advancedTooltips: saved?.advancedTooltips ?? legacyAdvanced,
+      operatorItemsTab: saved?.operatorItemsTab === true,
       playerName: typeof saved?.playerName === 'string' && PLAYER_NAME.test(saved.playerName) ? saved.playerName : '',
     };
   } catch {

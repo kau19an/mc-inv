@@ -31,7 +31,7 @@ import {
   tabY,
   type TabInfo,
 } from '@/lib/gui/creative.ts';
-import { latestRelease, loadProgrammerAtlas, loadVersion, textOf, viewFor, type VersionData } from '@/lib/gui/data.ts';
+import { latestRelease, loadProgrammerAtlas, loadVersion, textOf, viewFor, withoutOperatorTab, type VersionData } from '@/lib/gui/data.ts';
 import type { AtlasPixels } from '@/lib/icons/bundle.ts';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from '@/lib/gui/settings.ts';
 import { HTML_LANG, stringsFor } from '@/lib/gui/strings.ts';
@@ -77,10 +77,11 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   const [playerSkin, setPlayerSkin] = useState<PlayerSkin | null>(null);
   const [skinStatus, setSkinStatus] = useState<SkinStatus>({ kind: 'idle' });
   // os dados vistos no idioma escolhido e com/sem Programmer Art (ícones e nomes se ajustam sozinhos)
-  const data = useMemo(
-    () => (baseData ? viewFor(baseData, settings.locale, settings.programmerArt ? programmerAtlas : null) : null),
-    [baseData, settings.locale, settings.programmerArt, programmerAtlas],
-  );
+  const data = useMemo(() => {
+    if (!baseData) return null;
+    const view = viewFor(baseData, settings.locale, settings.programmerArt ? programmerAtlas : null);
+    return settings.operatorItemsTab ? view : withoutOperatorTab(view);
+  }, [baseData, settings.locale, settings.programmerArt, programmerAtlas, settings.operatorItemsTab]);
   const strings = stringsFor(settings.locale);
   const [error, setError] = useState<string | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
@@ -222,6 +223,19 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
 
   const tab: TabInfo | undefined = data?.tabs[tabIndex];
 
+  // ligar/desligar a aba de operador muda a lista de abas: continua na mesma aba (pelo id), ou volta pra primeira
+  // se a aba aberta era a que sumiu
+  const currentTabId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!data) return;
+    const index = data.tabs.findIndex((candidate) => candidate.id === currentTabId.current);
+    if (index !== tabIndex) {
+      setTabIndex(Math.max(index, 0));
+      if (index < 0) setScroll(0);
+    }
+  }, [settings.operatorItemsTab]);
+  currentTabId.current = tab?.id;
+
   // índice da pesquisa: nome no idioma da interface + em inglês + id do jogo (sem acentos, sem maiúsculas)
   const searchIndex = useMemo(() => {
     if (!data) return [];
@@ -231,7 +245,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       const names = item ? Object.values(data.langs).map((lang) => textOf(data, item.name, lang)) : [];
       return { key, text: normalize([...names, key.split('~')[0]!.replace(/_/g, ' ')].join('\n')) };
     });
-  }, [baseData]);
+  }, [baseData, settings.operatorItemsTab]);
 
   const items = useMemo(() => {
     if (!tab) return [];
@@ -603,6 +617,15 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
     drag.current = { pointerId: event.pointerId, startY: event.clientY, startScroll: scroll, moved: false };
   };
   const onGridPointerMove = (event: PointerEvent) => {
+    // mouse: o slot sob o ponteiro sai da posição (como o jogo), então slot vazio também conta e nada fica "grudado"
+    if (event.pointerType === 'mouse') {
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const column = Math.floor((event.clientX - rect.left) / unit / CREATIVE.slot);
+      const row = Math.floor((event.clientY - rect.top) / unit / CREATIVE.slot);
+      const inside = column >= 0 && column < CREATIVE.columns && row >= 0 && row < CREATIVE.rows;
+      setHovered(inside ? row * CREATIVE.columns + column : -1);
+      return;
+    }
     const current = drag.current;
     if (!current || current.pointerId !== event.pointerId) return;
     const deltaGui = (event.clientY - current.startY) / unit;
@@ -800,7 +823,6 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
                   aria-label={itemName(key)}
                   class="absolute outline-none"
                   style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
-                  onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
                   onFocus={(event) => {
                     setFocusedSlot(index);
                     setHovered(index);
@@ -819,7 +841,6 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
                   class="absolute cursor-pointer outline-none"
                   style={box((index % CREATIVE.columns) * CREATIVE.slot, Math.floor(index / CREATIVE.columns) * CREATIVE.slot, CREATIVE.slot, CREATIVE.slot)}
                   draggable={false}
-                  onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(index)}
                   onFocus={(event) => {
                     setFocusedSlot(index);
                     setHovered(index);
