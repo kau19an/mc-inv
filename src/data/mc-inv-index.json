@@ -157,6 +157,10 @@
       "pt": "Trilho Ativador",
       "en": "Activator Rail"
     },
+    "air_block": {
+      "pt": "Ar",
+      "en": "Air"
+    },
     "allay_spawn_egg": {
       "pt": "Ovo Gerador de Sereno",
       "en": "Allay Spawn Egg"
@@ -209,6 +213,10 @@
       "pt": "Muro de Andesito",
       "en": "Andesite Wall"
     },
+    "angler_pottery_shard": {
+      "pt": "Óstraco de Pesca",
+      "en": "Angler Pottery Shard"
+    },
     "angler_pottery_sherd": {
       "pt": "Óstraco de Pesca",
       "en": "Angler Pottery Sherd"
@@ -220,6 +228,10 @@
     "apple": {
       "pt": "Maçã",
       "en": "Apple"
+    },
+    "archer_pottery_shard": {
+      "pt": "Óstraco de Arco",
+      "en": "Archer Pottery Shard"
     },
     "archer_pottery_sherd": {
       "pt": "Óstraco de Arco",
@@ -236,6 +248,10 @@
     "armor_stand": {
       "pt": "Suporte de Armaduras",
       "en": "Armor Stand"
+    },
+    "arms_up_pottery_shard": {
+      "pt": "Óstraco de Figura",
+      "en": "Arms Up Pottery Shard"
     },
     "arms_up_pottery_sherd": {
       "pt": "Óstraco de Figura",
@@ -505,6 +521,10 @@
       "pt": "Madeira de Bétula",
       "en": "Birch Wood"
     },
+    "bit": {
+      "pt": "Bit",
+      "en": "Bit"
+    },
     "black_banner": {
       "pt": "Estandarte Preto",
       "en": "Black Banner"
@@ -608,6 +628,10 @@
     "blackstone_wall": {
       "pt": "Muro de Pedra-Negra",
       "en": "Blackstone Wall"
+    },
+    "blade_pottery_shard": {
+      "pt": "Óstraco de Espada",
+      "en": "Blade Pottery Shard"
     },
     "blade_pottery_sherd": {
       "pt": "Óstraco de Espada",
@@ -761,6 +785,14 @@
       "pt": "Figura para Estandarte de Bordadura Dentada",
       "en": "Bordure Indented Banner Pattern"
     },
+    "bottle_of_entity": {
+      "pt": "Frasco de %s",
+      "en": "Bottle of %s"
+    },
+    "bottle_of_void": {
+      "pt": "Frasco do Vazio",
+      "en": "Bottle of Void"
+    },
     "bow": {
       "pt": "Arco",
       "en": "Bow"
@@ -792,6 +824,10 @@
     "breeze_spawn_egg": {
       "pt": "Ovo Gerador de Vórtice",
       "en": "Breeze Spawn Egg"
+    },
+    "brewer_pottery_shard": {
+      "pt": "Óstraco de Poção",
+      "en": "Brewer Pottery Shard"
     },
     "brewer_pottery_sherd": {
       "pt": "Óstraco de Poção",
@@ -973,6 +1009,10 @@
       "pt": "Mapa de Câmara do Desafio Subterrânea",
       "en": "Buried Trial Chambers Map"
     },
+    "burn_pottery_shard": {
+      "pt": "Óstraco de Fogo",
+      "en": "Burn Pottery Shard"
+    },
     "burn_pottery_sherd": {
       "pt": "Óstraco de Fogo",
       "en": "Burn Pottery Sherd"
@@ -980,6 +1020,10 @@
     "bush": {
       "pt": "Arbusto",
       "en": "Bush"
+    },
+    "byte_tag": {
+      "pt": "Marcação de Byte",
+      "en": "Byte Tag"
     },
     "cactus": {
       "pt": "Cacto",
@@ -1104,6 +1148,10 @@
     "charred_baked_potato_bricks": {
       "pt": "Tijolos de Batata Assada Carbonizada",
       "en": "Charred Baked Potato Bricks"
+    },
+    "cheese": {
+      "pt": "Queijo",
+      "en": "Cheese"
     },
     "cherry_boat": {
       "pt": "Bote de Cerejeira",
@@ -1413,6 +1461,10 @@
       "pt": "Composteira",
       "en": "Composter"
     },
+    "compound_tag": {
+      "pt": "Marcação de Composto",
+      "en": "Compound Tag"
+    },
     "compressed_poisonous_potato_block": {
       "pt": "Bloco de Batata Venenosa Prensada",
       "en": "Compressed Poisonous Potato Block"
@@ -1545,9 +1597,17 @@
       "pt": "Pá de Cobre",
       "en": "Copper Shovel"
     },
+    "copper_sink": {
+      "pt": "Pia de Cobre",
+      "en": "Copper Sink"
+    },
     "copper_spear": {
       "pt": "Lança de Cobre",
       "en": "Copper Spear"
+    },
+    "copper_spleaves": {
+      "pt": "Grade de Cobre",
+      "en": "Copper Spleaves"
     },
     "copper_sword": {
       "pt": "Espada de Cobre",
@@ -1836,6 +1896,10 @@
     "dandelion": {
       "pt": "Dente-de-Leão",
       "en": "Dandelion"
+    },
+    "danger_pottery_shard": {
+      "pt": "Óstraco de Creeper",
+      "en": "Danger Pottery Shard"
     },
     "danger_pottery_sherd": {
       "pt": "Óstraco de Creeper",
@@ -2197,6 +2261,10 @@
       "pt": "Bloco de Batata Venenosa Duplamente Prensada",
       "en": "Double Compressed Poisonous Potato Block"
     },
+    "double_tag": {
+      "pt": "Marcação de Double",
+      "en": "Double Tag"
+    },
     "dragon_breath": {
       "pt": "Bafo do Dragão",
       "en": "Dragon's Breath"
@@ -2236,6 +2304,10 @@
     "dune_armor_trim_smithing_template": {
       "pt": "Enfeite de Dunas",
       "en": "Dune Armor Trim"
+    },
+    "dupe_hack": {
+      "pt": "minecraft:dupe_hack",
+      "en": "minecraft:dupe_hack"
     },
     "echo_shard": {
       "pt": "Fragmento de Eco",
@@ -2364,6 +2436,10 @@
     "expired_baked_potato_bricks": {
       "pt": "Tijolos de Batata Assada Estragada",
       "en": "Expired Baked Potato Bricks"
+    },
+    "explorer_pottery_shard": {
+      "pt": "Óstraco de Mapa",
+      "en": "Explorer Pottery Shard"
     },
     "explorer_pottery_sherd": {
       "pt": "Óstraco de Mapa",
@@ -2509,6 +2585,10 @@
       "pt": "Pederneira",
       "en": "Flint and Steel"
     },
+    "float_tag": {
+      "pt": "Marcação de Decimal",
+      "en": "Float Tag"
+    },
     "floatater": {
       "pt": "Flutuatata",
       "en": "Floatater"
@@ -2552,6 +2632,10 @@
     "fox_spawn_egg": {
       "pt": "Ovo Gerador de Raposa",
       "en": "Fox Spawn Egg"
+    },
+    "friend_pottery_shard": {
+      "pt": "Óstraco de Amigo",
+      "en": "Friend Pottery Shard"
     },
     "friend_pottery_sherd": {
       "pt": "Óstraco de Amigo",
@@ -2985,9 +3069,17 @@
       "pt": "Coração do Mar",
       "en": "Heart of the Sea"
     },
+    "heart_pottery_shard": {
+      "pt": "Óstraco de Coração",
+      "en": "Heart Pottery Shard"
+    },
     "heart_pottery_sherd": {
       "pt": "Óstraco de Coração",
       "en": "Heart Pottery Sherd"
+    },
+    "heartbreak_pottery_shard": {
+      "pt": "Óstraco de Coração Partido",
+      "en": "Heartbreak Pottery Shard"
     },
     "heartbreak_pottery_sherd": {
       "pt": "Óstraco de Coração Partido",
@@ -3057,6 +3149,10 @@
       "pt": "Batata Quente",
       "en": "Hot potato"
     },
+    "howl_pottery_shard": {
+      "pt": "Óstraco de Lobo",
+      "en": "Howl Pottery Shard"
+    },
     "howl_pottery_sherd": {
       "pt": "Óstraco de Lobo",
       "en": "Howl Pottery Sherd"
@@ -3112,6 +3208,10 @@
     "ink_sac": {
       "pt": "Bolsa de Tinta",
       "en": "Ink Sac"
+    },
+    "int_tag": {
+      "pt": "Marcação de Inteiro",
+      "en": "Int Tag"
     },
     "iron_axe": {
       "pt": "Machado de Ferro",
@@ -3305,6 +3405,10 @@
       "pt": "Enciclopédia",
       "en": "Knowledge Book"
     },
+    "la_baguette": {
+      "pt": "La Baguette",
+      "en": "La Baguette"
+    },
     "ladder": {
       "pt": "Escada",
       "en": "Ladder"
@@ -3341,6 +3445,10 @@
       "pt": "Balde de Lava",
       "en": "Lava Bucket"
     },
+    "le_tricolore": {
+      "pt": "Le Tricolore",
+      "en": "Le Tricolore"
+    },
     "lead": {
       "pt": "Laço",
       "en": "Lead"
@@ -3376,6 +3484,14 @@
     "lectern": {
       "pt": "Atril",
       "en": "Lectern"
+    },
+    "left_curly": {
+      "pt": "Chave Esquerda",
+      "en": "Left Curly"
+    },
+    "left_square": {
+      "pt": "Colchete Esquerdo",
+      "en": "Left Square"
     },
     "lever": {
       "pt": "Alavanca",
@@ -3673,6 +3789,10 @@
       "pt": "Frasco de Água Prolongado",
       "en": "Lingering Water Bottle"
     },
+    "list_tag": {
+      "pt": "Marcação de Lista",
+      "en": "List Tag"
+    },
     "llama_spawn_egg": {
       "pt": "Ovo Gerador de Lhama",
       "en": "Llama Spawn Egg"
@@ -3681,9 +3801,17 @@
       "pt": "Magnetita",
       "en": "Lodestone"
     },
+    "long_tag": {
+      "pt": "Marcação de Long",
+      "en": "Long Tag"
+    },
     "loom": {
       "pt": "Tear",
       "en": "Loom"
+    },
+    "m_banner_pattern": {
+      "pt": "Figura para Estandarte",
+      "en": "Banner Pattern"
     },
     "mace": {
       "pt": "Maça",
@@ -3913,6 +4041,10 @@
       "pt": "Carrinho de Mina",
       "en": "Minecart"
     },
+    "miner_pottery_shard": {
+      "pt": "Óstraco de Picareta",
+      "en": "Miner Pottery Shard"
+    },
     "miner_pottery_sherd": {
       "pt": "Óstraco de Picareta",
       "en": "Miner Pottery Sherd"
@@ -3928,6 +4060,10 @@
     "mojang_banner_pattern": {
       "pt": "Figura para Estandarte de Emblema",
       "en": "Thing Banner Pattern"
+    },
+    "moon_cow_spawn_egg": {
+      "pt": "Ovo Gerador de Vaca Lunar",
+      "en": "Moon Cow Spawn Egg"
     },
     "mooshroom_spawn_egg": {
       "pt": "Ovo Gerador de Mooshroom",
@@ -3972,6 +4108,10 @@
     "mossy_stone_bricks": {
       "pt": "Tijolos de Pedra Musgosos",
       "en": "Mossy Stone Bricks"
+    },
+    "mourner_pottery_shard": {
+      "pt": "Óstraco de Lamentador",
+      "en": "Mourner Pottery Shard"
     },
     "mourner_pottery_sherd": {
       "pt": "Óstraco de Lamentador",
@@ -4120,6 +4260,10 @@
     "mycelium": {
       "pt": "Micélio",
       "en": "Mycelium"
+    },
+    "name": {
+      "pt": "Nome",
+      "en": "Name"
     },
     "name_tag": {
       "pt": "Etiqueta",
@@ -4525,6 +4669,10 @@
       "pt": "Para-Raios Oxidado",
       "en": "Oxidized Lightning Rod"
     },
+    "packed_air": {
+      "pt": "Ar Comprimido",
+      "en": "Packed Air"
+    },
     "packed_ice": {
       "pt": "Gelo Compactado",
       "en": "Packed Ice"
@@ -4681,6 +4829,10 @@
       "pt": "Ovo Gerador de Espectro",
       "en": "Phantom Spawn Egg"
     },
+    "pickaxe_block": {
+      "pt": "Minerador",
+      "en": "Pickaxe Block"
+    },
     "pig_spawn_egg": {
       "pt": "Ovo Gerador de Porco",
       "en": "Pig Spawn Egg"
@@ -4813,6 +4965,10 @@
       "pt": "Vagem de Planta-Jarro",
       "en": "Pitcher Pod"
     },
+    "place_block": {
+      "pt": "Posicionador",
+      "en": "Place Block"
+    },
     "plaguewhale_spawn_egg": {
       "pt": "Ovo Gerador de Pragaleia",
       "en": "Plaguewhale Slab Spawn Egg"
@@ -4824,6 +4980,10 @@
     "player_head": {
       "pt": "Cabeça de Jogador",
       "en": "Player Head"
+    },
+    "plenty_pottery_shard": {
+      "pt": "Óstraco de Baú",
+      "en": "Plenty Pottery Shard"
     },
     "plenty_pottery_sherd": {
       "pt": "Óstraco de Baú",
@@ -5389,6 +5549,10 @@
       "pt": "Muro de Prismarinho",
       "en": "Prismarine Wall"
     },
+    "prize_pottery_shard": {
+      "pt": "Óstraco de Joia",
+      "en": "Prize Pottery Shard"
+    },
     "prize_pottery_sherd": {
       "pt": "Óstraco de Joia",
       "en": "Prize Pottery Sherd"
@@ -5829,6 +5993,14 @@
       "pt": "Enfeite de Costelas",
       "en": "Rib Armor Trim"
     },
+    "right_curly": {
+      "pt": "Chave Direita",
+      "en": "Right Curly"
+    },
+    "right_square": {
+      "pt": "Colchete Direito",
+      "en": "Right Square"
+    },
     "rooted_dirt": {
       "pt": "Terra Enraizada",
       "en": "Rooted Dirt"
@@ -5937,6 +6109,10 @@
       "pt": "Shazbotas!",
       "en": "Shazboots!"
     },
+    "sheaf_pottery_shard": {
+      "pt": "Óstraco de Trigo",
+      "en": "Sheaf Pottery Shard"
+    },
     "sheaf_pottery_sherd": {
       "pt": "Óstraco de Trigo",
       "en": "Sheaf Pottery Sherd"
@@ -5952,6 +6128,10 @@
     "shelf_mushroom": {
       "pt": "Políporo",
       "en": "Shelf Mushroom"
+    },
+    "shelter_pottery_shard": {
+      "pt": "Óstraco de Árvore",
+      "en": "Shelter Pottery Shard"
     },
     "shelter_pottery_sherd": {
       "pt": "Óstraco de Árvore",
@@ -5976,6 +6156,10 @@
     "short_grass": {
       "pt": "Grama Baixa",
       "en": "Short Grass"
+    },
+    "short_tag": {
+      "pt": "Marcação de Short",
+      "en": "Short Tag"
     },
     "shroomlight": {
       "pt": "Cogubrilho",
@@ -6016,6 +6200,10 @@
     "skull_banner_pattern": {
       "pt": "Figura para Estandarte de Caveira",
       "en": "Skull Charge Banner Pattern"
+    },
+    "skull_pottery_shard": {
+      "pt": "Óstraco de Caveira",
+      "en": "Skull Pottery Shard"
     },
     "skull_pottery_sherd": {
       "pt": "Óstraco de Caveira",
@@ -6117,6 +6305,10 @@
       "pt": "Ovo Gerador de Farejador",
       "en": "Sniffer Spawn Egg"
     },
+    "snort_pottery_shard": {
+      "pt": "Óstraco de Farejador",
+      "en": "Snort Pottery Shard"
+    },
     "snort_pottery_sherd": {
       "pt": "Óstraco de Farejador",
       "en": "Snort Pottery Sherd"
@@ -6200,6 +6392,10 @@
     "spire_armor_trim_smithing_template": {
       "pt": "Enfeite de Espiral",
       "en": "Spire Armor Trim"
+    },
+    "splash_bottle_of_entity": {
+      "pt": "Frasco Arremessável de %s",
+      "en": "Splash Bottle of %s"
     },
     "splash_potion": {
       "pt": "Frasco de Água Arremessável",
@@ -6380,6 +6576,14 @@
     "string": {
       "pt": "Linha",
       "en": "String"
+    },
+    "string2": {
+      "pt": "Linha Comprida",
+      "en": "Longer String"
+    },
+    "string_tag": {
+      "pt": "Marcação de Texto",
+      "en": "String Tag"
     },
     "stripped_acacia_log": {
       "pt": "Tronco de Acácia Descascado",
@@ -6573,6 +6777,10 @@
       "pt": "Bagas Doces",
       "en": "Sweet Berries"
     },
+    "syntax_error": {
+      "pt": "Erro de Sssintaxe",
+      "en": "Sssyntax Error"
+    },
     "tadpole_bucket": {
       "pt": "Balde com Girino",
       "en": "Bucket of Tadpole"
@@ -6580,6 +6788,10 @@
     "tadpole_spawn_egg": {
       "pt": "Ovo Gerador de Girino",
       "en": "Tadpole Spawn Egg"
+    },
+    "tag": {
+      "pt": "Marcação",
+      "en": "Tag"
     },
     "taiga_village_map": {
       "pt": "Mapa de Vila da Taiga",
