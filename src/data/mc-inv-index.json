@@ -2745,6 +2745,10 @@
       "pt": "Muro de Granito",
       "en": "Granite Wall"
     },
+    "grass": {
+      "pt": "Grama",
+      "en": "Grass"
+    },
     "grass_block": {
       "pt": "Bloco de Grama",
       "en": "Grass Block"
@@ -5904,6 +5908,10 @@
     "sculk_vein": {
       "pt": "Veio de Sculk",
       "en": "Sculk Vein"
+    },
+    "scute": {
+      "pt": "Escama",
+      "en": "Scute"
     },
     "sea_lantern": {
       "pt": "Lanterna Marinha",
