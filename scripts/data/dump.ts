@@ -108,7 +108,7 @@ async function dump(version: Version, all: Version[]) {
   if (existsSync(join(versionDir, 'dump-cached'))) {
     const read = async <T,>(file: string) => JSON.parse(await readFile(join(versionDir, file), 'utf8')) as T;
     const tabs = await read<{ version: string; tabs: DumpedTab[] }>('creative_tabs.json');
-    return { ...tabs, meshes: await read<Record<string, { error?: string; parts?: { texture?: string; renderType: string; tint: number; quads: unknown[] }[] }>>('specials.json'), player: await read<Record<string, PlayerPart>>('player.json'), cached: true };
+    return { ...tabs, meshes: await read<Record<string, { error?: string; parts?: { texture?: string; renderType: string; tint: number; quads: unknown[] }[] }>>('specials.json'), player: await read<Record<string, PlayerPart | unknown[]>>('player.json'), cached: true };
   }
   const pkg = await versionPackage(version);
   const libraryPaths = await libraries(pkg.libraries);
@@ -159,7 +159,7 @@ async function dump(version: Version, all: Version[]) {
   // modelo do jogador (aba "Inventário"): peças separadas, na pose de descanso
   const playerOut = join(CACHE_DIR, 'versions', version.id, 'player.json');
   run('java', ['-Djava.awt.headless=true', '-cp', [classes, ...classpath].join(delimiter), 'PlayerModelDump', playerOut], classes);
-  const player = JSON.parse(await readFile(playerOut, 'utf8')) as Record<string, PlayerPart>;
+  const player = JSON.parse(await readFile(playerOut, 'utf8')) as Record<string, PlayerPart | unknown[]>;
 
   return { ...result, meshes, player, cached: false };
 }
@@ -217,8 +217,12 @@ for (const id of wanted) {
     report.push(`- ✓ ${key}: ${parts.length} partes, ${quads} quadrados · ${first ? `${first.texture ?? first.renderType.slice(0, 160)} · tint ${first.tint}` : 'vazio'}`);
   }
   report.push('\n## modelo do jogador');
-  for (const [model, root] of Object.entries(result.player)) report.push(`- ${model}: ${describePart('root', root)}`);
-  report.push(`- head pose: ${JSON.stringify(result.player.wide?.children.head?.pose)} · primeiro quadrado: ${JSON.stringify(result.player.wide?.children.head?.quads[0])}`);
+  for (const [model, root] of Object.entries(result.player)) {
+    // "cape" é só a lista de quadrados da capa (ver PlayerModelDump), não uma peça
+    report.push(Array.isArray(root) ? `- ${model}: ${root.length} quadrados` : `- ${model}: ${describePart('root', root)}`);
+  }
+  if (!('cape' in result.player)) report.push('- ✗ capa não encontrada');
+  report.push(`- head pose: ${JSON.stringify((result.player.wide as PlayerPart | undefined)?.children.head?.pose)} · primeiro quadrado: ${JSON.stringify((result.player.wide as PlayerPart | undefined)?.children.head?.quads[0])}`);
   report.push('');
 }
 await writeFile(join(CACHE_DIR, 'dump-report.md'), report.join('\n'));
