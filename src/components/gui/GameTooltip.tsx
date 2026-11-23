@@ -1,6 +1,7 @@
 // tooltip do jogo (TooltipRenderUtil + DefaultTooltipPositioner, 26.3), em html:
 // - fundo e moldura são os sprites tooltip/background e tooltip/frame, desenhados 12 px pra fora do texto
-//   (3 px de folga + 9 px de margem transparente do próprio sprite)
+//   (3 px de folga + 9 px de margem transparente do próprio sprite). versões de antes da 1.21.2 não têm esses
+//   sprites: o jogo pintava por código (LegacyTooltipBox)
 // - aparece 12 px à direita e 12 px acima do ponteiro; se não couber à direita, vai pra esquerda
 // - linhas de 10 px; a primeira ganha 2 px a mais quando há outras embaixo (é o "título")
 // - texto sem cor sai branco; negrito é o jogo "redesenhando" a letra 1 px pro lado (e avançando 1 px a mais)
@@ -92,6 +93,35 @@ interface Props {
   placement?: TooltipPlacement;
 }
 
+// fundo antigo (TooltipRenderUtil até a 1.21.1): retângulo 3 px pra fora do texto em 0xF0100010, com uma linha a
+// mais de cada lado sem os cantos (o "arredondado"), e por cima a moldura de 1 px em degradê, de 0x505000FF
+// (em cima) a 0x5028007F (embaixo). coordenadas a partir da caixa da tooltip (o texto começa em 12, 12)
+const LEGACY_BACKGROUND = 'rgba(16, 0, 16, 0.941)';
+const LEGACY_BORDER_TOP = 'rgba(80, 0, 255, 0.314)';
+const LEGACY_BORDER_BOTTOM = 'rgba(40, 0, 127, 0.314)';
+
+function LegacyTooltipBox({ width, height }: { width: number; height: number }) {
+  const w = width + 6;
+  const h = height + 6;
+  const rect = (left: number, top: number, rectWidth: number, rectHeight: number, background: string) => (
+    <div class="absolute" style={{ left: u(left), top: u(top), width: u(rectWidth), height: u(rectHeight), background }} />
+  );
+  const gradient = `linear-gradient(${LEGACY_BORDER_TOP}, ${LEGACY_BORDER_BOTTOM})`;
+  return (
+    <>
+      {rect(9, 9, w, h, LEGACY_BACKGROUND)}
+      {rect(9, 8, w, 1, LEGACY_BACKGROUND)}
+      {rect(9, 9 + h, w, 1, LEGACY_BACKGROUND)}
+      {rect(8, 9, 1, h, LEGACY_BACKGROUND)}
+      {rect(9 + w, 9, 1, h, LEGACY_BACKGROUND)}
+      {rect(9, 9, w, 1, LEGACY_BORDER_TOP)}
+      {rect(9, 8 + h, w, 1, LEGACY_BORDER_BOTTOM)}
+      {rect(9, 10, 1, h - 2, gradient)}
+      {rect(8 + w, 10, 1, h - 2, gradient)}
+    </>
+  );
+}
+
 export default function GameTooltip({ data, lines, pointerX = 0, pointerY = 0, unit, placement }: Props) {
   if (!lines.length) return null;
   const width = Math.max(...lines.map((line) => lineWidth(data, line))) - 1; // o último avanço inclui 1 px de espaço
@@ -104,8 +134,14 @@ export default function GameTooltip({ data, lines, pointerX = 0, pointerY = 0, u
 
   return (
     <div class="pointer-events-none z-50" style={box} aria-hidden="true">
-      <div class={`${FRAME_CLASS} absolute inset-0`} style={frameStyle(data, 'tooltip_background')} />
-      <div class={`${FRAME_CLASS} absolute inset-0`} style={frameStyle(data, 'tooltip_frame')} />
+      {data.gui.frames?.tooltip_background ? (
+        <>
+          <div class={`${FRAME_CLASS} absolute inset-0`} style={frameStyle(data, 'tooltip_background')} />
+          <div class={`${FRAME_CLASS} absolute inset-0`} style={frameStyle(data, 'tooltip_frame')} />
+        </>
+      ) : (
+        <LegacyTooltipBox width={width} height={height} />
+      )}
       {/* a caixa da linha começa 1 px acima do topo das letras (ver fontface.ts) */}
       <div class="absolute whitespace-pre" style={{ ...gameText, left: u(12), top: u(11) }}>
         {lines.map((line, index) => (
