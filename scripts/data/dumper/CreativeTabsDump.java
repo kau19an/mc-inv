@@ -163,7 +163,7 @@ public final class CreativeTabsDump {
       Object patch = patchMethod.invoke(stack);
       if ((boolean) patch.getClass().getMethod("isEmpty").invoke(patch)) return null;
       Codec codec = (Codec) Class.forName("net.minecraft.core.component.DataComponentPatch").getField("CODEC").get(null);
-      return unwrap(codec.encodeStart(ops, patch));
+      return (JsonElement) unwrap(codec.encodeStart(ops, patch));
     }
     Object tag = ItemStack.class.getMethod("getTag").invoke(stack);
     if (tag == null) return null;
