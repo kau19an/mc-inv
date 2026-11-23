@@ -131,7 +131,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       if (announce) setSkinStatus({ kind: 'error', error: result.error });
       return;
     }
-    setPlayerSkin(result.skin ? result : null);
+    setPlayerSkin(result.skin || result.cape ? result : null); // sem skin própria, mas com capa: Steve de capa
     updateSettings({ playerName: result.name }); // com a grafia oficial do nome
     setAppliedName(result.name);
     if (!announce) return;
@@ -517,6 +517,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
           mouseX: lookAt.current.x,
           mouseY: lookAt.current.y,
           ageInTicks: still ? 0 : performance.now() / 50,
+          cape: playerSkin?.cape && player.models.cape ? { quads: player.models.cape, texture: playerSkin.cape } : undefined,
         });
         if (canvas.width !== image.width || canvas.height !== image.height) {
           canvas.width = image.width;

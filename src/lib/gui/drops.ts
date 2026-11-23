@@ -1,8 +1,11 @@
 // nomes dos "drops" (as atualizações menores do jogo, desde a 1.21.2), pra agrupar as versões na tela "Versões...".
 // o nome não vem nos arquivos do jogo; sai nos anúncios da Mojang (conferidos na Minecraft Wiki, "Game Drop").
 // nomes oficiais, iguais em todos os idiomas (a Mojang não traduz). drop sem nome aqui aparece só pelo número.
-// os drops com nome são também os que o histórico publica (versões de antes da 1.21.2 ficam de fora por ora)
+// os drops com nome são também os que o histórico publica. antes dos drops oficiais (1.21.2), entram também a
+// 1.21 (Tricky Trials, a última "atualização grande") e a 1.20.5 (Armored Paws, que a Mojang já chamou de "drop")
 export const DROP_NAMES: Record<string, string> = {
+  '1.20.5': 'Armored Paws',
+  '1.21': 'Tricky Trials',
   '1.21.2': 'Bundles of Bravery',
   '1.21.4': 'The Garden Awakens',
   '1.21.5': 'Spring to Life',
@@ -16,7 +19,7 @@ export const DROP_NAMES: Record<string, string> = {
 };
 
 // versões de correção que pertencem a um drop anterior (1.21.3 corrigiu o Bundles of Bravery etc.)
-const PATCH_OF: Record<string, string> = { '1.21.3': '1.21.2', '1.21.7': '1.21.6', '1.21.8': '1.21.6', '1.21.10': '1.21.9' };
+const PATCH_OF: Record<string, string> = { '1.20.6': '1.20.5', '1.21.1': '1.21', '1.21.3': '1.21.2', '1.21.7': '1.21.6', '1.21.8': '1.21.6', '1.21.10': '1.21.9' };
 
 // drop pelo número da versão, quando ele está no id:
 // - 26.x em diante: os dois primeiros números ("26.4-snapshot-10" → "26.4", "26.3.1" → "26.3");

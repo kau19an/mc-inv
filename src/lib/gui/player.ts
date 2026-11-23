@@ -8,6 +8,8 @@
 //             → sobe metade da altura (0,9 + 0,0625) → escala 20 px/bloco (Z invertido) → centro do recorte
 //   luz:      ENTITY_IN_UI = duas lâmpadas direcionais, brilho = mín(1, (l0 + l1) × 0,6 + 0,4)
 //   braços:   "respiração" (AnimationUtils.bobModelPart) com o tempo do jogo (20 ticks por segundo)
+//   capa:     CapeLayer + PlayerCapeModel: presa às costas (corpo → desce 0 e recua 2 px), inclinada 6° pra trás e
+//             virada 180°; parado, o balanço (capeLean/capeFlap) é zero. textura própria (64×32) e sólida, sem recorte
 //
 // sem dependências e sem apis do navegador: recebe a skin decodificada e devolve os pixels do recorte
 
@@ -19,7 +21,9 @@ export interface PlayerPart {
 }
 
 export type PlayerModelKind = 'wide' | 'slim';
-export type PlayerModels = Record<PlayerModelKind, PlayerPart>;
+// cape: quadrados da capa no espaço dela (a peça "cape" do PlayerCapeModel, ou "cloak" do PlayerModel antigo).
+// dados publicados antes da capa entrar não têm
+export type PlayerModels = Record<PlayerModelKind, PlayerPart> & { cape?: number[][][] };
 
 export interface Skin {
   width: number;
@@ -30,6 +34,8 @@ export interface Skin {
 // medidas da tela (CreativeModeInventoryScreen): recorte de (73, 6) até (105, 49), 20 px por bloco
 export const PLAYER_BOX = { x0: 73, y0: 6, x1: 105, y1: 49, size: 20, offsetY: 0.0625 } as const;
 const PLAYER_HEIGHT = 1.8;
+const CAPE_OFFSET_Z = 2 / 16; // pivô da capa: 2 px atrás do corpo (PartPose 0, 0, 2 / translate 0,125 nas antigas)
+const CAPE_TILT = (6 * Math.PI) / 180; // 6° + capeLean / 2 + capeFlap, com o jogador parado
 const PLAYER_SCALE = 0.9375;
 
 type Mat = number[]; // 4×4, por coluna (como o joml)
@@ -114,8 +120,13 @@ export interface PlayerRender {
 }
 
 // mouseX/mouseY em pixels da gui, relativos ao canto do fundo do inventário (o mesmo referencial do jogo)
-export function renderPlayer(model: PlayerPart, skin: Skin, options: { scale: number; mouseX: number; mouseY: number; ageInTicks: number }): PlayerRender {
-  const { scale, mouseX, mouseY, ageInTicks } = options;
+// cape: a textura da capa do jogador e os quadrados dela (PlayerModels.cape); sem os dois, desenha sem capa
+export function renderPlayer(
+  model: PlayerPart,
+  skin: Skin,
+  options: { scale: number; mouseX: number; mouseY: number; ageInTicks: number; cape?: { quads: number[][][]; texture: Skin } },
+): PlayerRender {
+  const { scale, mouseX, mouseY, ageInTicks, cape } = options;
   const box = PLAYER_BOX;
   const width = (box.x1 - box.x0) * scale;
   const height = (box.y1 - box.y0) * scale;
@@ -140,7 +151,8 @@ export function renderPlayer(model: PlayerPart, skin: Skin, options: { scale: nu
   root = multiply(root, scaling(PLAYER_SCALE, PLAYER_SCALE, PLAYER_SCALE));
   root = multiply(root, translation(0, -1.501, 0));
 
-  const drawQuad = (m: Mat, quad: number[][]) => {
+  // texture: de onde vêm as cores; solid: sem recorte pela transparência (a capa usa entitySolid)
+  const drawQuad = (m: Mat, quad: number[][], texture: Skin = skin, solid = false) => {
     const points = quad.map(([x, y, z]) => transformPoint(m, x!, y!, z!));
     // descarta a face de trás (entidades desenham só a frente de cada face)
     const [a, b, c] = points as [[number, number, number], [number, number, number], [number, number, number]];
@@ -153,10 +165,10 @@ export function renderPlayer(model: PlayerPart, skin: Skin, options: { scale: nu
     const dot = (l: [number, number, number]) => Math.max(0, -(l[0] * normal[0] + l[1] * normal[1] + l[2] * normal[2]));
     const light = Math.min(1, (dot(LIGHT_0) + dot(LIGHT_1)) * 0.6 + 0.4);
     // dois triângulos
-    for (const [i0, i1, i2] of [[0, 1, 2], [0, 2, 3]] as const) rasterize(points[i0]!, points[i1]!, points[i2]!, quad[i0]!, quad[i1]!, quad[i2]!, light);
+    for (const [i0, i1, i2] of [[0, 1, 2], [0, 2, 3]] as const) rasterize(points[i0]!, points[i1]!, points[i2]!, quad[i0]!, quad[i1]!, quad[i2]!, light, texture, solid);
   };
 
-  const rasterize = (p0: number[], p1: number[], p2: number[], t0: number[], t1: number[], t2: number[], light: number) => {
+  const rasterize = (p0: number[], p1: number[], p2: number[], t0: number[], t1: number[], t2: number[], light: number, texture: Skin, solid: boolean) => {
     const minX = Math.max(0, Math.floor(Math.min(p0[0]!, p1[0]!, p2[0]!)));
     const maxX = Math.min(width - 1, Math.ceil(Math.max(p0[0]!, p1[0]!, p2[0]!)));
     const minY = Math.max(0, Math.floor(Math.min(p0[1]!, p1[1]!, p2[1]!)));
@@ -176,26 +188,32 @@ export function renderPlayer(model: PlayerPart, skin: Skin, options: { scale: nu
         if (z <= depth[index]!) continue;
         const tu = w0 * t0[3]! + w1 * t1[3]! + w2 * t2[3]!;
         const tv = w0 * t0[4]! + w1 * t1[4]! + w2 * t2[4]!;
-        const sx = Math.min(skin.width - 1, Math.max(0, Math.floor(tu * skin.width)));
-        const sy = Math.min(skin.height - 1, Math.max(0, Math.floor(tv * skin.height)));
-        const source = (sy * skin.width + sx) * 4;
-        const alpha = skin.data[source + 3]!;
-        if (alpha < 26) continue; // recorte (alpha < 0,1), como o shader de entidade
+        const sx = Math.min(texture.width - 1, Math.max(0, Math.floor(tu * texture.width)));
+        const sy = Math.min(texture.height - 1, Math.max(0, Math.floor(tv * texture.height)));
+        const source = (sy * texture.width + sx) * 4;
+        if (!solid && texture.data[source + 3]! < 26) continue; // recorte (alpha < 0,1), como o shader de entidade
         depth[index] = z;
-        out[index * 4] = skin.data[source]! * light;
-        out[index * 4 + 1] = skin.data[source + 1]! * light;
-        out[index * 4 + 2] = skin.data[source + 2]! * light;
+        out[index * 4] = texture.data[source]! * light;
+        out[index * 4 + 1] = texture.data[source + 1]! * light;
+        out[index * 4 + 2] = texture.data[source + 2]! * light;
         out[index * 4 + 3] = 255;
       }
     }
   };
 
+  let body = root;
   const visit = (name: string, part: PlayerPart, parent: Mat) => {
     const m = multiply(parent, partMatrix(animatedPose(name, part, headYaw, headPitch, ageInTicks), part.scale));
+    if (name === 'body') body = m;
     for (const quad of part.quads) drawQuad(m, quad);
     for (const [childName, child] of Object.entries(part.children)) visit(childName, child, m);
   };
   visit('root', model, root);
+
+  if (cape) {
+    const m = multiply(multiply(multiply(body, translation(0, 0, CAPE_OFFSET_Z)), rotationX(CAPE_TILT)), rotationY(Math.PI));
+    for (const quad of cape.quads) drawQuad(m, quad, cape.texture, true);
+  }
 
   return { width, height, data: out };
 }

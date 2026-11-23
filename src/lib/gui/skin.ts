@@ -1,4 +1,4 @@
-// skin de um jogador pra aba "Inventário": busca pela função /api/skin (o intermediário com a Mojang) e trata a
+// skin (e capa) de um jogador pra aba "Inventário": busca pela função /api/skin (o intermediário com a Mojang) e trata a
 // imagem como o jogo trata (SkinTextureDownloader.processLegacySkin):
 //   - skin antiga 64×32 vira 64×64, copiando (espelhados) braço e perna direitos pros lados esquerdos
 //   - a camada de baixo (cabeça, corpo, braços, pernas) é sempre opaca; nas antigas, o "chapéu" todo opaco some
@@ -8,6 +8,7 @@ export interface PlayerSkin {
   name: string; // nome com as maiúsculas certas, como a Mojang devolve
   model: PlayerModelKind;
   skin: Skin | null; // null = jogador sem skin própria (o site usa o Steve)
+  cape: Skin | null; // capa ativa na conta (null = sem capa). a imagem vai como veio: o jogo não trata a capa
 }
 
 export type SkinError = 'invalid_name' | 'not_found' | 'upstream' | 'unavailable';
@@ -60,13 +61,14 @@ async function requestPlayerSkin(name: string): Promise<SkinResult> {
   // sem a função (ex.: npm run dev, que só serve as páginas): a busca só funciona no site publicado
   const type = response.headers.get('content-type') ?? '';
   if (!type.includes('application/json')) return { error: 'unavailable' };
-  const body = (await response.json()) as { error?: SkinError; name?: string; model?: PlayerModelKind; skin?: string | null };
+  const body = (await response.json()) as { error?: SkinError; name?: string; model?: PlayerModelKind; skin?: string | null; cape?: string };
   if (!response.ok || body.error) return { error: body.error ?? 'upstream' };
-  return { name: body.name ?? name, model: body.model === 'slim' ? 'slim' : 'wide', skin: body.skin ? await decodeSkin(body.skin) : null };
+  const [skin, cape] = await Promise.all([body.skin ? decodePng(body.skin).then(processSkin) : null, body.cape ? decodePng(body.cape).catch(() => null) : null]);
+  return { name: body.name ?? name, model: body.model === 'slim' ? 'slim' : 'wide', skin, cape };
 }
 
 // decodifica direto (sem fetch: a CSP só deixa o fetch falar com o próprio site, e é bom que continue assim)
-async function decodeSkin(dataUrl: string): Promise<Skin> {
+async function decodePng(dataUrl: string): Promise<Skin> {
   const binary = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
   const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
@@ -75,7 +77,7 @@ async function decodeSkin(dataUrl: string): Promise<Skin> {
   canvas.height = bitmap.height;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(bitmap, 0, 0);
-  return processSkin({ width: bitmap.width, height: bitmap.height, data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data });
+  return { width: bitmap.width, height: bitmap.height, data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data };
 }
 
 export function processSkin(source: Skin): Skin {
