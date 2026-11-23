@@ -22,13 +22,17 @@ const { values: args } = parseArgs({ options: { versions: { type: 'string', defa
 
 const DUMPERS = ['DumpUtil.java', 'CreativeTabsDump.java', 'SpecialModelsDump.java', 'PlayerModelDump.java'].map((file) => join(import.meta.dirname, 'dumper', file));
 
+// limite por comando: uma versão travada vira falha registrada, em vez de segurar o grupo até o limite do job
+const COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
+
 // roda um comando; se falhar, publica o fim da saída de erro como anotação do github actions
 // (é o único jeito do claude ler o erro, já que ele não acessa os logs)
 function run(command: string, commandArgs: string[], cwd?: string) {
   try {
-    execFileSync(command, commandArgs, { cwd, stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
+    execFileSync(command, commandArgs, { cwd, stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024, timeout: COMMAND_TIMEOUT_MS, killSignal: 'SIGKILL' });
   } catch (error) {
-    const output = String((error as { stderr?: Buffer }).stderr ?? '') + String((error as { stdout?: Buffer }).stdout ?? '');
+    const timedOut = (error as { code?: string; signal?: string }).code === 'ETIMEDOUT' || (error as { signal?: string }).signal === 'SIGKILL';
+    const output = (timedOut ? `tempo esgotado (${COMMAND_TIMEOUT_MS / 60000} min)\n` : '') + String((error as { stderr?: Buffer }).stderr ?? '') + String((error as { stdout?: Buffer }).stdout ?? '');
     const tail = output.trim().split('\n').slice(-40).join('\n');
     console.error(tail);
     if (process.env.GITHUB_ACTIONS) console.log(`::error title=${command} falhou::${tail.replaceAll('%', '%25').replaceAll('\r', '').replaceAll('\n', '%0A')}`);

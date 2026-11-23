@@ -28,7 +28,19 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.server.Bootstrap;
 
 public final class PlayerModelDump {
-  public static void main(String[] args) throws Exception {
+  // encerra a JVM no fim (com código 1 se der erro): threads do jogo que não são "daemon" (executores de algumas
+  // versões) deixariam o processo aberto pra sempre depois do main, e o grupo inteiro do CI travaria
+  public static void main(String[] args) {
+    try {
+      dump(args);
+    } catch (Throwable error) {
+      error.printStackTrace();
+      System.exit(1);
+    }
+    System.exit(0);
+  }
+
+  private static void dump(String[] args) throws Exception {
     Path output = Path.of(args[0]);
     SharedConstants.tryDetectVersion();
     Bootstrap.bootStrap();
