@@ -147,6 +147,9 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
   // Confirmar depois é instantâneo). campo vazio = Steve (o que vai ser aplicado); enquanto busca, fica o rosto
   // anterior. nome inválido ou que não existe = "?" e Confirmar travado; Mojang fora = quadrado vazio (dá pra tentar)
   const [preview, setPreview] = useState<{ name: string; face: ImageData | null; notFound: boolean }>({ name: '', face: null, notFound: false });
+  // ao abrir a tela, o nome já é o aplicado (a skin dele já foi buscada e está guardada): busca na hora, sem a espera
+  // de quem está digitando, pra prévia já aparecer pronta
+  const typed = useRef(false);
   useEffect(() => {
     const defaultSkin = data.player?.defaultSkin;
     if (!trimmed) {
@@ -167,7 +170,8 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
       }
       const skin = result.skin ?? defaultSkin ?? null;
       setPreview({ name: trimmed, face: skin ? skinFace(skin) : null, notFound: false });
-    }, PREVIEW_DELAY_MS);
+    }, typed.current ? PREVIEW_DELAY_MS : 0);
+    typed.current = true;
     return () => {
       current = false;
       clearTimeout(timer);

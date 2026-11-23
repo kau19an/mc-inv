@@ -67,6 +67,7 @@ jobs:
       shards: ${{ steps.plan.outputs.shards }}
       probe: ${{ steps.plan.outputs.probe }}
       dump: ${{ steps.plan.outputs.dump }}
+      targets: ${{ steps.plan.outputs.targets }}
     steps:
       # quando chamado pela main, o "commit atual" é o da main: por isso o ref fixo
       - uses: actions/checkout@v7
@@ -98,6 +99,7 @@ jobs:
         id: plan
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          GITHUB_TOKEN: ${{ github.token }} # api do github (traduções das versões de piada) com limite maior
         run: node scripts/data/plan.ts --versions='${{ inputs.versions }}'
 
   build:
@@ -152,20 +154,25 @@ jobs:
               --endpoint-url "$R2_ENDPOINT" --only-show-errors --cache-control 'public, max-age=31536000, immutable'
           done
       - name: Gerar os dados do site
+        env:
+          TARGETS: ${{ needs.plan.outputs.targets }}
         run: npm run build-data -- --versions=${{ matrix.versions }} --no-index --keep-going
 
       # cada versão vai pra je/<id>/<lote>/: caminho novo a cada mudança do pipeline, então pode ficar em cache
       # pra sempre (immutable) sem risco de o navegador misturar arquivos de lotes diferentes
       - name: Enviar pro R2
+        env:
+          TARGETS: ${{ needs.plan.outputs.targets }}
         run: |
           for id in $(jq -r '.[]' .cache/built.json); do
-            aws s3 sync "public/data/je/$id" "s3://$R2_BUCKET/je/$id/${{ needs.plan.outputs.lot }}" \
+            lot=$(jq -r --arg id "$id" '.[$id].lot' <<< "$TARGETS")
+            aws s3 sync "public/data/je/$id" "s3://$R2_BUCKET/je/$id/$lot" \
               --endpoint-url "$R2_ENDPOINT" --only-show-errors --no-progress \
               --cache-control 'public, max-age=31536000, immutable'
             # folha de contato da versão (fora do lote: sempre a mais recente), pra conferir de olho
             [ -f ".cache/contact/$id.png" ] && aws s3 cp ".cache/contact/$id.png" "s3://$R2_BUCKET/je/_contact/$id.png" \
               --endpoint-url "$R2_ENDPOINT" --only-show-errors --content-type image/png --cache-control 'no-cache'
-            echo "::notice title=$id::enviado (lote ${{ needs.plan.outputs.lot }})"
+            echo "::notice title=$id::enviado (lote $lot)"
           done
           # as que este grupo devia gerar e não gerou ficam registradas como falha (só tentam de novo com outro pipeline)
           jq -n --arg lot '${{ needs.plan.outputs.lot }}' --arg pipeline '${{ needs.plan.outputs.pipeline }}' \
@@ -239,6 +246,8 @@ jobs:
           done
 
       - name: Montar a lista e o índice
+        env:
+          TARGETS: ${{ needs.plan.outputs.targets }}
         run: node scripts/data/publish.ts
 
       # comparação dos ícones entre versões (texto longo, que o claude lê pela api)

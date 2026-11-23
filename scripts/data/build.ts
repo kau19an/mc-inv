@@ -22,7 +22,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { CACHE_DIR } from './lib/files.ts';
-import { reportFailure, type VersionKind } from './lib/versions.ts';
+import { APRIL_FOOLS_REPO, aprilFoolsDir, reportFailure, type VersionKind } from './lib/versions.ts';
 import { buildIconBundle, toWebp } from './icons/bundle.ts';
 import { PNG } from 'pngjs';
 import { createTextureLookup, iconFor } from '../../src/lib/icons/bundle.ts';
@@ -161,7 +161,28 @@ async function readLang(versionDir: string, locale: string): Promise<Record<stri
     lang[to] = lang[from]!;
     delete lang[from];
   }
+  // versões de piada (1º de abril): a Mojang não traduz no Crowdin. as traduções vêm do pacote da comunidade da
+  // Minecraft Wiki (mc-wiki/mcaf-resourcepack), por cima do arquivo do jogo, como o pacote faz dentro do jogo
+  const meta = await readJson<{ id: string; kind: string }>(join(versionDir, 'meta.json'));
+  if (meta.kind === 'april_fools' && locale !== 'en_us') Object.assign(lang, await aprilFoolsLang(meta.id, locale));
   return lang;
+}
+
+// pacote de traduções das versões de piada: resources/<pasta>/assets/minecraft/lang/<locale>.json no GitHub,
+// no commit que o plan.ts registrou (TARGETS) ou, sem ele (no computador), o mais recente da main
+const aprilCache = new Map<string, Record<string, string>>();
+async function aprilFoolsLang(id: string, locale: string): Promise<Record<string, string>> {
+  const key = `${id}/${locale}`;
+  if (aprilCache.has(key)) return aprilCache.get(key)!;
+  const targets = JSON.parse(process.env.TARGETS || '{}') as Record<string, { translations?: string }>;
+  const ref = targets[id]?.translations ?? 'main';
+  const url = `https://raw.githubusercontent.com/${APRIL_FOOLS_REPO}/${ref}/resources/${encodeURIComponent(aprilFoolsDir(id))}/assets/minecraft/lang/${locale}.json`;
+  const response = await fetch(url);
+  // idioma ainda sem nenhuma tradução no pacote (ou versão fora dele): fica o texto do jogo
+  const strings = response.ok ? ((await response.json()) as Record<string, string>) : {};
+  if (!response.ok && response.status !== 404) throw new Error(`pacote de traduções de piada: ${url} (${response.status})`);
+  aprilCache.set(key, strings);
+  return strings;
 }
 
 async function buildVersion(id: string) {

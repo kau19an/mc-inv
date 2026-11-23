@@ -82,3 +82,19 @@ export function reportFailure(id: string, error: unknown): void {
   if (process.env.GITHUB_ACTIONS) console.log(`::error title=${id} falhou::${text.split('\n').slice(0, 20).join('%0A')}`);
   appendFileSync(join(CACHE_DIR, 'failures.md'), `## ${id}\n\n\`\`\`\n${text.split('\n').slice(0, 150).join('\n')}\n\`\`\`\n\n`);
 }
+
+// pacote de traduções das versões de piada (1º de abril), feito pela comunidade da Minecraft Wiki no Crowdin
+// (https://github.com/mc-wiki/mcaf-resourcepack, CC BY-NC-SA 3.0). cada versão tem uma pasta em resources/
+export const APRIL_FOOLS_REPO = 'mc-wiki/mcaf-resourcepack';
+export const aprilFoolsDir = (id: string) => id.toLowerCase().replace('∞', 'infinite');
+
+// commit mais recente que mexeu nas traduções de uma versão de piada (null: versão fora do pacote ou falha)
+export async function aprilFoolsCommit(id: string): Promise<string | null> {
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const path = encodeURIComponent(`resources/${aprilFoolsDir(id)}`);
+  const response = await fetch(`https://api.github.com/repos/${APRIL_FOOLS_REPO}/commits?path=${path}&per_page=1`, { headers });
+  if (!response.ok) return null;
+  const commits = (await response.json()) as { sha: string }[];
+  return commits[0]?.sha ?? null;
+}

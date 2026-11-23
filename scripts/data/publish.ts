@@ -38,6 +38,7 @@ const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf
 const previous = await publishedBuilds(dataUrl);
 const builds: Builds = { ...previous };
 const failures = await publishedFailures(dataUrl);
+const targets = JSON.parse(process.env.TARGETS || '{}') as Record<string, { lot: string; pipeline: string }>;
 const replaced: string[] = [];
 // lote antigo só é apagado um dia depois de substituído: quem abriu o site antes ainda tem a lista velha em
 // cache (5 minutos) ou a página aberta, e continua carregando dele sem erro
@@ -48,13 +49,16 @@ const resultsDir = join(CACHE_DIR, 'results');
 for (const file of existsSync(resultsDir) ? await readdir(resultsDir) : []) {
   if (!file.endsWith('.json')) continue;
   const result = JSON.parse(await readFile(join(resultsDir, file), 'utf8')) as { lot: string; pipeline: string; ids: string[]; failed?: string[] };
-  for (const id of result.failed ?? []) failures[id] = result.pipeline;
+  // lote e pipeline de cada versão (TARGETS, do plan.ts): as de piada têm os próprios, por causa das traduções
+  const targetOf = (id: string) => targets[id] ?? { lot: result.lot, pipeline: result.pipeline };
+  for (const id of result.failed ?? []) failures[id] = targetOf(id).pipeline;
   for (const id of result.ids) {
     delete failures[id];
-    const path = `je/${id}/${result.lot}`;
+    const { lot, pipeline } = targetOf(id);
+    const path = `je/${id}/${lot}`;
     const old = previous[id];
     if (old && old.path !== path) replaced.push(`${old.path}/`);
-    builds[id] = { lot: result.lot, pipeline: result.pipeline, path, builtAt: new Date().toISOString() };
+    builds[id] = { lot, pipeline, path, builtAt: new Date().toISOString() };
   }
 }
 

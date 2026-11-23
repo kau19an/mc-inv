@@ -15,7 +15,7 @@ import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { CACHE_DIR } from './lib/files.ts';
-import { historyIds } from './lib/versions.ts';
+import { aprilFoolsCommit, historyIds } from './lib/versions.ts';
 
 const ROOT = join(import.meta.dirname, '../..');
 
@@ -65,7 +65,7 @@ export const publishedFailures = (dataUrl: string | undefined) => publishedContr
 if (import.meta.main) {
   // 20 grupos: o máximo de computadores ao mesmo tempo no plano grátis do GitHub (repositório público)
   const { values: args } = parseArgs({ options: { versions: { type: 'string', default: '' }, shards: { type: 'string', default: '20' } } });
-  const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf8')) as { versions: { id: string; releaseTime: string }[] };
+  const catalog = JSON.parse(await readFile(join(CACHE_DIR, 'versions.json'), 'utf8')) as { versions: { id: string; kind: string; releaseTime: string }[] };
   const pipeline = await pipelineHash();
   const builds = await publishedBuilds(process.env.DATA_URL);
   const failures = await publishedFailures(process.env.DATA_URL);
@@ -77,10 +77,24 @@ if (import.meta.main) {
   // novo); as outras continuam no lote anterior até o próximo commit sem a marca
   const only = /\[só:\s*([^\]]+)\]/i.exec(process.env.COMMIT_MESSAGE ?? '')?.[1]?.split(',').map((id) => id.trim()).filter(Boolean);
 
+  // pipeline de cada versão: o mesmo pra todas, menos as de piada, que também dependem das traduções da comunidade
+  // (mc-wiki/mcaf-resourcepack): um commit novo nas traduções delas gera a versão de novo, num lote novo
+  const targets: Record<string, { lot: string; pipeline: string; translations?: string }> = {};
+  for (const version of catalog.versions) {
+    if (!history.has(version.id) && !only?.includes(version.id)) continue;
+    const translations = version.kind === 'april_fools' ? ((await aprilFoolsCommit(version.id)) ?? undefined) : undefined;
+    const effective = translations ? createHash('sha256').update(`${pipeline}+${translations}`).digest('hex') : pipeline;
+    targets[version.id] = { lot: effective.slice(0, 12), pipeline: effective, ...(translations ? { translations } : {}) };
+  }
+
   // mais antigas primeiro: se o tempo acabar, as que faltarem são as mais novas, que o próximo agendamento pega
   const queue = catalog.versions
     .map((version) => version.id)
-    .filter((id) => (only ? only.includes(id) : history.has(id) && (forced.has(id) || (builds[id]?.pipeline !== pipeline && failures[id] !== pipeline))))
+    .filter((id) => {
+      if (only) return only.includes(id);
+      const target = targets[id]?.pipeline;
+      return Boolean(target) && (forced.has(id) || (builds[id]?.pipeline !== target && failures[id] !== target));
+    })
     .reverse();
   if (only) console.log(`modo de teste: só ${only.join(', ')}`);
 
@@ -95,6 +109,8 @@ if (import.meta.main) {
     dump: (await pipelineHash(DUMP_PATHS)).slice(0, 12),
     count: queue.length,
     shards: JSON.stringify(shards.map((ids) => ids.join(','))),
+    // lote e pipeline de cada versão da fila (o build envia pra je/<id>/<lote>; o publish registra o pipeline)
+    targets: JSON.stringify(Object.fromEntries(queue.map((id) => [id, targets[id]]))),
     // ferramenta de desenvolvimento: descompilar as classes listadas em probe-classes.txt
     probe: existsSync(join(ROOT, 'scripts/data/probe-classes.txt')),
   };

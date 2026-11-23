@@ -45,6 +45,9 @@ export default function GameToast({ data, icon, title, message, progress, visibl
       style={{
         ...gameText,
         ...frameStyle(data, 'toast_tutorial'),
+        // o sprite tem exatamente o tamanho do toast: esticar em vez de repetir evita emendas quando a escala da
+        // gui não é inteira (as bordas e o miolo apareciam repetidos, com riscos)
+        borderImageRepeat: 'stretch',
         ...(data.gui.frames?.toast_tutorial ? {} : { background: '#fff' }),
         width: u(WIDTH),
         height: u(HEIGHT),

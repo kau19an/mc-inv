@@ -42,7 +42,7 @@ const STRINGS = {
     latestReleaseTag: 'Mais recente',
     upcomingTag: 'Em breve', // drop ainda sem release
     // tipos que não são de desenvolvimento (esses vão com o nome da Mojang: drops.ts, developmentKindName)
-    versionKinds: { release: 'Lançamento', april_fools: 'Primeiro de abril', old_beta: 'Beta', old_alpha: 'Alfa' } as Record<string, string>,
+    versionKinds: { release: 'Lançamento', april_fools: 'Piada', old_beta: 'Beta', old_alpha: 'Alfa' } as Record<string, string>,
   },
   en_us: {
     loading: 'Loading…',
@@ -79,7 +79,7 @@ const STRINGS = {
     versionsEmpty: 'No versions found.',
     latestReleaseTag: 'Latest',
     upcomingTag: 'Coming soon',
-    versionKinds: { release: 'Release', april_fools: 'April Fools', old_beta: 'Beta', old_alpha: 'Alpha' } as Record<string, string>,
+    versionKinds: { release: 'Release', april_fools: 'Joke', old_beta: 'Beta', old_alpha: 'Alpha' } as Record<string, string>,
   },
 } satisfies Record<Locale, Record<string, unknown>>;
 
