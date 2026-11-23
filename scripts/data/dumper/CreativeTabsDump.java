@@ -29,7 +29,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.server.WorldLoader;
@@ -54,7 +53,7 @@ public final class CreativeTabsDump {
     // registros (encantamentos, pinturas, chifres…), tags e componentes padrão dos itens, tudo ligado.
     // sem experimentos: é o inventário que um mundo normal mostra
     WorldDataConfiguration dataConfig = WorldDataConfiguration.DEFAULT;
-    PackRepository packs = ServerPacksSource.createVanillaTrustedRepository();
+    PackRepository packs = vanillaPacks();
     WorldLoader.InitConfig init = initConfig(new WorldLoader.PackConfig(packs, dataConfig, false, true));
     RegistryAccess.Frozen registries = WorldLoader.<Void, RegistryAccess.Frozen>load(
         init,
@@ -76,7 +75,7 @@ public final class CreativeTabsDump {
     Set<Item> inTabs = new HashSet<>();
     for (CreativeModeTab tab : CreativeModeTabs.allTabs()) {
       JsonObject json = new JsonObject();
-      json.addProperty("id", BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab).toString());
+      json.addProperty("id", tabId(tab));
       json.addProperty("type", tab.getType().name().toLowerCase(Locale.ROOT));
       json.addProperty("row", tab.row().name().toLowerCase(Locale.ROOT));
       json.addProperty("column", tab.column());
@@ -84,7 +83,7 @@ public final class CreativeTabsDump {
       json.addProperty("showTitle", tab.showTitle());
       json.addProperty("canScroll", tab.canScroll());
       json.addProperty("background", background(tab));
-      json.add("name", unwrap(ComponentSerialization.CODEC.encodeStart(ops, tab.getDisplayName())));
+      json.add("name", text(tab.getDisplayName(), ops));
       json.add("icon", stack(tab.getIconItem(), ops, null, false));
       JsonArray items = new JsonArray();
       for (ItemStack item : tab.getDisplayItems()) {
@@ -130,7 +129,7 @@ public final class CreativeTabsDump {
       for (int color : eggColors) colors.add(color);
       json.add("tintColors", colors);
     }
-    json.add("name", unwrap(ComponentSerialization.CODEC.encodeStart(ops, stack.getHoverName())));
+    json.add("name", text(stack.getHoverName(), ops));
     JsonElement components = components(stack, ops);
     if (components != null) json.add("components", components);
     if (withTooltip) {
@@ -230,7 +229,7 @@ public final class CreativeTabsDump {
       System.err.println("tooltip de " + BuiltInRegistries.ITEM.getKey(stack.getItem()) + " falhou: " + error);
       components = List.of(stack.getHoverName());
     }
-    for (Component line : components) lines.add(unwrap(ComponentSerialization.CODEC.encodeStart(ops, line)));
+    for (Component line : components) lines.add(text(line, ops));
     return lines;
   }
 
@@ -290,6 +289,52 @@ public final class CreativeTabsDump {
       if (method.getName().equals(name) && (parameters < 0 || method.getParameterCount() == parameters)) return method;
     }
     return null;
+  }
+
+  // texto do jogo como json: ComponentSerialization.CODEC (23w40a em diante) ou, antes, Component.Serializer.toJsonTree
+  // (o formato do json é o mesmo, só mudou quem escreve)
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static JsonElement text(Component component, DynamicOps<JsonElement> ops) {
+    try {
+      Codec codec = (Codec) Class.forName("net.minecraft.network.chat.ComponentSerialization").getField("CODEC").get(null);
+      return (JsonElement) unwrap(codec.encodeStart(ops, component));
+    } catch (ClassNotFoundException older) {
+      try {
+        return (JsonElement) Class.forName("net.minecraft.network.chat.Component$Serializer").getMethod("toJsonTree", Component.class).invoke(null, component);
+      } catch (ReflectiveOperationException error) {
+        throw new IllegalStateException(error);
+      }
+    } catch (ReflectiveOperationException error) {
+      throw new IllegalStateException(error);
+    }
+  }
+
+  // pacote de dados vanilla: ServerPacksSource.createVanillaTrustedRepository() (23w31a em diante) ou, antes,
+  // new PackRepository(new ServerPacksSource())
+  private static PackRepository vanillaPacks() throws ReflectiveOperationException {
+    Method trusted = method(ServerPacksSource.class, "createVanillaTrustedRepository", 0);
+    if (trusted != null) return (PackRepository) trusted.invoke(null);
+    Object source = ServerPacksSource.class.getConstructor().newInstance();
+    Class<?> sourceType = Class.forName("net.minecraft.server.packs.repository.RepositorySource");
+    Object sources = java.lang.reflect.Array.newInstance(sourceType, 1);
+    java.lang.reflect.Array.set(sources, 0, source);
+    return (PackRepository) PackRepository.class.getConstructor(sources.getClass()).newInstance(sources);
+  }
+
+  // id da aba: pelo registro de abas (23w16a em diante) ou, antes, pelo nome do campo em CreativeModeTabs
+  // (BUILDING_BLOCKS → minecraft:building_blocks), quando as abas ainda não eram registradas
+  private static String tabId(CreativeModeTab tab) throws ReflectiveOperationException {
+    try {
+      Object registry = BuiltInRegistries.class.getField("CREATIVE_MODE_TAB").get(null);
+      return method(registry.getClass(), "getKey", 1).invoke(registry, tab).toString();
+    } catch (NoSuchFieldException older) {
+      for (java.lang.reflect.Field field : CreativeModeTabs.class.getDeclaredFields()) {
+        if (!java.lang.reflect.Modifier.isStatic(field.getModifiers()) || !CreativeModeTab.class.isAssignableFrom(field.getType())) continue;
+        field.setAccessible(true);
+        if (field.get(null) == tab) return "minecraft:" + field.getName().toLowerCase(Locale.ROOT);
+      }
+      throw new IllegalStateException("aba sem id: " + tab.getDisplayName().getString());
+    }
   }
 
   // DataResult.getOrThrow() sem argumento só existe nas versões novas do DataFixerUpper
