@@ -2046,7 +2046,7 @@
       "en": "Diamond Sword"
     },
     "dimension_control": {
-      "pt": "Dimension Control",
+      "pt": "Controle Dimensional",
       "en": "Dimension Control"
     },
     "diorite": {
@@ -2230,7 +2230,7 @@
       "en": "Evoker Spawn Egg"
     },
     "exit_eye": {
-      "pt": "Eye of Exit",
+      "pt": "Olho de Saída",
       "en": "Eye of Exit"
     },
     "experience_bottle": {
@@ -2350,7 +2350,7 @@
       "en": "Fire Coral Fan"
     },
     "fire_wand": {
-      "pt": "Fire Wand",
+      "pt": "Varinha de Fogo",
       "en": "Fire Wand"
     },
     "firefly_bush": {
@@ -2606,7 +2606,7 @@
       "en": "Grass Block"
     },
     "grave_advancement": {
-      "pt": "Grave",
+      "pt": "Lápide",
       "en": "Grave"
     },
     "gravel": {
@@ -3678,19 +3678,19 @@
       "en": "Milk Bucket"
     },
     "mine": {
-      "pt": "Mine",
+      "pt": "Mina",
       "en": "Mine"
     },
     "mine_crafter": {
-      "pt": "Mine Crafter",
+      "pt": "Fabricador de Mina",
       "en": "Mine Crafter"
     },
     "mine_ingredient": {
-      "pt": "Mine Ingredient",
+      "pt": "Ingrediente de Mina",
       "en": "Mine Ingredient"
     },
     "mine_revisitor": {
-      "pt": "Mine Revisitor",
+      "pt": "Revisitador de Mina",
       "en": "Mine Revisitor"
     },
     "minecart": {
@@ -3706,7 +3706,7 @@
       "en": "Mineshaft Map"
     },
     "mob_trophy": {
-      "pt": "Trophy",
+      "pt": "Troféu",
       "en": "Trophy"
     },
     "mojang_banner_pattern": {
@@ -3814,7 +3814,7 @@
       "en": "Music Disc"
     },
     "music_disc_and_action": {
-      "pt": "Music Disc",
+      "pt": "Disco Musical",
       "en": "Music Disc"
     },
     "music_disc_blocks": {
@@ -5430,7 +5430,7 @@
       "en": "Shaper Armor Trim"
     },
     "shazboots": {
-      "pt": "Shazboots!",
+      "pt": "Shazbotas!",
       "en": "Shazboots!"
     },
     "sheaf_pottery_sherd": {
@@ -5458,11 +5458,11 @@
       "en": "Shield"
     },
     "shimmering_door": {
-      "pt": "Shimmering Door",
+      "pt": "Porta Cintilante",
       "en": "Shimmering Door"
     },
     "shimmering_key": {
-      "pt": "Shimmering Key",
+      "pt": "Chave Cintilante",
       "en": "Shimmering Key"
     },
     "short_dry_grass": {
@@ -5518,11 +5518,11 @@
       "en": "Skull Pottery Sherd"
     },
     "sky": {
-      "pt": "Sky",
+      "pt": "Céu",
       "en": "Sky"
     },
     "sky_box": {
-      "pt": "Sky Box",
+      "pt": "Caixa de Céu",
       "en": "Sky Box"
     },
     "slime_ball": {
@@ -6086,7 +6086,7 @@
       "en": "Target"
     },
     "teleportation_wand": {
-      "pt": "Displacement Wand",
+      "pt": "Varinha de Deslocamento",
       "en": "Displacement Wand"
     },
     "terracotta": {
@@ -6166,7 +6166,7 @@
       "en": "Tripwire Hook"
     },
     "trophy": {
-      "pt": "Trophy",
+      "pt": "Troféu",
       "en": "Trophy"
     },
     "tropical_fish": {
@@ -6806,7 +6806,7 @@
       "en": "Wind Charge"
     },
     "wind_wand": {
-      "pt": "Wind Wand",
+      "pt": "Varinha de Vento",
       "en": "Wind Wand"
     },
     "witch_spawn_egg": {
