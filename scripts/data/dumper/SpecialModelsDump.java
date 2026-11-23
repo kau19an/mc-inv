@@ -78,7 +78,7 @@ public final class SpecialModelsDump {
 
     for (Map.Entry<String, JsonElement> entry : entries.entrySet()) {
       try {
-        Object unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).getOrThrow();
+        Object unbaked = codec.parse(JsonOps.INSTANCE, entry.getValue()).result().orElseThrow();
         JsonArray parts;
         try {
           parts = bakeAndDraw(unbaked, models);
@@ -247,7 +247,9 @@ public final class SpecialModelsDump {
         method.invoke(null, registry);
         registry.freeze(); // sem congelar, as entradas ficam "não ligadas" e o codec não acha nada
         Codec<MapCodec> types = registry.byNameCodec();
-        return types.dispatch(unbaked -> (MapCodec) call(unbaked, "type"), type -> (MapCodec) type);
+        // sem tipos genéricos: compila contra o DataFixerUpper antigo das versões de antes da 24w45a (que nem
+        // chegam aqui, porque usam a versão de referência)
+        return ((Codec) types).dispatch((java.util.function.Function) unbaked -> call(unbaked, "type"), (java.util.function.Function) type -> type);
       }
     }
     // versões sem bootstrap: o CODEC já vem pronto
