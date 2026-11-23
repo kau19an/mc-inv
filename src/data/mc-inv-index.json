@@ -165,6 +165,14 @@
       "pt": "Flor-de-Alho",
       "en": "Allium"
     },
+    "amber_block": {
+      "pt": "Bloco de Âmbar",
+      "en": "Block of Amber"
+    },
+    "amber_gem": {
+      "pt": "Gema de Âmbar",
+      "en": "Amber Gem"
+    },
     "amethyst_block": {
       "pt": "Bloco de Ametista",
       "en": "Block of Amethyst"
@@ -265,6 +273,22 @@
       "pt": "Batata Assada",
       "en": "Baked Potato"
     },
+    "baked_potato_brick_slab": {
+      "pt": "Laje de Tijolos de Batata Assada",
+      "en": "Baked Potato Brick Slab"
+    },
+    "baked_potato_brick_stairs": {
+      "pt": "Escadas de Tijolos de Batata Assada",
+      "en": "Baked Potato Brick Stairs"
+    },
+    "baked_potato_brick_wall": {
+      "pt": "Muro de Tijolos de Batata Assada",
+      "en": "Baked Potato Brick Wall"
+    },
+    "baked_potato_bricks": {
+      "pt": "Tijolos de Batata Assada",
+      "en": "Baked Potato Bricks"
+    },
     "bamboo": {
       "pt": "Bambu",
       "en": "Bamboo"
@@ -357,6 +381,10 @@
       "pt": "Ovo Gerador de Morcego",
       "en": "Bat Spawn Egg"
     },
+    "batato_spawn_egg": {
+      "pt": "Ovo Gerador de Morcetata",
+      "en": "Batato Spawn Egg"
+    },
     "beacon": {
       "pt": "Sinalizador",
       "en": "Beacon"
@@ -396,6 +424,10 @@
     "bell": {
       "pt": "Sino",
       "en": "Bell"
+    },
+    "big_brain": {
+      "pt": "Cérebro Grande",
+      "en": "Big Brain"
     },
     "big_dripleaf": {
       "pt": "Plantaforma Grande",
@@ -525,6 +557,14 @@
       "pt": "Arreio Preto",
       "en": "Black Harness"
     },
+    "black_potato_peels": {
+      "pt": "Casca de Batata Preta",
+      "en": "Black Potato Peels"
+    },
+    "black_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Preta",
+      "en": "Block of Black Potato Peels"
+    },
     "black_shulker_box": {
       "pt": "Caixa de Shulker Preta",
       "en": "Black Shulker Box"
@@ -652,6 +692,14 @@
     "blue_orchid": {
       "pt": "Orquídea-Azul",
       "en": "Blue Orchid"
+    },
+    "blue_potato_peels": {
+      "pt": "Casca de Batata Azul",
+      "en": "Blue Potato Peels"
+    },
+    "blue_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Azul",
+      "en": "Block of Blue Potato Peels"
     },
     "blue_shulker_box": {
       "pt": "Caixa de Shulker Azul",
@@ -840,6 +888,14 @@
     "brown_mushroom_block": {
       "pt": "Bloco de Cogumelo Marrom",
       "en": "Brown Mushroom Block"
+    },
+    "brown_potato_peels": {
+      "pt": "Casca de Batata Marrom",
+      "en": "Brown Potato Peels"
+    },
+    "brown_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Marrom",
+      "en": "Block of Brown Potato Peels"
     },
     "brown_shulker_box": {
       "pt": "Caixa de Shulker Marrom",
@@ -1032,6 +1088,22 @@
     "charcoal": {
       "pt": "Carvão Vegetal",
       "en": "Charcoal"
+    },
+    "charred_baked_potato_brick_slab": {
+      "pt": "Laje de Tijolos de Batata Assada Carbonizada",
+      "en": "Charred Baked Potato Brick Slab"
+    },
+    "charred_baked_potato_brick_stairs": {
+      "pt": "Escadas de Tijolos de Batata Assada Carbonizada",
+      "en": "Charred Baked Potato Brick Stairs"
+    },
+    "charred_baked_potato_brick_wall": {
+      "pt": "Muro de Tijolos de Batata Assada Carbonizada",
+      "en": "Charred Baked Potato Brick Wall"
+    },
+    "charred_baked_potato_bricks": {
+      "pt": "Tijolos de Batata Assada Carbonizada",
+      "en": "Charred Baked Potato Bricks"
     },
     "cherry_boat": {
       "pt": "Bote de Cerejeira",
@@ -1341,6 +1413,10 @@
       "pt": "Composteira",
       "en": "Composter"
     },
+    "compressed_poisonous_potato_block": {
+      "pt": "Bloco de Batata Venenosa Prensada",
+      "en": "Compressed Poisonous Potato Block"
+    },
     "conduit": {
       "pt": "Conduto",
       "en": "Conduit"
@@ -1492,6 +1568,18 @@
     "cornflower": {
       "pt": "Centáurea",
       "en": "Cornflower"
+    },
+    "corrupted_peelgrass_block": {
+      "pt": "Bloco de Grama Descascada Corrompida",
+      "en": "Corrupted Peelgrass Block"
+    },
+    "corrupted_potato_peels": {
+      "pt": "Casca de Batata Corrompida",
+      "en": "Corrupted Potato Peels"
+    },
+    "corrupted_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Corrompida",
+      "en": "Block of Corrupted Potato Peels"
     },
     "cow_spawn_egg": {
       "pt": "Ovo Gerador de Vaca",
@@ -1704,6 +1792,14 @@
     "cyan_harness": {
       "pt": "Arreio Ciano",
       "en": "Cyan Harness"
+    },
+    "cyan_potato_peels": {
+      "pt": "Casca de Batata Ciano",
+      "en": "Cyan Potato Peels"
+    },
+    "cyan_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Ciano",
+      "en": "Block of Cyan Potato Peels"
     },
     "cyan_shulker_box": {
       "pt": "Caixa de Shulker Ciano",
@@ -1953,6 +2049,10 @@
       "pt": "Minério de Lápis-Lazúli de Ardosiabissal",
       "en": "Deepslate Lapis Lazuli Ore"
     },
+    "deepslate_poisonous_potato_ore": {
+      "pt": "Minério de Batata Venenosa de Ardosiabissal",
+      "en": "Deepslate Poisonous Potato Ore"
+    },
     "deepslate_redstone_ore": {
       "pt": "Minério de Redstone de Ardosiabissal",
       "en": "Deepslate Redstone Ore"
@@ -1972,6 +2072,10 @@
     "deepslate_tiles": {
       "pt": "Ladrilhos de Ardosiabissal",
       "en": "Deepslate Tiles"
+    },
+    "dent": {
+      "pt": "Dente",
+      "en": "Dent"
     },
     "desert_pyramid_map": {
       "pt": "Mapa de Pirâmide do Deserto",
@@ -2089,6 +2193,10 @@
       "pt": "Ovo Gerador de Burro",
       "en": "Donkey Spawn Egg"
     },
+    "double_compressed_poisonous_potato_block": {
+      "pt": "Bloco de Batata Venenosa Duplamente Prensada",
+      "en": "Double Compressed Poisonous Potato Block"
+    },
     "dragon_breath": {
       "pt": "Bafo do Dragão",
       "en": "Dragon's Breath"
@@ -2165,6 +2273,10 @@
       "pt": "Maçã Dourada Encantada",
       "en": "Enchanted Golden Apple"
     },
+    "enchanted_golden_poisonous_potato": {
+      "pt": "Batata Venenosa Dourada Encantada",
+      "en": "Enchanted Golden Poisonous Potato"
+    },
     "enchanting_table": {
       "pt": "Mesa de Encantamentos",
       "en": "Enchanting Table"
@@ -2236,6 +2348,22 @@
     "experience_bottle": {
       "pt": "Frasco d'Encantamento",
       "en": "Bottle o' Enchanting"
+    },
+    "expired_baked_potato_brick_slab": {
+      "pt": "Laje de Tijolos de Batata Assada Estragada",
+      "en": "Expired Baked Potato Brick Slab"
+    },
+    "expired_baked_potato_brick_stairs": {
+      "pt": "Escadas de Tijolos de Batata Assada Estragada",
+      "en": "Expired Baked Potato Brick Stairs"
+    },
+    "expired_baked_potato_brick_wall": {
+      "pt": "Muro de Tijolos de Batata Assada Estragada",
+      "en": "Expired Baked Potato Brick Wall"
+    },
+    "expired_baked_potato_bricks": {
+      "pt": "Tijolos de Batata Assada Estragada",
+      "en": "Expired Baked Potato Bricks"
     },
     "explorer_pottery_sherd": {
       "pt": "Óstraco de Mapa",
@@ -2381,6 +2509,14 @@
       "pt": "Pederneira",
       "en": "Flint and Steel"
     },
+    "floatater": {
+      "pt": "Flutuatata",
+      "en": "Floatater"
+    },
+    "floatato": {
+      "pt": "Batata-Nuvem",
+      "en": "Floatato"
+    },
     "flow_armor_trim_smithing_template": {
       "pt": "Enfeite de Fluxo",
       "en": "Flow Armor Trim"
@@ -2432,6 +2568,10 @@
     "frostbite_spawn_egg": {
       "pt": "Ovo Gerador de Gélido",
       "en": "Frostbite Spawn Egg"
+    },
+    "frying_table": {
+      "pt": "Mesa de Fritura",
+      "en": "Frying Table"
     },
     "furnace": {
       "pt": "Fornalha",
@@ -2573,6 +2713,10 @@
       "pt": "Picareta de Ouro",
       "en": "Golden Pickaxe"
     },
+    "golden_poisonous_potato": {
+      "pt": "Batata Venenosa Dourada",
+      "en": "Golden Poisonous Potato"
+    },
     "golden_shovel": {
       "pt": "Pá de Ouro",
       "en": "Golden Shovel"
@@ -2612,6 +2756,10 @@
     "gravel": {
       "pt": "Cascalho",
       "en": "Gravel"
+    },
+    "gravtater": {
+      "pt": "Cascalho de Batata",
+      "en": "Gravtater"
     },
     "gray_banner": {
       "pt": "Estandarte Cinza",
@@ -2664,6 +2812,14 @@
     "gray_harness": {
       "pt": "Arreio Cinza",
       "en": "Gray Harness"
+    },
+    "gray_potato_peels": {
+      "pt": "Casca de Batata Cinza",
+      "en": "Gray Potato Peels"
+    },
+    "gray_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Cinza",
+      "en": "Block of Gray Potato Peels"
     },
     "gray_shulker_box": {
       "pt": "Caixa de Shulker Cinza",
@@ -2745,6 +2901,14 @@
       "pt": "Arreio Verde",
       "en": "Green Harness"
     },
+    "green_potato_peels": {
+      "pt": "Casca de Batata Verde",
+      "en": "Green Potato Peels"
+    },
+    "green_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Verde",
+      "en": "Block of Green Potato Peels"
+    },
     "green_shulker_box": {
       "pt": "Caixa de Shulker Verde",
       "en": "Green Shulker Box"
@@ -2804,6 +2968,10 @@
     "happy_ghast_spawn_egg": {
       "pt": "Ovo Gerador de Ghast Feliz",
       "en": "Happy Ghast Spawn Egg"
+    },
+    "hash_browns": {
+      "pt": "Casca de Batata Frita",
+      "en": "Hash Browns"
     },
     "hay_block": {
       "pt": "Fardo de Feno",
@@ -2880,6 +3048,10 @@
     "host_armor_trim_smithing_template": {
       "pt": "Enfeite de Hospedeiro",
       "en": "Host Armor Trim"
+    },
+    "hot_potato": {
+      "pt": "Batata Quente",
+      "en": "Hot potato"
     },
     "howl_pottery_sherd": {
       "pt": "Óstraco de Lobo",
@@ -3157,6 +3329,10 @@
       "pt": "Samambaia Grande",
       "en": "Large Fern"
     },
+    "lashing_potato": {
+      "pt": "Chicote de Batata",
+      "en": "Lashing Potato"
+    },
     "lava_bucket": {
       "pt": "Balde de Lava",
       "en": "Lava Bucket"
@@ -3257,6 +3433,14 @@
       "pt": "Arreio Azul-Claro",
       "en": "Light Blue Harness"
     },
+    "light_blue_potato_peels": {
+      "pt": "Casca de Batata Azul-Clara",
+      "en": "Light Blue Potato Peels"
+    },
+    "light_blue_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Azul-Clara",
+      "en": "Block of Light Blue Potato Peels"
+    },
     "light_blue_shulker_box": {
       "pt": "Caixa de Shulker Azul-Clara",
       "en": "Light Blue Shulker Box"
@@ -3336,6 +3520,14 @@
     "light_gray_harness": {
       "pt": "Arreio Cinza-Claro",
       "en": "Light Gray Harness"
+    },
+    "light_gray_potato_peels": {
+      "pt": "Casca de Batata Cinza-Clara",
+      "en": "Light Gray Potato Peels"
+    },
+    "light_gray_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Cinza-Clara",
+      "en": "Block of Light Gray Potato Peels"
     },
     "light_gray_shulker_box": {
       "pt": "Caixa de Shulker Cinza-Clara",
@@ -3437,6 +3629,14 @@
       "pt": "Arreio Verde-Limão",
       "en": "Lime Harness"
     },
+    "lime_potato_peels": {
+      "pt": "Casca de Batata Verde-Limão",
+      "en": "Lime Potato Peels"
+    },
+    "lime_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Verde-Limão",
+      "en": "Block of Lime Potato Peels"
+    },
     "lime_shulker_box": {
       "pt": "Caixa de Shulker Verde-Limão",
       "en": "Lime Shulker Box"
@@ -3536,6 +3736,14 @@
     "magenta_harness": {
       "pt": "Arreio Magenta",
       "en": "Magenta Harness"
+    },
+    "magenta_potato_peels": {
+      "pt": "Casca de Batata Magenta",
+      "en": "Magenta Potato Peels"
+    },
+    "magenta_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Magenta",
+      "en": "Block of Magenta Potato Peels"
     },
     "magenta_shulker_box": {
       "pt": "Caixa de Shulker Magenta",
@@ -3660,6 +3868,10 @@
     "medium_amethyst_bud": {
       "pt": "Cristal de Ametista Médio",
       "en": "Medium Amethyst Bud"
+    },
+    "mega_spud_spawn_egg": {
+      "pt": "Ovo Gerador de Batatão",
+      "en": "Mega Spud Spawn Egg"
     },
     "melon": {
       "pt": "Melancia",
@@ -4201,6 +4413,14 @@
       "pt": "Folhas de Álamo Laranjas",
       "en": "Orange Poplar Leaves"
     },
+    "orange_potato_peels": {
+      "pt": "Casca de Batata Laranja",
+      "en": "Orange Potato Peels"
+    },
+    "orange_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Laranja",
+      "en": "Block of Orange Potato Peels"
+    },
     "orange_shulker_box": {
       "pt": "Caixa de Shulker Laranja",
       "en": "Orange Shulker Box"
@@ -4433,6 +4653,14 @@
       "pt": "Anfibrilho Perolado",
       "en": "Pearlescent Froglight"
     },
+    "pedestal": {
+      "pt": "Pedestal",
+      "en": "Pedestal"
+    },
+    "peelgrass_block": {
+      "pt": "Bloco de Grama Descascada",
+      "en": "Peelgrass Block"
+    },
     "peony": {
       "pt": "Peônia",
       "en": "Peony"
@@ -4529,6 +4757,14 @@
       "pt": "Pétalas Rosas",
       "en": "Pink Petals"
     },
+    "pink_potato_peels": {
+      "pt": "Casca de Batata Rosa",
+      "en": "Pink Potato Peels"
+    },
+    "pink_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Rosa",
+      "en": "Block of Pink Potato Peels"
+    },
     "pink_shulker_box": {
       "pt": "Caixa de Shulker Rosa",
       "en": "Pink Shulker Box"
@@ -4573,6 +4809,10 @@
       "pt": "Vagem de Planta-Jarro",
       "en": "Pitcher Pod"
     },
+    "plaguewhale_spawn_egg": {
+      "pt": "Ovo Gerador de Pragaleia",
+      "en": "Plaguewhale Slab Spawn Egg"
+    },
     "plains_village_map": {
       "pt": "Mapa de Vila da Planície",
       "en": "Plains Village Map"
@@ -4593,9 +4833,81 @@
       "pt": "Espeleotema Pontiagudo",
       "en": "Pointed Dripstone"
     },
+    "poison_farmland": {
+      "pt": "Terra Arada Contaminada",
+      "en": "Poison Farmland"
+    },
+    "poison_path": {
+      "pt": "Caminho Contaminado",
+      "en": "Poison Path"
+    },
+    "poisonous_mashed_potato": {
+      "pt": "Purê de Batata Venenoso",
+      "en": "Poisonous Mashed Potato"
+    },
+    "poisonous_polytra": {
+      "pt": "Batatélitros Venenosos",
+      "en": "Poisonous Polytra"
+    },
+    "poisonous_pota_toes": {
+      "pt": "Botas de Batata Venenosa",
+      "en": "Poisonous Pota-Toes"
+    },
     "poisonous_potato": {
       "pt": "Batata Venenosa",
       "en": "Poisonous Potato"
+    },
+    "poisonous_potato_block": {
+      "pt": "Bloco de Batata Venenosa",
+      "en": "Poisonous Potato Block"
+    },
+    "poisonous_potato_chestplate": {
+      "pt": "Peitoral de Batata Venenosa",
+      "en": "Poisonous Potato Chestplate"
+    },
+    "poisonous_potato_chips": {
+      "pt": "Batata Chips Venenosa",
+      "en": "Poisonous Potato Chips"
+    },
+    "poisonous_potato_cutter": {
+      "pt": "Cortador de Batata Venenosa",
+      "en": "Poisonous Potato Cutter"
+    },
+    "poisonous_potato_fries": {
+      "pt": "Batata Frita Venenosa",
+      "en": "Poisonous Potato Fries"
+    },
+    "poisonous_potato_oil": {
+      "pt": "Óleo de Batata Venenosa",
+      "en": "Poisonous Potato Oil"
+    },
+    "poisonous_potato_ore": {
+      "pt": "Minério de Batata Venenosa",
+      "en": "Poisonous Potato Ore"
+    },
+    "poisonous_potato_plant": {
+      "pt": "Planta de Batata Venenosa",
+      "en": "Poisonous Potato Plant"
+    },
+    "poisonous_potato_slices": {
+      "pt": "Fatias de Batata Venenosa",
+      "en": "Poisonous Potato Slices"
+    },
+    "poisonous_potato_sticks": {
+      "pt": "Palitos de Batata Venenosa",
+      "en": "Poisonous Potato Sticks"
+    },
+    "poisonous_potato_zombie_head_block": {
+      "pt": "Bloco de Cabeça de Batata Venenosa",
+      "en": "Poisonous Potato Head Block"
+    },
+    "poisonous_potato_zombie_head_hat": {
+      "pt": "Capacete de Batata Venenosa",
+      "en": "Poisonous Potato Headpiece"
+    },
+    "poisonous_potato_zombie_spawn_egg": {
+      "pt": "Ovo Gerador de Zumbitata Venenoso",
+      "en": "Poisonous Potato Zombie Spawn Egg"
     },
     "polar_bear_spawn_egg": {
       "pt": "Ovo Gerador de Urso-Polar",
@@ -4861,6 +5173,122 @@
       "pt": "Batata",
       "en": "Potato"
     },
+    "potato_battery": {
+      "pt": "Bateria de Batata",
+      "en": "Potato Battery"
+    },
+    "potato_bud": {
+      "pt": "Espeleotema de Batata",
+      "en": "Potato Bud"
+    },
+    "potato_button": {
+      "pt": "Botão de Batata",
+      "en": "Potato Button"
+    },
+    "potato_door": {
+      "pt": "Porta de Batata",
+      "en": "Potato Door"
+    },
+    "potato_eye": {
+      "pt": "Olho de Batata",
+      "en": "Potato Eye"
+    },
+    "potato_fence": {
+      "pt": "Cerca de Batata",
+      "en": "Potato Fence"
+    },
+    "potato_fence_gate": {
+      "pt": "Portão de Batata",
+      "en": "Potato Fence Gate"
+    },
+    "potato_flower": {
+      "pt": "Flor de Batata",
+      "en": "Potato flower"
+    },
+    "potato_fruit": {
+      "pt": "Fruta de Batata",
+      "en": "Potato Fruit"
+    },
+    "potato_hammer": {
+      "pt": "Martelo de Batata Venenosa",
+      "en": "Poisonous Potato Hammer"
+    },
+    "potato_hanging_sign": {
+      "pt": "Placa Suspensa de Batata",
+      "en": "Potato Hanging Sign"
+    },
+    "potato_leaves": {
+      "pt": "Folhas de Batata",
+      "en": "Potato Leaves"
+    },
+    "potato_of_knowledge": {
+      "pt": "Batata do Conhecimento",
+      "en": "Potato of Knowledge"
+    },
+    "potato_oil": {
+      "pt": "Óleo de Batata",
+      "en": "Potato Oil"
+    },
+    "potato_pedicule": {
+      "pt": "Haste de Batata",
+      "en": "Potato Pedicule"
+    },
+    "potato_peeler": {
+      "pt": "Descascador de Batatas",
+      "en": "Potato Peeler"
+    },
+    "potato_peels": {
+      "pt": "Casca de Batata",
+      "en": "Potato Peels"
+    },
+    "potato_peels_block": {
+      "pt": "Bloco de Casca de Batata",
+      "en": "Block of Potato Peels"
+    },
+    "potato_planks": {
+      "pt": "Tábuas de Batata",
+      "en": "Potato Planks"
+    },
+    "potato_portal": {
+      "pt": "Portal de Batata",
+      "en": "Potato Portal"
+    },
+    "potato_pressure_plate": {
+      "pt": "Placa de Pressão de Batata",
+      "en": "Potato Pressure Plate"
+    },
+    "potato_refinery": {
+      "pt": "Refinador de Batatas",
+      "en": "Potato Refinery"
+    },
+    "potato_sign": {
+      "pt": "Placa de Batata",
+      "en": "Potato Sign"
+    },
+    "potato_slab": {
+      "pt": "Laje de Batata",
+      "en": "Potato Slab"
+    },
+    "potato_sprouts": {
+      "pt": "Brotos de Batata",
+      "en": "Potato Sprouts"
+    },
+    "potato_staff": {
+      "pt": "Batatês, o Grande Cajado do Camponês",
+      "en": "Potatiesh, Greatstaff of the Peasant"
+    },
+    "potato_stairs": {
+      "pt": "Escadas de Batata",
+      "en": "Potato Stairs"
+    },
+    "potato_stem": {
+      "pt": "Caule de Batata",
+      "en": "Potato Stem"
+    },
+    "potato_trapdoor": {
+      "pt": "Alçapão de Batata",
+      "en": "Potato Trapdoor"
+    },
     "potent_sulfur": {
       "pt": "Enxofre Potente",
       "en": "Potent Sulfur"
@@ -4869,6 +5297,46 @@
       "pt": "Frasco de Água",
       "en": "Water Bottle"
     },
+    "potone": {
+      "pt": "Pedratata",
+      "en": "Potone"
+    },
+    "potone_copper_ore": {
+      "pt": "Minério de Cobre de Pedratata",
+      "en": "Potone Copper Ore"
+    },
+    "potone_diamond_ore": {
+      "pt": "Minério de Diamante de Pedratata",
+      "en": "Potone Diamond Ore"
+    },
+    "potone_gold_ore": {
+      "pt": "Minério de Ouro de Pedratata",
+      "en": "Potone Gold Ore"
+    },
+    "potone_iron_ore": {
+      "pt": "Minério de Ferro de Pedratata",
+      "en": "Potone Iron Ore"
+    },
+    "potone_lapis_ore": {
+      "pt": "Minério de Lápis-Lazúli de Pedratata",
+      "en": "Potone Lapis Lazuli Ore"
+    },
+    "potone_redstone_ore": {
+      "pt": "Minério de Redstone de Pedratata",
+      "en": "Potone Redstone Ore"
+    },
+    "potone_slab": {
+      "pt": "Laje de Pedratata",
+      "en": "Potone Slab"
+    },
+    "potone_stairs": {
+      "pt": "Escadas de Pedratata",
+      "en": "Potone Stairs"
+    },
+    "potone_wall": {
+      "pt": "Muro de Pedratata",
+      "en": "Potone Wall"
+    },
     "powder_snow_bucket": {
       "pt": "Balde de Neve em Pó",
       "en": "Powder Snow Bucket"
@@ -4876,6 +5344,10 @@
     "powered_rail": {
       "pt": "Trilho Elétrico",
       "en": "Powered Rail"
+    },
+    "powerful_potato": {
+      "pt": "Batata Poderosa",
+      "en": "Powerful Potato"
     },
     "prismarine": {
       "pt": "Prismarinho",
@@ -4997,6 +5469,14 @@
       "pt": "Arreio Roxo",
       "en": "Purple Harness"
     },
+    "purple_potato_peels": {
+      "pt": "Casca de Batata Roxa",
+      "en": "Purple Potato Peels"
+    },
+    "purple_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Roxa",
+      "en": "Block of Purple Potato Peels"
+    },
     "purple_shulker_box": {
       "pt": "Caixa de Shulker Roxa",
       "en": "Purple Shulker Box"
@@ -5040,6 +5520,10 @@
     "purpur_stairs": {
       "pt": "Escadas de Purpur",
       "en": "Purpur Stairs"
+    },
+    "quadruple_compressed_poisonous_potato_block": {
+      "pt": "Bloco de Batata Venenosa Quadruplamente Prensada",
+      "en": "Quadruple Compressed Poisonous Potato Block"
     },
     "quartz": {
       "pt": "Quartzo do Nether",
@@ -5205,6 +5689,14 @@
       "pt": "Folhas de Álamo Vermelhas",
       "en": "Red Poplar Leaves"
     },
+    "red_potato_peels": {
+      "pt": "Casca de Batata Vermelha",
+      "en": "Red Potato Peels"
+    },
+    "red_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Vermelha",
+      "en": "Block of Red Potato Peels"
+    },
     "red_sand": {
       "pt": "Areia Vermelha",
       "en": "Red Sand"
@@ -5320,6 +5812,10 @@
     "resin_clump": {
       "pt": "Agregado de Resina",
       "en": "Resin Clump"
+    },
+    "resin_ore": {
+      "pt": "Minério de Resina",
+      "en": "Resin Ore"
     },
     "respawn_anchor": {
       "pt": "Âncora de Renascimento",
@@ -5600,6 +6096,10 @@
     "smooth_stone_slab": {
       "pt": "Laje de Pedra Lisa",
       "en": "Smooth Stone Slab"
+    },
+    "snektato": {
+      "pt": "Batata",
+      "en": "Potato"
     },
     "sniffer_egg": {
       "pt": "Ovo de Farejador",
@@ -5973,6 +6473,10 @@
       "pt": "Caule Distorcido Descascado",
       "en": "Stripped Warped Stem"
     },
+    "strong_roots": {
+      "pt": "Raízes Vigorosas",
+      "en": "Strong Roots"
+    },
     "structure_block": {
       "pt": "Gerador de Estruturas",
       "en": "Structure Block"
@@ -6085,6 +6589,22 @@
       "pt": "Alvo",
       "en": "Target"
     },
+    "taterstone": {
+      "pt": "Pedregulho de Batata",
+      "en": "Taterstone"
+    },
+    "taterstone_slab": {
+      "pt": "Laje de Pedregulho de Batata",
+      "en": "Taterstone Slab"
+    },
+    "taterstone_stairs": {
+      "pt": "Escadas de Pedregulho de Batata",
+      "en": "Taterstone Stairs"
+    },
+    "taterstone_wall": {
+      "pt": "Muro de Pedregulho de Batata",
+      "en": "Taterstone Wall"
+    },
     "teleportation_wand": {
       "pt": "Varinha de Deslocamento",
       "en": "Displacement Wand"
@@ -6092,6 +6612,10 @@
     "terracotta": {
       "pt": "Terracota",
       "en": "Terracotta"
+    },
+    "terredepomme": {
+      "pt": "Bataterra",
+      "en": "Terre de Pomme"
     },
     "test_block": {
       "pt": "Bloco de Teste",
@@ -6137,6 +6661,18 @@
       "pt": "Totem da Imortalidade",
       "en": "Totem of Undying"
     },
+    "toxic_beam": {
+      "pt": "Feixe Tóxico",
+      "en": "Toxic Beam"
+    },
+    "toxic_resin": {
+      "pt": "Resina Tóxica",
+      "en": "Toxic Resin"
+    },
+    "toxifin_spawn_egg": {
+      "pt": "Ovo Gerador de Guardião-Tóxico",
+      "en": "Toxifin Slab Spawn Egg"
+    },
     "trader_llama_spawn_egg": {
       "pt": "Ovo Gerador de Lhama de Mercador",
       "en": "Trader Llama Spawn Egg"
@@ -6160,6 +6696,10 @@
     "trident": {
       "pt": "Tridente",
       "en": "Trident"
+    },
+    "triple_compressed_poisonous_potato_block": {
+      "pt": "Bloco de Batata Venenosa Triplamente Prensada",
+      "en": "Triple Compressed Poisonous Potato Block"
     },
     "tripwire_hook": {
       "pt": "Gancho de Armadilha",
@@ -6260,6 +6800,10 @@
     "vex_spawn_egg": {
       "pt": "Ovo Gerador de Obsessor",
       "en": "Vex Spawn Egg"
+    },
+    "vicious_potato": {
+      "pt": "Batata Maligna",
+      "en": "Vicious Potato"
     },
     "villager_spawn_egg": {
       "pt": "Ovo Gerador de Aldeão",
@@ -6629,6 +7173,10 @@
       "pt": "Enfeite de Navegador",
       "en": "Wayfinder Armor Trim"
     },
+    "weak_roots": {
+      "pt": "Raízes Frágeis",
+      "en": "Weak Roots"
+    },
     "weathered_chiseled_copper": {
       "pt": "Cobre Talhado Desgastado",
       "en": "Weathered Chiseled Copper"
@@ -6932,6 +7480,14 @@
     "yellow_poplar_leaves": {
       "pt": "Folhas de Álamo Amarelas",
       "en": "Yellow Poplar Leaves"
+    },
+    "yellow_potato_peels": {
+      "pt": "Casca de Batata Amarela",
+      "en": "Yellow Potato Peels"
+    },
+    "yellow_potato_peels_block": {
+      "pt": "Bloco de Casca de Batata Amarela",
+      "en": "Block of Yellow Potato Peels"
     },
     "yellow_shulker_box": {
       "pt": "Caixa de Shulker Amarela",
