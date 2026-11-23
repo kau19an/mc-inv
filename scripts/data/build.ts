@@ -179,7 +179,9 @@ async function aprilFoolsLang(id: string, locale: string): Promise<Record<string
   const url = `https://raw.githubusercontent.com/${APRIL_FOOLS_REPO}/${ref}/resources/${encodeURIComponent(aprilFoolsDir(id))}/assets/minecraft/lang/${locale}.json`;
   const response = await fetch(url);
   // idioma ainda sem nenhuma tradução no pacote (ou versão fora dele): fica o texto do jogo
-  const strings = response.ok ? ((await response.json()) as Record<string, string>) : {};
+  // arquivo vazio = idioma sem nenhuma tradução ainda
+  const text = response.ok ? (await response.text()).trim() : '';
+  const strings = text ? (JSON.parse(text) as Record<string, string>) : {};
   if (!response.ok && response.status !== 404) throw new Error(`pacote de traduções de piada: ${url} (${response.status})`);
   aprilCache.set(key, strings);
   return strings;
