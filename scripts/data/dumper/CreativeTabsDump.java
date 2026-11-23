@@ -163,7 +163,16 @@ public final class CreativeTabsDump {
       Object patch = patchMethod.invoke(stack);
       if ((boolean) patch.getClass().getMethod("isEmpty").invoke(patch)) return null;
       Codec codec = (Codec) Class.forName("net.minecraft.core.component.DataComponentPatch").getField("CODEC").get(null);
-      return (JsonElement) unwrap(codec.encodeStart(ops, patch));
+      try {
+        return (JsonElement) unwrap(codec.encodeStart(ops, patch));
+      } catch (RuntimeException unencodable) {
+        // o próprio jogo não consegue escrever (24w09a: quadros com entity_data sem "id"). fica o texto dos
+        // componentes, que ao menos separa as pilhas do mesmo item
+        System.err.println("componentes de " + BuiltInRegistries.ITEM.getKey(stack.getItem()) + " sem codec: " + unencodable.getMessage());
+        JsonObject json = new JsonObject();
+        json.addProperty("minecraft:unencodable", patch.toString());
+        return json;
+      }
     }
     Object tag = ItemStack.class.getMethod("getTag").invoke(stack);
     if (tag == null) return null;
