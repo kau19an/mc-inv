@@ -41,9 +41,9 @@ import SettingsScreen, { type SkinStatus } from './SettingsScreen.tsx';
 import VersionsScreen from './VersionsScreen.tsx';
 import GameToast from './gui/GameToast.tsx';
 import Panorama from './Panorama.tsx';
-import { fetchPlayerSkin, type PlayerSkin } from '@/lib/gui/skin.ts';
+import { DEFAULT_PLAYER_NAME, fetchPlayerSkin, type PlayerSkin } from '@/lib/gui/skin.ts';
 import { PLAYER_NAME } from '@/lib/gui/settings.ts';
-import { GuiButton } from './gui/GuiParts.tsx';
+import { GuiButton, gameText, textShadow, u } from './gui/GuiParts.tsx';
 import { CREATIVE } from '@/lib/gui/types.ts';
 
 const VERSION_TOAST_HOLD_MS = 1500; // quanto o toast de versão fica depois de carregar
@@ -123,15 +123,18 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   // busca a skin do nome salvo nas opções (ao abrir o site, em silêncio) e a cada nome confirmado. só um nome que
   // deu certo fica salvo; se não achar, continua a skin de antes. a mensagem de sucesso some depois de uns segundos
   const successTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const loadPlayerSkin = async (name: string, announce: boolean) => {
+  // asDefault: a skin padrão (DEFAULT_PLAYER_NAME), que não grava nome nas opções nem conta como nome aplicado
+  const loadPlayerSkin = async (name: string, announce: boolean, asDefault = false) => {
     clearTimeout(successTimer.current);
     if (announce) setSkinStatus({ kind: 'loading' });
     const result = await fetchPlayerSkin(name).catch(() => ({ error: 'upstream' as const }));
     if ('error' in result) {
+      if (asDefault) setPlayerSkin(null); // sem a skin padrão: Steve
       if (announce) setSkinStatus({ kind: 'error', error: result.error });
       return;
     }
     setPlayerSkin(result.skin || result.cape ? result : null); // sem skin própria, mas com capa: Steve de capa
+    if (asDefault) return;
     updateSettings({ playerName: result.name }); // com a grafia oficial do nome
     setAppliedName(result.name);
     if (!announce) return;
@@ -141,6 +144,7 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   useEffect(() => {
     const saved = loadSettings().playerName;
     if (saved) loadPlayerSkin(saved, false);
+    else loadPlayerSkin(DEFAULT_PLAYER_NAME, false, true);
     return () => clearTimeout(successTimer.current);
   }, []);
 
@@ -151,11 +155,11 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
       return;
     }
     if (!name) {
-      // campo vazio: volta pro Steve
+      // campo vazio: volta pra skin padrão (a do Faariaz)
       updateSettings({ playerName: '' });
       setAppliedName('');
-      setPlayerSkin(null);
       setSkinStatus({ kind: 'reset' });
+      loadPlayerSkin(DEFAULT_PLAYER_NAME, false, true);
       return;
     }
     loadPlayerSkin(name, true);
@@ -885,6 +889,11 @@ export default function CreativeInventory({ initial = { kind: 'home' } }: Props)
   return (
     <div class="flex w-full flex-col items-center" style={{ '--u': `${unit}px`, '--u-raw': String(unit), '--menu-blur': `${MENU_BLUR_PX / metrics.dpr}px`, gap: `${OPTIONS_GAP * unit}px` }}>
       <Panorama baseUrl={data.baseUrl} />
+      {/* versão escolhida no canto de baixo à esquerda, como na tela de título (TitleScreen: "Minecraft " + nome da
+          versão, branco com sombra, em x = 2 e y = altura − 10; a caixa da linha começa 1 px acima das letras) */}
+      <p class="pointer-events-none fixed z-10 whitespace-pre" style={{ ...gameText, left: u(2), top: `calc(100dvh - ${11 * unit}px)`, color: '#ffffff', textShadow: textShadow(0xffffff) }}>
+        Minecraft {data.gameVersion}
+      </p>
       <div
         class="relative shrink-0 touch-none select-none"
         style={{ width: `${CANVAS_WIDTH * unit}px`, height: inventoryHeight }}

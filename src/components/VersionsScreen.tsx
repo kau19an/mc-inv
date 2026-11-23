@@ -22,6 +22,7 @@ import { developmentKindName, dropName, dropOf, isUpcoming } from '@/lib/gui/dro
 const ROW_WIDTH = 304; // a largura das duas colunas de opções (cabe a busca e os dois atalhos alinhados)
 const ROW_HEIGHT = 24; // duas linhas de texto: versão e, embaixo, tipo (ou destaque) · data
 const DROP_HEIGHT = 20; // linha do drop: nome, número e o +/−
+const TOGGLE_WIDTH = 12; // faixa do +/− (alvo da tooltip)
 const INDENT = 14; // recuo das versões dentro do drop
 const TREE_LINE_X = 6; // posição da linha vertical da árvore, dentro do recuo
 const TREE_LINE_COLOR = 0x808080;
@@ -382,7 +383,14 @@ export default function VersionsScreen({ data, list, settings, current, strings,
                         {strings.upcomingTag}
                       </span>
                     )}
-                    <span aria-hidden="true" class="absolute" style={{ right: u(4), top: u(6), textShadow: textShadow(0xffffff) }}>
+                    {/* +/− numa faixa da altura da linha (o alvo da tooltip "Expandir"/"Ocultar"); o símbolo fica no
+                        mesmo lugar, 4 px da borda */}
+                    <span
+                      aria-hidden="true"
+                      class="absolute text-right"
+                      style={{ right: 0, top: 0, width: u(TOGGLE_WIDTH), height: u(DROP_HEIGHT), paddingTop: u(6), paddingRight: u(4), textShadow: textShadow(0xffffff) }}
+                      {...tooltip(`toggle-${row.drop}`, open ? strings.versionsCollapse : strings.versionsExpand)}
+                    >
                       {open ? '-' : '+'}
                     </span>
                   </div>

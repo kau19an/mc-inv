@@ -11,6 +11,10 @@ export interface PlayerSkin {
   cape: Skin | null; // capa ativa na conta (null = sem capa). a imagem vai como veio: o jogo não trata a capa
 }
 
+// skin padrão do personagem (campo de nome vazio): a do Faariaz, um crédito discreto ao autor do site. se a busca
+// falhar (Mojang fora, função indisponível), o personagem cai no Steve
+export const DEFAULT_PLAYER_NAME = 'Faariaz';
+
 export type SkinError = 'invalid_name' | 'not_found' | 'upstream' | 'unavailable';
 
 // cada nome é buscado uma vez por visita: a prévia do rosto (enquanto digita) e o Confirmar usam a mesma resposta.

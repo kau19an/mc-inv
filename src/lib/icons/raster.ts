@@ -20,12 +20,13 @@ export interface Icon {
 
 const TINT_NONE = -1;
 
-// argb inteiro → [r, g, b] de 0 a 1
-function tintColor(tints: Tint[], index: number): [number, number, number] {
-  if (index < 0) return [1, 1, 1];
+// argb inteiro → [r, g, b, a] de 0 a 1. o alfa conta, como no jogo: a camada de tingimento de um item sem corante
+// (ex.: armadura de lobo antes da 1.21.4, cor 0) some
+function tintColor(tints: Tint[], index: number): [number, number, number, number] {
+  if (index < 0) return [1, 1, 1, 1];
   const argb = tints[index];
-  if (argb === undefined || argb === TINT_NONE) return [1, 1, 1];
-  return [((argb >> 16) & 255) / 255, ((argb >> 8) & 255) / 255, (argb & 255) / 255];
+  if (argb === undefined || argb === TINT_NONE) return [1, 1, 1, 1];
+  return [((argb >> 16) & 255) / 255, ((argb >> 8) & 255) / 255, (argb & 255) / 255, ((argb >>> 24) & 255) / 255];
 }
 
 // pixel da textura (vizinho mais próximo, como o jogo). u/v em 0..1
@@ -64,12 +65,13 @@ function renderFlat(model: FlatModel, options: RenderOptions, out: Uint8ClampedA
       missing.push(layer.texture);
       continue;
     }
-    const [tr, tg, tb] = tintColor(options.tints, layer.tintIndex);
+    const [tr, tg, tb, ta] = tintColor(options.tints, layer.tintIndex);
+    if (ta === 0) continue;
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const [r, g, b, a] = sample(texture, (x + 0.5) / size, (y + 0.5) / size);
         if (a === 0) continue;
-        blend(out, (y * size + x) * 4, r * tr, g * tg, b * tb, a);
+        blend(out, (y * size + x) * 4, r * tr, g * tg, b * tb, a * ta);
       }
     }
   }
@@ -200,7 +202,8 @@ function renderBlock(model: BlockModel, options: RenderOptions, out: Uint8Clampe
       const screenNormal: Vec3 = [rotatedNormal[0], rotatedNormal[1], rotatedNormal[2]];
       if (screenNormal[2] < -1e-6) continue;
       const light = brightness(screenNormal, model.light);
-      const [tr, tg, tb] = tintColor(options.tints, face.tintIndex);
+      const [tr, tg, tb, ta] = tintColor(options.tints, face.tintIndex);
+      if (ta === 0) continue;
 
       // cantos do uv, girados conforme a rotação da face
       const [u1, v1, u2, v2] = face.uv;
@@ -215,8 +218,8 @@ function renderBlock(model: BlockModel, options: RenderOptions, out: Uint8Clampe
           if (z < depth[i]!) return;
           const [r, g, bl, alpha] = sample(texture, u / 16, v / 16);
           if (alpha === 0) return;
-          if (alpha === 255) depth[i] = z;
-          blend(out, i * 4, r * tr * light, g * tg * light, bl * tb * light, alpha);
+          if (alpha === 255 && ta === 1) depth[i] = z;
+          blend(out, i * 4, r * tr * light, g * tg * light, bl * tb * light, alpha * ta);
         }, size);
       }
     }

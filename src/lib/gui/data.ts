@@ -25,6 +25,7 @@ export type Locale = (typeof LOCALES)[number];
 
 export interface VersionData {
   id: string;
+  gameVersion: string; // o nome que o próprio jogo diz ter ("1.20.3 Pre-Release 1" pra 1.20.3-pre1); sem ele, o id
   baseUrl: string; // /data/je/<versão>
   tabs: TabInfo[];
   items: Record<string, ItemInfo>;
@@ -142,7 +143,7 @@ export async function loadVersion(list: VersionList, id: string, locale: Locale,
       onProgress?.(Math.min(done / VERSION_FILES, 1));
     });
   const [tabs, items, ptBr, enUs, icons, gui, atlas, guiAtlas, tags] = await Promise.all([
-    track(json<{ tabs: TabInfo[] }>(`${base}/tabs.json`)),
+    track(json<{ tabs: TabInfo[]; gameVersion?: string }>(`${base}/tabs.json`)),
     track(json<Record<string, ItemInfo>>(`${base}/items.json`)),
     track(json<Record<string, string>>(`${base}/lang/pt_br.json`)),
     track(json<Record<string, string>>(`${base}/lang/en_us.json`)),
@@ -165,6 +166,7 @@ export async function loadVersion(list: VersionList, id: string, locale: Locale,
   const atlasPixels = pixelsOf(atlas);
   return {
     id,
+    gameVersion: tabs.gameVersion ?? id,
     baseUrl: base,
     tabs: tabs.tabs,
     items,

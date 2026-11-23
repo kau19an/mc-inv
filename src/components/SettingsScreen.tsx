@@ -7,7 +7,7 @@ import GameTextField from './gui/GameTextField.tsx';
 import { useWidgetTooltip } from './gui/useWidgetTooltip.tsx';
 import { LOCALES, type VersionData } from '@/lib/gui/data.ts';
 import { PLAYER_NAME, type Settings } from '@/lib/gui/settings.ts';
-import { fetchPlayerSkin, skinFace, type SkinError } from '@/lib/gui/skin.ts';
+import { DEFAULT_PLAYER_NAME, fetchPlayerSkin, skinFace, type SkinError } from '@/lib/gui/skin.ts';
 import { HTML_LANG, type Strings } from '@/lib/gui/strings.ts';
 import { translate } from '@/lib/gui/text.ts';
 import { UI_KEYS } from '@/lib/gui/ui-keys.ts';
@@ -32,7 +32,7 @@ export type SkinStatus =
   | { kind: 'loading' }
   | { kind: 'found'; name: string }
   | { kind: 'default'; name: string } // jogador existe, mas não tem skin própria
-  | { kind: 'reset' } // campo vazio: volta pro Steve
+  | { kind: 'reset' } // campo vazio: volta pra skin padrão (Faariaz)
   | { kind: 'error'; error: SkinError };
 
 interface Props {
@@ -40,7 +40,7 @@ interface Props {
   settings: Settings;
   strings: Strings;
   skinStatus: SkinStatus;
-  appliedName: string; // nome cuja skin está aplicada agora ('' = Steve)
+  appliedName: string; // nome cuja skin está aplicada agora ('' = skin padrão, a do Faariaz)
   unit: number; // px de css por pixel da gui
   onChange: (change: Partial<Settings>) => void;
   onPlayerName: (name: string) => void;
@@ -144,7 +144,7 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
   };
 
   // prévia do rosto do nome digitado: busca quando a pessoa para de digitar (a resposta fica guardada, então o
-  // Confirmar depois é instantâneo). campo vazio = Steve (o que vai ser aplicado); enquanto busca, fica o rosto
+  // Confirmar depois é instantâneo). campo vazio = skin padrão, a do Faariaz (o que vai ser aplicado); enquanto busca, fica o rosto
   // anterior. nome inválido ou que não existe = "?" e Confirmar travado; Mojang fora = quadrado vazio (dá pra tentar)
   const [preview, setPreview] = useState<{ name: string; face: ImageData | null; notFound: boolean }>({ name: '', face: null, notFound: false });
   // ao abrir a tela, o nome já é o aplicado (a skin dele já foi buscada e está guardada): busca na hora, sem a espera
@@ -152,9 +152,17 @@ export default function SettingsScreen({ data, settings, strings, skinStatus, ap
   const typed = useRef(false);
   useEffect(() => {
     const defaultSkin = data.player?.defaultSkin;
+    // campo vazio: rosto da skin padrão (a do Faariaz; Steve se a busca falhar), sem a espera da digitação
     if (!trimmed) {
-      setPreview({ name: '', face: defaultSkin ? skinFace(defaultSkin) : null, notFound: false });
-      return;
+      let current = true;
+      fetchPlayerSkin(DEFAULT_PLAYER_NAME).then((result) => {
+        if (!current) return;
+        const skin = ('error' in result ? null : result.skin) ?? defaultSkin ?? null;
+        setPreview({ name: '', face: skin ? skinFace(skin) : null, notFound: false });
+      });
+      return () => {
+        current = false;
+      };
     }
     if (!PLAYER_NAME.test(trimmed)) {
       setPreview({ name: trimmed, face: null, notFound: true });

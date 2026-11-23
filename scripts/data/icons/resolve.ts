@@ -264,7 +264,8 @@ export class IconResolver {
 
   // versões sem as definições de item (antes da 24w45a): o modelo era sempre models/item/<id>.json, e as cores
   // (grama, folhas, couro, poção…) vinham do código do jogo. as cores saem de legacy-tints.json, copiadas das
-  // definições de uma versão nova (as regras não mudaram pra esses itens)
+  // definições de uma versão nova (as regras não mudaram pra esses itens). exceção à mão: wolf_armor, que nas
+  // versões novas tem uma camada só; na 1.20.5–1.21.3 a camada 1 é o tingimento, com a cor 0 (some) sem corante
   private legacyDefinition(itemId: string): Json | null {
     if (existsSync(join(this.root, 'assets/minecraft/items'))) return null;
     const id = path(itemId);
