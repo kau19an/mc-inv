@@ -238,7 +238,7 @@
       "en": "Arrow"
     },
     "attack_action": {
-      "pt": "Attack / Mine",
+      "pt": "Atacar / Minerar",
       "en": "Attack / Mine"
     },
     "axolotl_bucket": {
@@ -894,7 +894,7 @@
       "en": "Budding Amethyst"
     },
     "build_action": {
-      "pt": "Build",
+      "pt": "Construir",
       "en": "Build"
     },
     "bundle": {
@@ -1482,7 +1482,7 @@
       "en": "Copper Torch"
     },
     "copper_trap": {
-      "pt": "Copper Trap",
+      "pt": "Armadilha de Cobre",
       "en": "Copper Trap"
     },
     "copper_trapdoor": {
@@ -1522,7 +1522,7 @@
       "en": "Crafter"
     },
     "crafting_action": {
-      "pt": "Craft",
+      "pt": "Fabricar",
       "en": "Craft"
     },
     "crafting_table": {
@@ -2282,7 +2282,7 @@
       "en": "Exposed Copper Lantern"
     },
     "exposed_copper_trap": {
-      "pt": "Exposed Copper Trap",
+      "pt": "Armadilha de Cobre Exposto",
       "en": "Exposed Copper Trap"
     },
     "exposed_copper_trapdoor": {
@@ -2410,7 +2410,7 @@
       "en": "Flowering Azalea Leaves"
     },
     "follow_action": {
-      "pt": "Follow Me",
+      "pt": "Seguir",
       "en": "Follow Me"
     },
     "fox_spawn_egg": {
@@ -2778,7 +2778,7 @@
       "en": "Grindstone"
     },
     "group_action": {
-      "pt": "Group / Ungroup",
+      "pt": "Agrupar / Desagrupar",
       "en": "Group / Ungroup"
     },
     "guardian_spawn_egg": {
@@ -2830,7 +2830,7 @@
       "en": "Heavy Weighted Pressure Plate"
     },
     "highlight_action": {
-      "pt": "Highlight",
+      "pt": "Destacar",
       "en": "Highlight"
     },
     "hoglin_spawn_egg": {
@@ -3018,7 +3018,7 @@
       "en": "Iron Sword"
     },
     "iron_trap": {
-      "pt": "Iron Trap",
+      "pt": "Armadilha de Ferro",
       "en": "Iron Trap"
     },
     "iron_trapdoor": {
@@ -3762,7 +3762,7 @@
       "en": "Mourner Pottery Sherd"
     },
     "move_action": {
-      "pt": "Move",
+      "pt": "Mover",
       "en": "Move"
     },
     "mud": {
@@ -4278,7 +4278,7 @@
       "en": "Oxidized Copper Lantern"
     },
     "oxidized_copper_trap": {
-      "pt": "Oxidized Copper Trap",
+      "pt": "Armadilha de Cobre Oxidado",
       "en": "Oxidized Copper Trap"
     },
     "oxidized_copper_trapdoor": {
@@ -4942,7 +4942,7 @@
       "en": "Pumpkin Seeds"
     },
     "punch_action": {
-      "pt": "Punch",
+      "pt": "Socar",
       "en": "Punch"
     },
     "purple_banner": {
@@ -6410,7 +6410,7 @@
       "en": "Waxed Copper Lantern"
     },
     "waxed_copper_trap": {
-      "pt": "Waxed Copper Trap",
+      "pt": "Armadilha de Cobre Encerado",
       "en": "Waxed Copper Trap"
     },
     "waxed_copper_trapdoor": {
@@ -6470,7 +6470,7 @@
       "en": "Waxed Exposed Copper Lantern"
     },
     "waxed_exposed_copper_trap": {
-      "pt": "Waxed Exposed Copper Trap",
+      "pt": "Armadilha de Cobre Exposto Encerado",
       "en": "Waxed Exposed Copper Trap"
     },
     "waxed_exposed_copper_trapdoor": {
@@ -6538,7 +6538,7 @@
       "en": "Waxed Oxidized Copper Lantern"
     },
     "waxed_oxidized_copper_trap": {
-      "pt": "Waxed Oxidized Copper Trap",
+      "pt": "Armadilha de Cobre Oxidado Encerado",
       "en": "Waxed Oxidized Copper Trap"
     },
     "waxed_oxidized_copper_trapdoor": {
@@ -6602,7 +6602,7 @@
       "en": "Waxed Weathered Copper Lantern"
     },
     "waxed_weathered_copper_trap": {
-      "pt": "Waxed Weathered Copper Trap",
+      "pt": "Armadilha de Cobre Desgastado Encerado",
       "en": "Waxed Weathered Copper Trap"
     },
     "waxed_weathered_copper_trapdoor": {
@@ -6670,7 +6670,7 @@
       "en": "Weathered Copper Lantern"
     },
     "weathered_copper_trap": {
-      "pt": "Weathered Copper Trap",
+      "pt": "Armadilha de Cobre Desgastado",
       "en": "Weathered Copper Trap"
     },
     "weathered_copper_trapdoor": {
