@@ -3,13 +3,13 @@
 #
 # três etapas:
 #   1. planejar: compara o hash do pipeline com o que já foi publicado e monta a fila de versões
-#   2. gerar: até 10 computadores em paralelo, cada um com um grupo da fila; envia cada versão pro r2 num lote novo
+#   2. gerar: até 20 computadores em paralelo, cada um com um grupo da fila; envia cada versão pro r2 num lote novo
 #   3. publicar: escreve a lista de versões, o controle dos lotes e o índice das páginas estáticas
 #
-# roda em dois casos:
-#   - push nesta branch que mexe no pipeline
-#   - chamado pelo workflow "mc-inv-data.yml" da main (todo dia + botão "rodar agora"),
-#     porque o github só aceita agendamento e execução manual em workflows da branch padrão
+# roda em três casos:
+#   - push na main que mexe no pipeline
+#   - agendado, nos horários em que a mojang costuma lançar versão
+#   - botão "rodar agora" (workflow_dispatch), com a opção de forçar versões
 #
 # segredos (repositório): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 # variáveis (repositório): R2_BUCKET (faariaz-mc-data), DATA_URL (https://mc-data.faariaz.com)
@@ -17,7 +17,7 @@ name: Dados do jogo
 
 on:
   push:
-    branches: [project/mc-inv]
+    branches: [main]
     paths:
       - 'scripts/data/**'
       # arquivos do site que o build-data também usa (tipos, transformações, chaves de tradução, wiki, drops)
@@ -29,10 +29,18 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/data.yml'
-  workflow_call:
+  # a mojang costuma lançar entre 10h e 13h (brasília), quase sempre às terças, mas às vezes em outros dias.
+  # horários de brasília (o cron do github é em utc, brasília = utc−3): 10:00, 10:30, 11:00, 11:30, 12:00,
+  # 16:00, 18:00 e 22:00. sem versão nova, a execução só confere e termina em ~1 minuto, sem deploy na vercel
+  # (o deploy só acontece quando o índice das páginas muda). o github pode atrasar uns minutos em horário de pico
+  schedule:
+    - cron: '0,30 13-14 * * *' # 10:00, 10:30, 11:00, 11:30
+    - cron: '0 15,19,21 * * *' # 12:00, 16:00, 18:00
+    - cron: '0 1 * * *' # 22:00
+  workflow_dispatch:
     inputs:
       versions:
-        description: 'versões a gerar de novo mesmo se já estiverem em dia (ids separados por vírgula; "tracked" = nenhuma)'
+        description: 'versões a gerar de novo mesmo se já estiverem em dia (ids separados por vírgula; tracked = nenhuma)'
         type: string
         default: tracked
 
@@ -69,10 +77,11 @@ jobs:
       dump: ${{ steps.plan.outputs.dump }}
       targets: ${{ steps.plan.outputs.targets }}
     steps:
-      # quando chamado pela main, o "commit atual" é o da main: por isso o ref fixo
+      # sempre a ponta da main (no agendamento e no botão, o github já usa ela; no push, pega commits que
+      # chegaram durante a fila)
       - uses: actions/checkout@v7
         with:
-          ref: project/mc-inv
+          ref: main
       - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
@@ -100,7 +109,7 @@ jobs:
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           GITHUB_TOKEN: ${{ github.token }} # api do github (traduções das versões de piada) com limite maior
-        run: node scripts/data/plan.ts --versions='${{ inputs.versions }}'
+        run: node scripts/data/plan.ts --versions='${{ inputs.versions || 'tracked' }}'
 
   build:
     needs: plan
@@ -114,7 +123,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: project/mc-inv
+          ref: main
       - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
@@ -223,7 +232,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: project/mc-inv
+          ref: main
       - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
@@ -301,8 +310,8 @@ jobs:
             exit 0
           fi
           git commit -q -m "chore(data): índice das versões publicadas no r2"
-          git pull -q --rebase origin project/mc-inv
-          git push -q origin HEAD:project/mc-inv
+          git pull -q --rebase origin main
+          git push -q origin HEAD:main
           echo "::notice title=Índice::publicado em $(git rev-parse --short HEAD)"
 
   # ferramenta de desenvolvimento (autorizada pelo Kauan): se scripts/data/probe-classes.txt existir,
@@ -316,7 +325,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: project/mc-inv
+          ref: main
       - uses: actions/setup-node@v7
         with:
           node-version-file: package.json
