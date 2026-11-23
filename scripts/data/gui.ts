@@ -31,6 +31,48 @@ function wantedImages(backgrounds: string[]): string[] {
 const LEGACY_IMAGES: Record<string, string> = Object.fromEntries(
   ['helmet', 'chestplate', 'leggings', 'boots', 'shield'].map((slot) => [`${SPRITES}container/slot/${slot}`, `textures/item/empty_armor_slot_${slot}`]),
 );
+// antes da 23w31a (1.20.2) não existiam os sprites soltos: a interface vinha em folhas grandes, e o jogo recortava
+// cada pedaço por coordenada. aqui o recorte é o mesmo do código de cada época (1.20.1), e o resultado entra com o
+// nome do sprite novo, pro site não precisar saber a diferença. [folha, x, y, largura, altura]
+type SheetCrop = [sheet: string, x: number, y: number, width: number, height: number];
+const TABS_SHEET = 'textures/gui/container/creative_inventory/tabs';
+const LEGACY_SHEET_CROPS: Record<string, SheetCrop> = {
+  // CreativeModeInventoryScreen.renderTabButton: u = coluna × 26; v = 0 (em cima), +32 se selecionada, +64 embaixo
+  ...Object.fromEntries(
+    (['top', 'bottom'] as const).flatMap((row) =>
+      (['unselected', 'selected'] as const).flatMap((state) =>
+        [1, 2, 3, 4, 5, 6, 7].map((n) => [`${SPRITES}container/creative_inventory/tab_${row}_${state}_${n}`, [TABS_SHEET, (n - 1) * 26, (state === 'selected' ? 32 : 0) + (row === 'bottom' ? 64 : 0), 26, 32] as SheetCrop]),
+      ),
+    ),
+  ),
+  // barra de rolagem: (232, 0), e a desligada 12 px ao lado
+  [`${SPRITES}container/creative_inventory/scroller`]: [TABS_SHEET, 232, 0, 12, 15],
+  [`${SPRITES}container/creative_inventory/scroller_disabled`]: [TABS_SHEET, 244, 0, 12, 15],
+};
+// molduras antigas: botões na widgets.png (AbstractButton.getTextureY: 46 desligado, 66 normal, 86 em foco), caixa de
+// seleção na checkbox.png (u 20 em foco, v 20 marcada) e o toast de dica na toasts.png (TutorialToast, v 96).
+// a borda é a do sprite novo equivalente, que tem o mesmo desenho
+const LEGACY_FRAME_CROPS: Record<string, { crop: SheetCrop; border: number }> = {
+  button: { crop: ['textures/gui/widgets', 0, 66, 200, 20], border: 3 },
+  button_highlighted: { crop: ['textures/gui/widgets', 0, 86, 200, 20], border: 3 },
+  button_disabled: { crop: ['textures/gui/widgets', 0, 46, 200, 20], border: 1 },
+  checkbox: { crop: ['textures/gui/checkbox', 0, 0, 20, 20], border: 0 },
+  checkbox_highlighted: { crop: ['textures/gui/checkbox', 20, 0, 20, 20], border: 0 },
+  checkbox_selected: { crop: ['textures/gui/checkbox', 0, 20, 20, 20], border: 0 },
+  checkbox_selected_highlighted: { crop: ['textures/gui/checkbox', 20, 20, 20, 20], border: 0 },
+  toast_tutorial: { crop: ['textures/gui/toasts', 0, 96, 160, 32], border: 3 },
+};
+
+function cropSheet(assets: string, [sheet, x, y, width, height]: SheetCrop): PNG | null {
+  const file = join(assets, `${sheet}.png`);
+  if (!existsSync(file)) return null;
+  const source = PNG.sync.read(readFileSync(file));
+  if (x + width > source.width || y + height > source.height) return null;
+  const out = new PNG({ width, height });
+  crop(source, x, y, width, height, out, 0, 0);
+  return out;
+}
+
 // imagens que versões antigas não têm e o site sabe desenhar sem elas
 const OPTIONAL_IMAGES = new Set([`${SPRITES}container/slot_highlight_back`, `${SPRITES}container/slot_highlight_front`]);
 
@@ -99,6 +141,11 @@ export async function buildGuiBundle(versionDir: string, backgrounds: string[]):
     // novo pro site não precisar saber a diferença
     const legacy = LEGACY_IMAGES[path];
     if (!existsSync(file) && legacy && existsSync(join(assets, `${legacy}.png`))) file = join(assets, `${legacy}.png`);
+    const fromSheet = !existsSync(file) && LEGACY_SHEET_CROPS[path] ? cropSheet(assets, LEGACY_SHEET_CROPS[path]!) : null;
+    if (fromSheet) {
+      images.set(path.replace(SPRITES, 'sprites/').replace('textures/gui/', ''), fromSheet);
+      continue;
+    }
     if (!existsSync(file)) {
       // destaque do slot (sprites só desde a 24w39a: antes o jogo pintava um branco a 50%, e o site faz o mesmo)
       if (OPTIONAL_IMAGES.has(path)) continue;
@@ -157,7 +204,12 @@ export async function buildGuiBundle(versionDir: string, backgrounds: string[]):
   const dataUrl = (png: Buffer) => `data:image/png;base64,${png.toString('base64')}`;
   for (const [name, sprite] of Object.entries(FRAME_SPRITES)) {
     const file = join(assets, `${SPRITES}${sprite}.png`);
-    if (!existsSync(file)) continue;
+    if (!existsSync(file)) {
+      const legacy = LEGACY_FRAME_CROPS[name];
+      const png = legacy ? cropSheet(assets, legacy.crop) : null;
+      if (png) frames[name] = { width: png.width, height: png.height, border: legacy!.border, src: dataUrl(PNG.sync.write(png)) };
+      continue;
+    }
     const png = PNG.sync.read(readFileSync(file));
     const meta = existsSync(`${file}.mcmeta`) ? (JSON.parse(readFileSync(`${file}.mcmeta`, 'utf8')) as Json) : {};
     const scaling = meta.gui?.scaling;
@@ -166,7 +218,14 @@ export async function buildGuiBundle(versionDir: string, backgrounds: string[]):
     frames[name] = { width: png.width, height: png.height, border, src: dataUrl(readFileSync(file)) };
   }
   const panelBackground = backgrounds.map((id) => id.replace(/^minecraft:/, '').replace(/\.png$/, '')).find((path) => path.endsWith('tab_items')) ?? backgrounds[0]!.replace(/^minecraft:/, '').replace(/\.png$/, '');
-  const panel = panelFrame(images.get(panelBackground.replace('textures/gui/', ''))!, 195, 136);
+  const panelImage = images.get(panelBackground.replace('textures/gui/', ''))!;
+  const panel = panelFrame(panelImage, 195, 136);
+  // slot sem sprite próprio (antes da 23w31a): o primeiro slot desenhado no fundo da aba (item em 9, 18)
+  if (!frames.slot) {
+    const slot = new PNG({ width: 18, height: 18 });
+    crop(panelImage, 8, 17, 18, 18, slot, 0, 0);
+    frames.slot = { width: 18, height: 18, border: 1, src: dataUrl(PNG.sync.write(slot)) };
+  }
   frames.panel = { width: panel.width, height: panel.height, border: PANEL_BORDER, src: dataUrl(PNG.sync.write(panel)) };
 
   const tiles: Record<string, TileInfo> = {};

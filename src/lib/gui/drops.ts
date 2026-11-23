@@ -3,8 +3,9 @@
 // nomes oficiais, iguais em todos os idiomas (a Mojang não traduz). drop sem nome aqui aparece só pelo número.
 // os drops com nome são também os que o histórico publica. antes dos drops oficiais (1.21.2), os nomes e os
 // agrupamentos seguem a navbox da wiki (Template:Navbox Java Edition versions): 1.21 (Tricky Trials), 1.20.5
-// (Armored Paws, que a Mojang já chamou de "drop"), 1.20.3 (Bats and Pots)
+// (Armored Paws, que a Mojang já chamou de "drop"), 1.20.3 (Bats and Pots), 1.20 (Trails & Tales, com 1.20.1 e 1.20.2)
 export const DROP_NAMES: Record<string, string> = {
+  '1.20': 'Trails & Tales',
   '1.20.3': 'Bats and Pots',
   '1.20.5': 'Armored Paws',
   '1.21': 'Tricky Trials',
@@ -21,7 +22,7 @@ export const DROP_NAMES: Record<string, string> = {
 };
 
 // versões de correção que pertencem a um drop anterior (1.21.3 corrigiu o Bundles of Bravery etc.)
-const PATCH_OF: Record<string, string> = { '1.20.4': '1.20.3', '1.20.6': '1.20.5', '1.21.1': '1.21', '1.21.3': '1.21.2', '1.21.7': '1.21.6', '1.21.8': '1.21.6', '1.21.10': '1.21.9' };
+const PATCH_OF: Record<string, string> = { '1.20.1': '1.20', '1.20.2': '1.20', '1.20.4': '1.20.3', '1.20.6': '1.20.5', '1.21.1': '1.21', '1.21.3': '1.21.2', '1.21.7': '1.21.6', '1.21.8': '1.21.6', '1.21.10': '1.21.9' };
 
 // drop pelo número da versão, quando ele está no id:
 // - 26.x em diante: os dois primeiros números ("26.4-snapshot-10" → "26.4", "26.3.1" → "26.3");
